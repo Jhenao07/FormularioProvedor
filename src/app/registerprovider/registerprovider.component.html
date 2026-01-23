@@ -1,0 +1,57 @@
+<div class="provider-page">
+  <div class="provider-wrapper">
+    <!-- Header oscuro -->
+    <div class="provider-header">
+      <img src="assets/nuvant-logo.svg" alt="Nuvant" />
+    </div>
+    <!-- Card blanca -->
+    <div class="provider-card">
+      <div class="icon-circle">
+        <img src="assets/favicon.ico" />
+      </div>
+      <h1>Completa tu registro como proveedor</h1>
+      <div class="info-list">
+        <div class="info-item">
+          <span class="icon">📄</span>
+          <span>Solicitud #00123</span>
+        </div>
+        <div class="info-item">
+          <span class="icon">⏱️</span>
+          <span>Tiempo estimado: <strong>8–12 minutos</strong></span>
+        </div>
+
+    <p class="token-label">Ingresa el token enviado a tu correo</p>
+          <div class="token-box" (paste)="onPaste($event)">
+        <input
+          #otpInput
+          *ngFor="let ctrl of digitsFA.controls; let i = index"
+          type="text"
+          inputmode="numeric"
+          maxlength="1"
+          [value]="ctrl.value"
+          (input)="onInput($event, i)"
+          (keydown)="onKeydown($event, i)"
+          [attr.aria-label]="'Dígito ' + (i + 1) + ' del token'"
+        />
+      </div>
+        <div class="info-item">
+          <span class="icon">🔒</span>
+          <span>Tu información está segura y confidencial</span>
+      </div>
+      <div class="actions">
+        <button type="button" class="btn-primary" (click)="validateToken()">
+          Iniciar registro
+        </button>
+      </div>
+      <div class="help">
+        <p>¿Necesitas ayuda?</p>
+        <a href="mailto:proveedores@nuvantglobal.com"> ---- </a>
+      </div>
+    </div>
+    <!-- Footer -->
+    <div class="provider-footer">
+      Soporte:
+      <a href="mailto:proveedores@nuvantglobal.com"> --- </a>
+    </div>
+  </div>
+</div>

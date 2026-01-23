@@ -37,6 +37,8 @@ EmployeesResponse!: EmployeesResponse;
     name: [''],
     gerencia: [''],
     position: [''],
+    observations: [''],
+    sentAnt: [new Date()],
     area: [''],
     providerType: ['']
   });
@@ -53,7 +55,7 @@ get email() {
   return this.form.get('email');
 }
 
-// ===== Solo números =====
+
 numbers() {
   const valor = this.documentNumber?.value || '';
   const numbers = valor.replace(/\D/g, '');
@@ -105,6 +107,7 @@ sendinvitation(): void {
   }
 
   this.service.setData(this.form.value);
+  sentAnt: new Date();
   this.router.navigate(['/invited']);
 
   console.log('✔ Datos guardados:', this.form.value);

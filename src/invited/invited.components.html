@@ -23,7 +23,14 @@
 
       <div class="row">
         <span class="label">Fecha envío</span>
+        <span class="value">{{ data?.sentAnt | date:'longDate' }}</span>
       </div>
+
+       <div class="row">
+        <span class="label">Observaciones</span>
+        <span class="value">{{ data?.observations }}</span>
+      </div>
+
     </div>
 
     <div class="section">
@@ -42,10 +49,10 @@
         Este enlace permite al proveedor completar su registro.
       </small>
     </div>
-
-    <button class="primary-btn">
+    <div class="actions">
+    <button type="button" class="primary-btn" (click)="goInbox()">
       Ir a bandeja de solicitudes
     </button>
-
+    </div>
   </div>
 </div>
