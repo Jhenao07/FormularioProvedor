@@ -1,8 +1,14 @@
-// export interface Employees {
-//   cedula: string;
-//   email: string;
-//   solicitante: string;
-//   gerencia: string;
-//   cargo: string;
-//   area: string;
-// }
+export interface Employee {
+  documentNumber: string;
+  name: string;
+  email: string;
+  position: string;
+  area: string;
+  management: string;
+  
+}
+
+export interface EmployeesResponse {
+  totalRecords: number;
+  users: Employee[];
+}

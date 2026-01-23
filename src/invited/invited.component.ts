@@ -1,21 +1,23 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { services } from '../app/services';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-invited',
-  imports: [],
+  standalone: true,
+  imports: [CommonModule],
   templateUrl: './invited.components.html',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  styleUrls: ['./invited.css'],
 })
 export class InvitedComponent {
 
-  datos: any = null;
+  data: any = null;
 
   constructor(private dataService: services) {}
 
   ngOnInit() {
-    this.datos = this.dataService.getData();
-    console.log('Datos recibidos:', this.datos);
+    this.data = this.dataService.getData();
+    console.log('Datos recibidos:', this.data);
   }
 
  }

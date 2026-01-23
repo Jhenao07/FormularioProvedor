@@ -1,6 +1,51 @@
+<div class="page">
+  <div class="invited-card">
 
-<p>Solicitado por: {{ datos?.solicitadoPor }}</p>
-<p>Gerencia: {{ datos?.gerencia }}</p>
-<p>Cargo: {{ datos?.cargo }}</p>
-<p>Email: {{ datos?.email }}</p>
-<p>Cédula: {{ datos?.cedula }}</p>
+    <div class="check-circle">
+      <span>✓</span>
+    </div>
+
+    <h1>Invitación enviada</h1>
+    <p class="subtitle">Espacio exclusivo para Nuvant</p>
+
+    <div class="section">
+      <h3>Datos del solicitante (Nuvant)</h3>
+
+      <div class="row">
+        <span class="label">Proveedor</span>
+        <span class="value">{{ data?.email }}</span>
+      </div>
+
+      <div class="row">
+        <span class="label">Estado</span>
+        <span class="value status">Pendiente por completar</span>
+      </div>
+
+      <div class="row">
+        <span class="label">Fecha envío</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <label>Enlace al proveedor *</label>
+
+      <div class="link-wrapper">
+        <input
+          type="text"
+          readonly
+          [value]="data?.link || 'https://portal.nuvantglobal.com/proveedor/registro?...'"
+        />
+        <button type="button">Copiar enlace</button>
+      </div>
+
+      <small class="hint">
+        Este enlace permite al proveedor completar su registro.
+      </small>
+    </div>
+
+    <button class="primary-btn">
+      Ir a bandeja de solicitudes
+    </button>
+
+  </div>
+</div>

@@ -1,0 +1,148 @@
+<form [formGroup]="form" novalidate>
+<div class="page">
+  <div class="card">
+    <div class="header">
+      <img src="assets/nuvant-logo.svg" alt="Nuvant" />
+      <div class="input-group">
+        <h3>Digite su cédula:</h3>
+        <div class="input-icon">
+
+          <input
+            type="text"
+            placeholder="Ingrese su cédula"
+            formControlName="documentNumber"
+            (input)="numbers()"
+             [ngClass]="{ 'is-invalid': documentNumber?.invalid && documentNumber?.touched }"
+          />
+          <span>🪪</span>
+
+        </div>
+         <div *ngIf="documentNumber?.invalid && documentNumber?.touched" class="error-message">
+          <small *ngIf="documentNumber?.errors?.['required']">La cédula es requerida.</small>
+          <small *ngIf="documentNumber?.errors?.['pattern']">Solo se permiten números.</small>
+          <small *ngIf="documentNumber?.errors?.['minlength']">Debe tener al menos 6 dígitos.</small>
+          <small *ngIf="documentNumber?.errors?.['maxlength']">No puede tener más de 10 dígitos.</small>
+        </div>
+      </div>
+     <button type="button" class="btn consult" (click)="search()">Consultar</button>
+
+    </div>
+
+    <div class="body">
+      <h1>Nueva solicitud de proveedor</h1>
+      <p class="subtitle">Espacio exclusivo para Nuvant</p>
+      <div class="form-card">
+
+        <h3>Datos del solicitante (Nuvant)</h3>
+        <p class="hint">*Espacio exclusivo para Nuvant</p>
+        <div class="form-group">
+          <label>Solicitado por *</label>
+          <input type="text" placeholder="Seleccione o escriba un nombre..." formControlName="name" />
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Gerencia a la que pertenece *</label>
+            <input type="text" placeholder="Gerencia" formControlName="gerencia" />
+          </div>
+          <div class="form-group">
+            <label>Cargo del solicitante *</label>
+            <input type="text" placeholder="Cargo" formControlName="position" />
+          </div>
+          <div class="form-group">
+            <label >{{Employee()?.area || ''}}</label>
+            <input type="text" placeholder="Area" formControlName="area" />
+          </div>
+        </div>
+        <div class="form-group">
+  <label>Tipo de proveedor *</label>
+
+  <div class="chips">
+    <button
+      type="button"
+      class="chip"
+      [class.active]="form.get('providerType')?.value === 'Repuestos'"
+      (click)="selectChip('Repuestos')"
+    >
+      Repuestos
+    </button>
+
+    <button
+      type="button"
+      class="chip"
+      [class.active]="form.get('providerType')?.value === 'Servicios'"
+      (click)="selectChip('Servicios')"
+    >
+      Servicios
+    </button>
+
+    <button
+      type="button"
+      class="chip"
+      [class.active]="form.get('providerType')?.value === 'Asesoría / Consultoría'"
+      (click)="selectChip('Asesoría / Consultoría')"
+    >
+      Asesoría / Consultoría
+    </button>
+
+    <button
+      type="button"
+      class="chip"
+      [class.active]="form.get('providerType')?.value === 'Maquinaria'"
+      (click)="selectChip('Maquinaria')"
+    >
+      Maquinaria
+    </button>
+
+    <button
+      type="button"
+      class="chip"
+      [class.active]="form.get('providerType')?.value === 'Otros'"
+      (click)="selectChip('Otros')"
+    >
+      Otros
+    </button>
+  </div>
+
+  <input
+    class="mt"
+    type="text"
+    placeholder="Describa otros..."
+    formControlName="providerType"
+  />
+</div>
+        <div class="form-group">
+          <label>Clasificación del proveedor *</label>
+          <select>
+            <option>Seleccione</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Email del proveedor *</label>
+          <div class="input-icon">
+            <input type="email" placeholder="nombre@empresa.com" formControlName="email" />
+            <span>✉️</span>
+          </div>
+          <div *ngIf="email?.invalid && email?.touched" class="error-message">
+            <small *ngIf="email?.errors?.['required']">El email es requerido.</small>
+            <small *ngIf="email?.errors?.['email']">Ingrese un email válido.</small>
+          </div>
+          <small>Se enviará aquí el enlace de registro al proveedor.</small>
+        </div>
+        <div class="form-group">
+          <label>Observaciones para el proveedor (opcional)</label>
+          <textarea maxlength="300" placeholder="Trl..."></textarea>
+          <div class="counter">0 / 300</div>
+        </div>
+        <p class="note">
+          La firma se solicitará después de la validación de Compras.
+        </p>
+        <div class="actions">
+          <button type="button" class="btn secondary">Cancelar</button>
+          <button type="button" class="btn primary" (click)="sendinvitation()">Enviar invitación</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</form>
+
