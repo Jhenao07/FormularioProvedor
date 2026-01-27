@@ -1,0 +1,141 @@
+<div class="provider-page">
+  <div class="provider-wrapper">
+
+    <!-- HEADER -->
+    <div class="provider-header">
+      <img src="assets/nuvant-logo.svg" alt="Nuvant" />
+    </div>
+
+    <!-- STEPS -->
+    <div class="steps">
+      <div class="step" [class.active]="currentStep === 1" (click)="goToStep(1)">
+        Tipo de proveedor
+      </div>
+      <div class="step" [class.active]="currentStep === 2" (click)="goToStep(2)">
+        Documentos
+      </div>
+      <div class="step" [class.active]="currentStep === 3" (click)="goToStep(3)">
+        Datos del proveedor
+      </div>
+      <div class="step" [class.active]="currentStep === 4" (click)="goToStep(4)">
+        Revisión
+      </div>
+    </div>
+
+    <!-- CARD -->
+    <div class="provider-card" [formGroup]="form">
+
+      <!-- ===== STEP 1 ===== -->
+      <div  *ngIf="currentStep === 1" formGroupName="step1">
+        <h2>¿Qué tipo de proveedor eres?</h2>
+        <div class="option-content">
+          <div
+            class="option-card"
+            [class.selected]="providerType === 'national'"
+            (click)="selectProvider('national')"
+          >
+            <div class="option-icon flag-co"></div>
+          <strong>Proveedor Nacional</strong>
+          <p>Usaremos tus documentos para autocompletar información</p>
+        </div>
+        <div class="option-content">
+        <div
+          class="option-card"
+          [class.selected]="providerType === 'international'"
+          (click)="selectProvider('international')"
+        >
+        <div class="option-icon globe"></div>
+          <strong>Proveedor Exterior / International Supplier</strong>
+          <p>The form will be displayed in Spanish and English</p>
+        </div>
+        </div>
+        <button class="btn-primary" (click)="nextStep()" [disabled]="!providerType">
+          Siguiente
+        </button>
+      </div>
+      </div>
+      <!-- ===== STEP 2 ===== -->
+      <div *ngIf="currentStep === 2" formGroupName="step2">
+        <h2>Documentos obligatorios</h2>
+
+        <div class="doc-item">
+          <span>RUT</span>
+          <button class="btn-outline">Adjuntar</button>
+        </div>
+
+        <div class="doc-item">
+          <span>Cámara de Comercio</span>
+          <button class="btn-outline">Adjuntar</button>
+        </div>
+
+        <div class="doc-item">
+          <span>Certificación Bancaria</span>
+          <button class="btn-outline">Adjuntar</button>
+        </div>
+
+        <div class="actions">
+          <button class="btn-secondary" (click)="prevStep()">Atrás</button>
+          <button class="btn-primary" (click)="nextStep()">Procesar documentos</button>
+        </div>
+          <div class="error" *ngIf="currentStep === 2 &&
+               form.get('step2')?.touched &&
+               form.get('step2')?.hasError('required')
+             ">
+            Debes adjuntar al menos un documento obligatorio
+          </div>
+      </div>
+
+      <!-- ===== STEP 3 ===== -->
+      <div *ngIf="currentStep === 3" formGroupName="step3">
+        <h2>Identificación del proveedor</h2>
+
+        <div class="form-group">
+          <label>Razón social</label>
+          <input type="text" formControlName="businessName" />
+           <div class="error" *ngIf=" currentStep === 3 &&
+              form.get('step3.businessName')?.touched &&
+              form.get('step3.businessName')?.invalid
+              ">
+              La razón social es obligatoria
+           </div>
+        </div>
+
+        <div class="form-group">
+          <label>NIT</label>
+          <input type="text" formControlName="nit" />
+          <div class="error" *ngIf=" currentStep === 3 &&
+               form.get('step3.nit')?.touched &&
+               form.get('step3.nit')?.invalid
+             ">
+             El NIT es obligatorio
+          </div>
+
+        </div>
+
+        <div class="actions">
+          <button class="btn-secondary" (click)="prevStep()">Atrás</button>
+          <button class="btn-primary" (click)="nextStep()">Siguiente</button>
+        </div>
+
+      </div>
+
+
+      <!-- ===== STEP 4 ===== -->
+      <div *ngIf="currentStep === 4">
+        <h2>Revisión y envío</h2>
+
+        <ul class="review-list">
+          <li>✔ Tipo de proveedor seleccionado</li>
+          <li>✔ Documentos cargados</li>
+          <li>✔ Datos completos</li>
+        </ul>
+
+        <div class="actions">
+          <button class="btn-secondary" (click)="prevStep()">Atrás</button>
+          <button class="btn-primary">Enviar registro</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

@@ -13,7 +13,7 @@ import { Router } from '@angular/router';
 export class RegisterproviderComponent {
   data: any = null;
   form: FormGroup;
- 
+
 
   ngOnInit() {
     this.data = this.dataService.getData();
@@ -108,7 +108,7 @@ export class RegisterproviderComponent {
     return;
   }
 
-  this.router.navigate(['/registerdates']);
+  this.router.navigate(['/provider']);
 
   }
 

@@ -25,11 +25,11 @@
 }
 /* --- Header --- */
 .header {
- background: linear-gradient(135deg, #1e2340, #2c3158);
+ background: #080D29;
  padding: 28px 32px 20px;
 }
 .header img {
- height: 40px;
+ height: 90px;
  margin-bottom: 16px;
 }
 .input-group {
@@ -100,15 +100,14 @@ textarea::placeholder {
 input:focus,
 select:focus,
 textarea:focus {
- border-color: #ffa600;
- box-shadow: 0 0 0 3px rgba(55, 66, 250, 0.15);
+ border-color: #FF6647;
  outline: none;
 }
 textarea {
  resize: none;
  min-height: 90px;
 }
-/* --- Input icon --- */
+
 .input-icon {
   width: 100%;
  position: relative;
@@ -145,7 +144,7 @@ textarea {
  padding: 10px 20px;
  border-radius: 999px;
  background: #f1f5ff;
- color: #fa9f37;
+ color: #FF6647;
  border: 1px solid #d6ddff;
  font-size: 14px;
  cursor: pointer;
@@ -156,7 +155,7 @@ textarea {
  background: #e3e9ff;
 }
 .chip.active {
- background: linear-gradient(135deg, #3742fa, #5f6fff);
+ background: #080D29;
  color: #ffffff;
  border-color: transparent;
  box-shadow: 0 6px 14px rgba(55, 66, 250, 0.35);
@@ -200,9 +199,9 @@ small {
  border: 1px solid #d1d5db;
 }
 .btn.primary {
- background: linear-gradient(135deg, #f36b45, #e5532f);
+ background: #FF6647;
  color: #ffffff;
- box-shadow: 0 6px 14px rgba(236, 137, 7, 0.89);
+ /* box-shadow: 0 6px 14px rgba(236, 137, 7, 0.89); */
 }
 .btn.primary:hover {
  transform: translateY(-1px);
