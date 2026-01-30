@@ -1,6 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import  {  hasFlag  }  from  'country-flag-icons'
+import { countries } from 'country-flag-icons'
 
 @Component({
   selector: 'app-provider',
@@ -11,19 +13,20 @@ import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validator
 })
 export class ProviderComponent {
 
-
-   currentStep = 1;
+  providerType: 'juridica' | 'natural' = 'juridica';
+  currentStep = 1;
   form: FormGroup;
 
   constructor(private fb: FormBuilder) {
-    this.form = this.fb.group({
 
-      /* ---------- STEP 1 ---------- */
+
+
+    this.form = this.fb.group({
       step1: this.fb.group({
         providerType: ['', Validators.required]
       }),
 
-      /* ---------- STEP 2 ---------- */
+
       step2: this.fb.group(
         {
           rut: [null],
@@ -35,20 +38,24 @@ export class ProviderComponent {
         }
       ),
 
-      /* ---------- STEP 3 ---------- */
+
       step3: this.fb.group({
         businessName: ['', Validators.required],
-        nit: ['', Validators.required]
+        nit: ['', Validators.required],
+        legalRepName: ['', Validators.required],
+        riskOption: ['NA', Validators.required],
+        riskWhich: ['']
       }),
 
-      /* ---------- STEP 4 ---------- */
+
       step4: this.fb.group({})
     });
+
+
   }
 
-  /* =====================================
-     VALIDADOR: AL MENOS UN ARCHIVO
-  ===================================== */
+
+
   static atLeastOneFileValidator(control: AbstractControl) {
     const value = control.value;
     if (!value) return { required: true };
@@ -60,9 +67,6 @@ export class ProviderComponent {
     return hasFile ? null : { required: true };
   }
 
-  /* =====================================
-     MANEJO DE ARCHIVOS (STEP 2)
-  ===================================== */
   onFileSelected(event: Event, docType: 'rut' | 'camara' | 'bancaria') {
     const input = event.target as HTMLInputElement;
     if (!input.files || input.files.length === 0) return;
@@ -80,9 +84,6 @@ export class ProviderComponent {
     this.form.get('step2')?.updateValueAndValidity();
   }
 
-  /* =====================================
-     NAVEGACIÓN ENTRE STEPS
-  ===================================== */
   nextStep() {
     const currentGroup = this.getCurrentStepGroup();
 
@@ -129,13 +130,11 @@ export class ProviderComponent {
     this.form.get('step1.providerType')?.markAsTouched();
   }
 
-  get providerType(): string {
+  get providerTypes(): string {
     return this.form.get('step1.providerType')?.value;
   }
 
-  /* =====================================
-     STEP 4: REVISIÓN / ENVÍO
-  ===================================== */
+
   submitForm() {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -154,3 +153,7 @@ export class ProviderComponent {
   }
 
 }
+function ngOnInit() {
+  throw new Error('Function not implemented.');
+}
+

@@ -13,6 +13,7 @@ import { Router } from '@angular/router';
 export class RegisterproviderComponent {
   data: any = null;
   form: FormGroup;
+  providerType: 'juridica' | 'natural' = 'juridica';
 
 
   ngOnInit() {

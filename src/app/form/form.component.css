@@ -14,7 +14,7 @@
  padding: 24px;
  font-family: "Segoe UI", Roboto, sans-serif;
 }
-/* --- Card --- */
+
 .card {
  width: 100%;
  max-width: 860px;
@@ -23,7 +23,7 @@
  box-shadow: 0 25px 45px rgba(0, 0, 0, 0.25);
  overflow: hidden;
 }
-/* --- Header --- */
+
 .header {
  background: #080D29;
  padding: 28px 32px 20px;
@@ -201,7 +201,6 @@ small {
 .btn.primary {
  background: #FF6647;
  color: #ffffff;
- /* box-shadow: 0 6px 14px rgba(236, 137, 7, 0.89); */
 }
 .btn.primary:hover {
  transform: translateY(-1px);

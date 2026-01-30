@@ -3,6 +3,7 @@ import { services } from '../app/services';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
+
 @Component({
   selector: 'app-invited',
   standalone: true,
@@ -21,7 +22,5 @@ export class InvitedComponent {
     console.log('Datos recibidos:', this.data);
   }
 
-  goInbox() {
-    this.router.navigate(['/register-provider']);
-  }
+
  }
