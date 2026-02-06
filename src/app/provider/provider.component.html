@@ -64,7 +64,7 @@
         <div *ngIf="currentStep === 2" formGroupName="step2" class="step-content">
           <h2>Documentos obligatorios</h2>
 
-          <div class="doc-item">
+          <!-- <div class="doc-item">
             <span>RUT</span>
              <input type="file" accept=".pdf,.jpg,.png" hidden #rutInput (change)="onFileSelected($event, 'rut')" />
                <button type="button" class="btn-outline" (click)="rutInput.click()">
@@ -78,19 +78,68 @@
             <button type="button" class="btn-outline" (click)="camaraInput.click()">
               {{ form.get('step2.camara')?.value ? 'Archivo cargado ✔' : 'Adjuntar' }}
             </button>
+          </div> -->
+
+     @for(arrayItem of arrayItems(); track $index){
+        <div class="doc-item" [class.has-file]="form.get('step2.' + arrayItem.key)?.value">
+          <div class="option-text">
+            <strong>{{ arrayItem.title }}</strong>
+            <p *ngIf="form.get('step2.' + arrayItem.key)?.value" class="file-status-text">
+              ✔ Archivo listo para procesar
+            </p>
+            <p *ngIf="!form.get('step2.' + arrayItem.key)?.value">
+              Formato PDF, JPG o PNG
+            </p>
           </div>
 
-          <div class="doc-item">
+          <div class="doc-actions">
+            <input
+              type="file"
+              [id]="'file-input-' + arrayItem.key"
+              accept=".pdf,.jpg,.png"
+              hidden
+              #fileInput
+              (change)="onFileSelected($event, arrayItem.key)" />
+
+            <ng-container *ngIf="!form.get('step2.' + arrayItem.key)?.value; else deleteBtn">
+              <button type="button" class="btn-outline" (click)="fileInput.click()">
+                Adjuntar
+              </button>
+            </ng-container>
+
+            <ng-template #deleteBtn>
+              <button type="button" class="btn-danger-outline" (click)="removeFile(arrayItem.key)">
+                <span class="icon-x">✕</span> Borrar
+              </button>
+            </ng-template>
+          </div>
+        </div>
+      }
+
+          <!-- <div class="doc-item">
             <span>Certificación Bancaria</span>
             <input type="file" accept=".pdf,.jpg,.png" hidden #bancariaInput (change)="onFileSelected($event, 'bancaria')" />
             <button type="button" class="btn-outline" (click)="bancariaInput.click()">
               {{ form.get('step2.bancaria')?.value ? 'Archivo cargado ✔' : 'Adjuntar' }}
             </button>
-          </div>
+          </div> -->
 
           <div class="actions">
             <button class="btn-secondary" (click)="prevStep()">Atrás</button>
-            <button class="btn-primary" (click)="nextStep()" [disabled]="form.get('step2')?.invalid">Continuar</button>
+            <button class="btn-primary" (click)="openInfiniteOverlay()" [disabled]="form.get('step2')?.invalid"
+            >Continuar</button>
+
+          <button
+            type="button"
+            class="btn-ai"
+            (click)="procesarPdf('rut')"
+            [disabled]="overlayOpen || !tienePdfRut">
+
+            <span *ngIf="!overlayOpen" class="btn-icon">🕛</span>
+
+            {{ overlayOpen ? 'Procesando...' : 'Procesar PDF' }}
+          </button>
+
           </div>
 
 
@@ -320,3 +369,30 @@
     </section>
   </div>
 </div>
+<!-- <app-progress-overlay
+  [open]="infiniteOverlayOpen()"
+  [title]="'Cargando infinito...'"
+  [subtitle]="'Esto es solo una prueba de barra infinita.'"
+  [current]="infiniteProgress()"
+  [total]="100"
+  [accent]="'#3fc3ee'"
+  [backdropOpacity]="0.55"
+  [trackOpacity]="0.18"
+  [barHeight]="10"
+  [blurPx]="10"
+  [radius]="16"
+  [width]="'min(560px, 92vw)'"
+  (close)="closeInfiniteOverlay()"
+  [closable]="true"
+></app-progress-overlay> -->
+
+<app-progress-overlay
+  [open]="overlayOpen"
+  [title]="overlayTitle"
+  [subtitle]="overlaySubtitle"
+  [indeterminate]="overlayIndeterminate"
+  [current]="overlayCurrent"
+  [total]="overlayTotal"
+  [closable]="overlayClosable"
+  (close)="onOverlayClose()">
+</app-progress-overlay>

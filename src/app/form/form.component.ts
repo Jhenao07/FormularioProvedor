@@ -12,7 +12,7 @@ import { EmployeesResponse, Employee } from '../interface/employees.interface';
   styleUrl: './form.component.css'
 })
 export class FormComponent {
-EmployeesResponse!: EmployeesResponse;
+    EmployeesResponse!: EmployeesResponse;
     name = signal ('');
     Employee = signal <Employee | null>(null);
     position = signal ('');
