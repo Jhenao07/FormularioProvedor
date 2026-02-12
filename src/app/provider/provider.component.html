@@ -1,336 +1,135 @@
 <div class="provider-page">
   <div class="provider-wrapper">
 
-
     <header class="provider-header">
       <img src="assets/nuvant.png" alt="Nuvant" />
     </header>
 
     <nav class="steps">
-      <div class="step" [class.active]="currentStep === 1">Tipo de proveedor</div>
-      <div class="step" [class.active]="currentStep === 2">Documentos</div>
-      <div class="step" [class.active]="currentStep === 3">Datos del proveedor</div>
-      <div class="step" [class.active]="currentStep === 4">Revisión</div>
+      <div class="step" [class.active]="currentStep === 1">Documentos</div>
+      <div class="step" [class.active]="currentStep === 2">Datos del proveedor</div>
+      <div class="step" [class.active]="currentStep === 3">Revisión</div>
     </nav>
 
-
     <section class="provider-card" [formGroup]="form">
-
       <div class="step-container">
 
+      <div *ngIf="currentStep === 1" formGroupName="step1" class="step-content">
 
-        <div *ngIf="currentStep === 1" formGroupName="step1" class="step-content">
-          <h2>¿Qué tipo de proveedor eres?</h2>
+        @if (!countrySelected) {
+          <div class="empty-state">
+            <div class="icon-info">🌍</div>
+            <h2>Selecciona tu ubicación</h2>
+            <p>Para mostrarte los documentos requeridos, por favor selecciona el país donde resides en el formulario anterior.</p>
+          </div>
+        }
+
+        @else {
+          <h2>Documentos requeridos para {{ countrySelected }}</h2>
 
           <div class="option-list">
-            <div
-              class="option-card"
-              [class.selected]="providerTypes === 'national'"
-              (click)="selectProvider('national')">
-              <div class="option-icon">
-                <img class="CountryFlag" alt="Colombia"
-                  src="assets/CO.svg"/>
+            @for(doc of arrayItems(); track doc.key) {
+              <div class="doc-item">
+                <div class="option-text">
+                  <strong>{{ doc.title }}</strong>
+                  <p>Formato PDF, JPG o PNG</p>
+                </div>
+
+                <div class="doc-actions">
+                  <input type="file" [id]="doc.key" hidden #fileInput (change)="onFileSelected($event, doc.key)" />
+
+                  @if (!form.get('step1.' + doc.key)?.value) {
+                    <button type="button" class="btn-outline" (click)="fileInput.click()">
+                      Adjuntar
+                    </button>
+                  } @else {
+                    <button type="button" class="btn-ai" (click)="procesarPdf(doc.key)">
+                      ✨ Procesar
+                    </button>
+                  }
+                </div>
               </div>
-              <div>
-                <strong>Proveedor Nacional</strong>
-                <p>Usaremos tus documentos para autocompletar información</p>
-
-              </div>
-            </div>
-
-            <div
-              class="option-card"
-              [class.selected]="providerTypes === 'international'"
-              (click)="selectProvider('international')">
-              <div class="option-icon">
-                <img class="CountryFlag" alt="international"
-                  src="assets/earth.png"/>
-              </div>
-              <div>
-                <strong>Proveedor Exterior</strong>
-                <p>Spanish & English form</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="actions single">
-            <button class="btn-primary" (click)="nextStep()" [disabled]="!providerTypes">
-              Siguiente
-            </button>
-          </div>
-        </div>
-
-        <!-- STEP 2 -->
-
-    <div *ngIf="currentStep === 2" formGroupName="step2" class="step-content">
-      <h2>Documentos obligatorios</h2>
-
-      <div class="option-list">
-        @for(arrayItem of arrayItems(); track $index){
-          <div class="doc-item" [class.has-file]="form.get('step2.' + arrayItem.key)?.value">
-            <div class="option-text">
-              <strong>{{ arrayItem.title }}</strong>
-              <p *ngIf="form.get('step2.' + arrayItem.key)?.value" class="file-status-text">
-                ✔ Archivo cargado
-              </p>
-              <p *ngIf="!form.get('step2.' + arrayItem.key)?.value">
-                Formato PDF, JPG o PNG
-              </p>
-            </div>
-
-            <div class="doc-actions" style="display: flex; gap: 8px;">
-              <input
-                type="file"
-                [id]="'file-input-' + arrayItem.key"
-                accept=".pdf,.jpg,.png"
-                hidden
-                #fileInput
-                (change)="onFileSelected($event, arrayItem.key)" />
-
-              @if (!form.get('step2.' + arrayItem.key)?.value) {
-                <button type="button" class="btn-outline" (click)="fileInput.click()">
-                  Adjuntar
-                </button>
-              } @else {
-                <button type="button" class="btn-danger-outline" (click)="removeFile(arrayItem.key)">
-                  ✕ Borrar
-                </button>
-              }
-
-              @if (arrayItem.key === 'rut' && tienePdfRut && !overlayOpen) {
-                <button type="button" class="btn-ai" (click)="procesarPdf('rut')">
-                  ✨ Procesar
-                </button>
-              }
-            </div>
+            }
           </div>
         }
       </div>
 
-      <div class="actions">
-        <button class="btn-secondary" (click)="prevStep()">Atrás</button>
-        <button class="btn-primary" (click)="nextStep()" [disabled]="form.get('step2')?.invalid">
-          Continuar
-        </button>
-      </div>
-    </div>
-
-        <!-- STEP 3 -->
-
-        <div *ngIf="currentStep === 3" formGroupName="step3" class="step-content">
+        <div *ngIf="currentStep === 2" formGroupName="step2" class="step-content">
           <div class="card">
             <h2 class="title">Identificación del proveedor</h2>
-            <p class="subtitle">Adjunta tus documentos para autocompletar el formulario.</p>
 
-            <!-- Tabs -->
             <div class="tabs">
-              <button type="button"
-                      class="tab"
-                      [class.active]="providerType === 'juridica'"
-                      (click)="providerType='juridica'">
+              <button type="button" class="tab" [class.active]="providerType === 'juridica'" (click)="providerType='juridica'">
                 Persona Jurídica
               </button>
-
-              <button type="button"
-                      class="tab"
-                      [class.active]="providerType === 'natural'"
-                      (click)="providerType='natural'">
+              <button type="button" class="tab" [class.active]="providerType === 'natural'" (click)="providerType='natural'">
                 Persona Natural
               </button>
             </div>
 
-            <div *ngIf="providerType === 'juridica'" class="form-grid">
-
-
+            <div class="form-grid">
               <div class="form-group">
                 <label class="label">Razón Social <span class="req">*</span></label>
-
                 <div class="input-with-badge">
-                  <input type="text" formControlName="businessName" placeholder="Ej: S.A.S." />
-                  <span class="badge" *ngIf="form.get('step3.businessName')?.value">Autocompletado</span>
+                  <input type="text" formControlName="businessName" placeholder="Nombre completo" />
+                  <span class="badge" *ngIf="form.get('step2.businessName')?.value">Autocompletado</span>
                 </div>
-
-                <small class="error" *ngIf="form.get('step3.businessName')?.touched && form.get('step3.businessName')?.invalid">
-                  Campo requerido
-                </small>
               </div>
 
-              <!-- NIT -->
               <div class="form-group">
-                <label class="label">NIT <span class="req">*</span></label>
-
+                <label class="label">NIT / Documento <span class="req">*</span></label>
                 <div class="input-with-badge">
                   <input type="text" formControlName="nit" placeholder="Escribe el NIT" />
-                  <span class="badge" *ngIf="form.get('step3.nit')?.value">Autocompletado</span>
+                  <span class="badge" *ngIf="form.get('step2.nit')?.value">Autocompletado</span>
                 </div>
-
-                <small class="error" *ngIf="form.get('step3.nit')?.touched && form.get('step3.nit')?.invalid">
-                  Campo requerido
-                </small>
               </div>
 
-
               <div class="form-group">
-                <label class="label">Nombre del Representante Legal <span class="req">*</span></label>
-
+                <label class="label">Representante Legal <span class="req">*</span></label>
                 <div class="input-with-badge">
-                  <input type="text" formControlName="legalRepName" placeholder="Escribe el nombre del representante legal" />
-                  <span class="badge" *ngIf="form.get('step3.legalRepName')?.value">Autocompletado</span>
+                  <input type="text" formControlName="legalRepName" placeholder="Nombre completo" />
+                  <span class="badge" *ngIf="form.get('step2.legalRepName')?.value">Autocompletado</span>
                 </div>
-
-                <small class="error" *ngIf="form.get('step3.legalRepName')?.touched && form.get('step3.legalRepName')?.invalid">
-                  Campo requerido
-                </small>
               </div>
 
               <div class="form-group full">
-                <label class="label">
-                  ¿Cuenta con sistema de gestión de riesgo asociado a Lavado de Activos,
-                  Financiación del Terrorismo, Soborno Transnacional o Corrupción?
-                </label>
-
-                <div class="radio-row" role="radiogroup" aria-label="Sistema de gestión de riesgo">
+                <label class="label">¿Cuenta con sistema de gestión de riesgo?</label>
+                <div class="radio-row">
                   <label class="radio">
-                    <input type="radio" formControlName="riskOption" value="SI" />
-                    <span>Sí</span>
+                    <input type="radio" formControlName="riskOption" value="SI" /> <span>Sí</span>
                   </label>
-
                   <label class="radio">
-                    <input type="radio" formControlName="riskOption" value="NO" />
-                    <span>No</span>
-                  </label>
-
-                  <label class="radio">
-                    <input type="radio" formControlName="riskOption" value="NA" />
-                    <span>N/A</span>
+                    <input type="radio" formControlName="riskOption" value="NO" /> <span>No</span>
                   </label>
                 </div>
               </div>
 
-              <div class="form-group">
+              <div class="form-group" *ngIf="form.get('step2.riskOption')?.value === 'SI'">
                 <label class="label">¿Cuál?</label>
-
-                <input type="text"
-                      formControlName="riskWhich"
-                      placeholder="Ej: SAGRILAFT"
-                      [disabled]="form.get('step3.riskOption')?.value !== 'SI'" />
-              </div>
-
-
-              <div class="info-box full">
-                <span class="info-icon">i</span>
-                <span class="info-text">Los datos detectados se usarán para autocompletar el formulario.</span>
-              </div>
-            </div>
-            <!--  -->
-             <div *ngIf="providerType === 'natural'" class="form-grid">
-
-
-              <div class="form-group">
-                <label class="label">Razón Social <span class="req">*</span></label>
-
-                <div class="input-with-badge">
-                  <input type="text" formControlName="businessName" placeholder="Ej: S.A.S." />
-                  <span class="badge" *ngIf="form.get('step3.businessName')?.value">Autocompletado</span>
-                </div>
-
-                <small class="error" *ngIf="form.get('step3.businessName')?.touched && form.get('step3.businessName')?.invalid">
-                  Campo requerido
-                </small>
-              </div>
-
-              <!-- NIT -->
-              <div class="form-group">
-                <label class="label">NIT <span class="req">*</span></label>
-
-                <div class="input-with-badge">
-                  <input type="text" formControlName="nit" placeholder="Escribe el NIT" />
-                  <span class="badge" *ngIf="form.get('step3.nit')?.value">Autocompletado</span>
-                </div>
-
-                <small class="error" *ngIf="form.get('step3.nit')?.touched && form.get('step3.nit')?.invalid">
-                  Campo requerido
-                </small>
-              </div>
-
-
-              <div class="form-group">
-                <label class="label">Nombre del Representante Legal <span class="req">*</span></label>
-
-                <div class="input-with-badge">
-                  <input type="text" formControlName="legalRepName" placeholder="Escribe el nombre del representante legal" />
-                  <span class="badge" *ngIf="form.get('step3.legalRepName')?.value">Autocompletado</span>
-                </div>
-
-                <small class="error" *ngIf="form.get('step3.legalRepName')?.touched && form.get('step3.legalRepName')?.invalid">
-                  Campo requerido
-                </small>
-              </div>
-
-              <div class="form-group full">
-                <label class="label">
-                  ¿Cuenta con sistema de gestión de riesgo asociado a Lavado de Activos,
-                  Financiación del Terrorismo, Soborno Transnacional o Corrupción?
-                </label>
-
-                <div class="radio-row" role="radiogroup" aria-label="Sistema de gestión de riesgo">
-                  <label class="radio">
-                    <input type="radio" formControlName="riskOption" value="SI" />
-                    <span>Sí</span>
-                  </label>
-
-                  <label class="radio">
-                    <input type="radio" formControlName="riskOption" value="NO" />
-                    <span>No</span>
-                  </label>
-
-                  <label class="radio">
-                    <input type="radio" formControlName="riskOption" value="NA" />
-                    <span>N/A</span>
-                  </label>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label class="label">¿Cuál?</label>
-
-                <input type="text"
-                      formControlName="riskWhich"
-                      placeholder="Ej: SAGRILAFT"
-                      [disabled]="form.get('step3.riskOption')?.value !== 'SI'" />
-              </div>
-
-
-              <div class="info-box full">
-                <span class="info-icon">i</span>
-                <span class="info-text">Los datos detectados se usarán para autocompletar el formulario.</span>
+                <input type="text" formControlName="riskWhich" placeholder="Ej: SAGRILAFT" />
               </div>
             </div>
 
-
-            <!-- Actions -->
             <div class="actions">
               <button type="button" class="btn-secondary" (click)="prevStep()">Atrás</button>
-              <button type="button" class="btn-primary" (click)="nextStep()">Siguiente</button>
+              <button type="button" class="btn-primary" (click)="nextStep()" [disabled]="form.get('step2')?.invalid">
+                Siguiente
+              </button>
             </div>
-
           </div>
         </div>
 
-
-        <!-- STEP 4 -->
-        <div *ngIf="currentStep === 4" class="step-content">
+        <div *ngIf="currentStep === 3" class="step-content">
           <h2>Revisión y envío</h2>
-
-          <ul class="review-list">
-            <li>✔ Tipo de proveedor seleccionado</li>
-            <li>✔ Documentos cargados</li>
-            <li>✔ Datos completos</li>
-          </ul>
-
+          <div class="review-card">
+            <ul class="review-list">
+              <li>✔ Documentos listos</li>
+              <li>✔ Datos extraídos y validados</li>
+            </ul>
+          </div>
           <div class="actions">
             <button class="btn-secondary" (click)="prevStep()">Atrás</button>
-            <button class="btn-primary">Enviar registro</button>
+            <button class="btn-primary" (click)="submitForm()">Enviar registro</button>
           </div>
         </div>
 
@@ -338,22 +137,6 @@
     </section>
   </div>
 </div>
-<!-- <app-progress-overlay
-  [open]="infiniteOverlayOpen()"
-  [title]="'Cargando infinito...'"
-  [subtitle]="'Esto es solo una prueba de barra infinita.'"
-  [current]="infiniteProgress()"
-  [total]="100"
-  [accent]="'#3fc3ee'"
-  [backdropOpacity]="0.55"
-  [trackOpacity]="0.18"
-  [barHeight]="10"
-  [blurPx]="10"
-  [radius]="16"
-  [width]="'min(560px, 92vw)'"
-  (close)="closeInfiniteOverlay()"
-  [closable]="true"
-></app-progress-overlay> -->
 
 <app-progress-overlay
   [open]="overlayOpen"

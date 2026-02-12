@@ -5,14 +5,48 @@ import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validator
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { ProgressOverlayComponent } from '../components/progress-overlay/progressOverlay.component';
 import { interval, Subscription } from 'rxjs';
+import { ActivatedRoute } from '@angular/router';
+import {  } from '../interface/employees.interface';
 
-// Interfaz para la respuesta del API (Tipado fuerte)
+interface DocConfig {
+  title: string;
+  key: string;
+}
+
 interface ExtractedData {
   nombres?: string;
   apellidos?: string;
   numeroDocumento?: string;
-  message?: string;
 }
+
+  const COUNTRY_CONFIG: Record<string, DocConfig[]> = {
+    'Colombia': [
+      { title: 'RUT Actualizado', key: 'rut' },
+      { title: 'Cámara de Comercio', key: 'camara' },
+      { title: 'Certificación Bancaria', key: 'bancaria' }
+    ],
+    'Estados Unidos': [
+      { title: 'Form W-9 (Request for TIN)', key: 'w9' },
+      { title: 'Proof of Identity (ID/Passport)', key: 'identity_us' },
+      { title: 'Bank Account Verification', key: 'bank_us' }
+    ],
+    'México': [
+      { title: 'Constancia de Situación Fiscal (CSF)', key: 'csf' },
+      { title: 'Comprobante de Domicilio', key: 'domicilio_mx' },
+      { title: 'Identificación Oficial (INE)', key: 'ine' }
+    ],
+    'España': [
+      { title: 'Certificado de Identificación Fiscal (NIF)', key: 'nif' },
+      { title: 'Certificado de Estar al Corriente (AEAT)', key: 'aeat' },
+      { title: 'Certificado de Cuenta Bancaria', key: 'iban_es' }
+    ],
+    'Alemania': [
+      { title: 'Steuernummer (Tax Number Confirmation)', key: 'tax_de' },
+      { title: 'Handelsregisterauszug (Commercial Register)', key: 'hraz' },
+      { title: 'Bankbestätigung', key: 'bank_de' }
+    ]
+  };
+
 
 @Component({
   selector: 'app-provider',
@@ -21,9 +55,10 @@ interface ExtractedData {
   templateUrl: './provider.component.html',
   styleUrl: './provider.component.css'
 })
-export class ProviderComponent {
 
-  // Inyección de dependencias moderna
+
+export class ProviderComponent {
+  private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
   private http = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
@@ -33,15 +68,12 @@ export class ProviderComponent {
   infiniteOverlayOpen = signal(false);
   infiniteProgress = signal(0);
 
-  // Archivos en signals para reactividad interna
+  arrayItems = signal<DocConfig[]>([]);
+  countrySelected?: string;
+
   fileRut = signal<File | null>(null);
   fileBancaria = signal<File | null>(null);
 
-  arrayItems = signal([
-    {title: 'Documento de Identidad', key: 'rut'},
-    {title: 'Cámara de Comercio', key: 'camara'},
-    {title: 'Certificación Bancaria', key: 'bancaria'}
-  ]);
 
   // --- Variables públicas para el HTML (NO TOCAR NOMBRES) ---
   overlayOpen = false;
@@ -56,31 +88,65 @@ export class ProviderComponent {
   currentStep = 1;
   form: FormGroup;
 
-  // Timer para la barra infinita
+    ngOnInit() {
+    this.route.queryParams
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => {
+        this.currentStep = Number(params['step']) || 1;
+        this.countrySelected = params['country']; 
+
+        if (this.countrySelected) {
+          const config = COUNTRY_CONFIG[this.countrySelected];
+
+          if (config) {
+            this.arrayItems.set(config);
+            this.actualizarControlesStep1(config);
+          } else {
+            this.arrayItems.set([]);
+            this.limpiarPaso1();
+          }
+        } else {
+          this.arrayItems.set([]);
+          this.limpiarPaso1();
+        }
+      });
+  }
+
   private infiniteSubscription?: Subscription;
 
   constructor() {
     this.form = this.fb.group({
       step1: this.fb.group({
-        providerType: ['', Validators.required]
-      }),
-      step2: this.fb.group({
         rut: [null],
         camara: [null],
         bancaria: [null]
       }, {
         validators: ProviderComponent.atLeastOneFileValidator
       }),
-      step3: this.fb.group({
+      step2: this.fb.group({
         businessName: ['', Validators.required],
         nit: ['', Validators.required],
         legalRepName: ['', Validators.required],
         riskOption: ['NA', Validators.required],
         riskWhich: ['']
       }),
-      step4: this.fb.group({})
+      step3: this.fb.group({})
     });
   }
+
+   private actualizarControlesStep1(config: DocConfig[]) {
+    const group: any = {};
+    config.forEach(doc => {
+      group[doc.key] = [null, Validators.required];
+    });
+    this.form.setControl('step1', this.fb.group(group));
+  }
+
+  private limpiarPaso1() {
+    // Crea un grupo vacío para evitar errores de referencia en el HTML
+    this.form.setControl('step1', this.fb.group({}));
+  }
+
 
   // --- Validadores Estáticos ---
   static atLeastOneFileValidator(control: AbstractControl) {
@@ -118,31 +184,26 @@ export class ProviderComponent {
     if (!input.files?.length) return;
 
     const file = input.files[0];
-    const control = this.form.get(`step2.${docType}`);
+    const control = this.form.get(`step1.${docType}`); // Cambiado a step1
 
     if (!control) return;
 
-    // Actualizamos signals internos según corresponda
     if (docType === 'rut') this.fileRut.set(file);
     if (docType === 'bancaria') this.fileBancaria.set(file);
 
-    // Lectura opcional para debug (Mantenido pero optimizado)
-    const reader = new FileReader();
-    reader.onload = () => { /* Aquí podrías previsualizar si quisieras */ };
-    reader.readAsText(file);
-
-    // Actualización del formulario
     control.setValue(file);
     control.markAsTouched();
-    control.markAsDirty();
-
-    // Solo actualizamos la validez del grupo padre, no todo el form
-    this.form.get('step2')?.updateValueAndValidity();
+    this.form.get('step1')?.updateValueAndValidity();
   }
 
+
   // --- Procesamiento de PDF (HTTP) ---
-  procesarPdf(docType: 'rut' | 'camara' | 'bancaria') {
-    const file = this.form.get(`step2.${docType}`)?.value as File;
+  procesarPdf(docType:string) {
+
+    const validTypes = ['rut', 'camara', 'bancaria'];
+    if (!validTypes.includes(docType)) return;
+
+    const file = this.form.get(`step1.${docType}`)?.value as File;
 
     if (!file) {
       console.warn('No hay PDF seleccionado');
@@ -183,7 +244,7 @@ export class ProviderComponent {
   }
 
   removeFile(docType: string) {
-      const control = this.form.get(`step2.${docType}`);
+      const control = this.form.get(`step1.${docType}`);
 
       if (control) {
         // 1. Limpiamos el valor en el Form Group
@@ -210,7 +271,7 @@ export class ProviderComponent {
   private applyExtractedDataToForm(data: ExtractedData, docType: string) {
     // Usamos patchValue con los datos tipados
     this.form.patchValue({
-      step3: {
+      step2: {
         nombres: data.nombres ?? '',
         apellidos: data.apellidos ?? '',
         numeroDocumento: data.numeroDocumento ?? '',
@@ -280,3 +341,5 @@ export class ProviderComponent {
     // TODO: Conectar API final
   }
 }
+
+

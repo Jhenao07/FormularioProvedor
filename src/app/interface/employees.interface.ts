@@ -24,3 +24,4 @@ interface PdfItem {
   error?: string;
   result?: any; // lo que devuelva el backend (id, mensaje, etc.)
 }
+

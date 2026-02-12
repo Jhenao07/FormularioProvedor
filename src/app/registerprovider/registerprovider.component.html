@@ -9,40 +9,57 @@
       <div class="icon-circle">
         <img src="assets/favicon.ico" />
       </div>
-      <h1>Completa tu registro como proveedor</h1>
-      <div class="info-list">
-        <div class="info-item">
-          <span class="icon">📄</span>
-          <span>Solicitud #00123</span>
-        </div>
-        <div class="info-item">
-          <span class="icon">⏱️</span>
-          <span>Tiempo estimado: <strong>8–12 minutos</strong></span>
-        </div>
+        <h1>Completa tu registro como proveedor</h1>
 
-    <p class="token-label">Ingresa el token enviado a tu correo</p>
-          <div class="token-box" (paste)="onPaste($event)">
-        <input
-          #otpInput
-          *ngFor="let ctrl of digitsFA.controls; let i = index"
-          type="text"
-          inputmode="numeric"
-          maxlength="1"
-          [value]="ctrl.value"
-          (input)="onInput($event, i)"
-          (keydown)="onKeydown($event, i)"
-          [attr.aria-label]="'Dígito ' + (i + 1) + ' del token'"
-        />
+        @if (!tokenSent) {
+          <div class="login-intro">
+            <p>Para comenzar, enviaremos un código de seguridad a tu correo electrónico registrado.</p>
+            <div class="actions">
+              <button type="button" class="btn-primary" (click)="requestToken()" [disabled]="loading">
+                {{ loading ? 'Enviando...' : 'Solicitar Token de Acceso' }}
+              </button>
+            </div>
+          </div>
+        }
+
+        @else {
+          <div class="token-section" style="animation: fadeIn 0.5s ease;">
+            <p class="token-label">Ingresa el token enviado a tu correo</p>
+
+            <div class="token-box" (paste)="onPaste($event)">
+              <input
+                #otpInput
+                *ngFor="let ctrl of digitsFA.controls; let i = index"
+                type="text"
+                inputmode="numeric"
+                maxlength="1"
+                [formControl]="ctrl"
+                (input)="onInput($event, i)"
+                (keydown)="onKeydown($event, i)"
+              />
+            </div>
+
+            <div class="actions">
+              <button type="button" class="btn-primary" (click)="validateToken()">
+                Validar e Iniciar
+              </button>
+            </div>
+
+            <p style="font-size: 0.8em; margin-top: 10px; color: var(--muted);">
+              ¿No recibiste el código? <a (click)="requestToken()" style="cursor:pointer; color: blue;">Reenviar</a>
+            </p>
+          </div>
+        }
+
+        <div class="info-list">
+          <div class="info-item">
+            <span class="icon">🔒</span>
+            <span>Tu información está segura y confidencial</span>
+          </div>
+        </div>
       </div>
-        <div class="info-item">
-          <span class="icon">🔒</span>
-          <span>Tu información está segura y confidencial</span>
-      </div>
-      <div class="actions">
-        <button type="button" class="btn-primary" (click)="validateToken()">
-          Iniciar registro
-        </button>
-      </div>
+
+  
       <div class="help">
         <p>¿Necesitas ayuda?</p>
         <a href="mailto:proveedores@nuvantglobal.com"> ---- </a>
@@ -54,4 +71,4 @@
       <a href="mailto:proveedores@nuvantglobal.com"> --- </a>
     </div>
   </div>
-</div>
+

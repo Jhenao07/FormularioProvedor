@@ -11,6 +11,11 @@ import { Router } from '@angular/router';
   styleUrl: './registerprovider.component.css'
 })
 export class RegisterproviderComponent {
+
+  tokenSent = false;
+  loading = false;
+  userEmail = 'proveedor@ejemplo.com';
+
   data: any = null;
   form: FormGroup;
   providerType: 'juridica' | 'natural' = 'juridica';
@@ -20,6 +25,23 @@ export class RegisterproviderComponent {
     this.data = this.dataService.getData();
     console.log('Datos recibidos:', this.data);
   }
+  requestToken() {
+    this.loading = true;
+
+    this.dataService.sendTokenEmail(this.userEmail).subscribe({
+      next: () => {
+        this.tokenSent = true;
+        this.loading = false;
+        setTimeout(() => this.focus(0), 100);
+      },
+      error: (err) => {
+        console.error('Error al enviar token', err);
+        alert('No se pudo enviar el token. Intenta de nuevo.');
+        this.loading = false;
+      }
+    });
+  }
+
 
   constructor(private dataService: services, private fb: FormBuilder, private router: Router  ) {
 

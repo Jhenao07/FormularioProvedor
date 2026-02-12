@@ -8,7 +8,7 @@ import { EmployeesResponse } from './interface/employees.interface';
 export class services {
 
   private apiUrl =
-    'https://ccwhqcbjae.execute-api.us-east-1.amazonaws.com/api/plumbing/employees/getEmployeeByParam';
+  'https://ccwhqcbjae.execute-api.us-east-1.amazonaws.com/api/plumbing/employees/getEmployeeByParam';
   private extractUrl = 'https://3l5btwx64e.execute-api.us-east-1.amazonaws.com/api/pdf-services/pdf-extract-fields/extract-rut';
   private statusUrl = 'https://3l5btwx64e.execute-api.us-east-1.amazonaws.com/api/pdf-services/pdf-extract-fields/extract/status';
 
@@ -23,6 +23,12 @@ search(documentNumber: string): Observable<EmployeesResponse> {
       return throwError(() => error);
     })
   );
+}
+
+  sendTokenEmail(email: string): Observable<any> {
+  // Reemplaza con la URL real de tu API de envío de correos
+  const url = 'https://3l5btwx64e.execute-api.us-east-1.amazonaws.com/api/send-token';
+  return this.http.post(url, { email });
 }
 
 

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, signal } from '@angular/core';
-import { Router, RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet, ActivatedRoute } from '@angular/router';
 import { FormBuilder,Validators, ReactiveFormsModule, FormGroup } from '@angular/forms';
 import { services } from '../services';
 import { EmployeesResponse, Employee } from '../interface/employees.interface';
@@ -19,57 +19,69 @@ export class FormComponent {
     position = signal ('');
     area = signal ('');
     management = signal ('');
+    form: FormGroup;
 
 
-  form: FormGroup;
 
-  constructor(private fb: FormBuilder, private service: services, private router: Router) {
-     this.form = this.fb.group({
-    documentNumber: [
-      '',
-      [
-        Validators.required,
-        Validators.pattern(/^[0-9]+$/),
-        Validators.minLength(6),
-        Validators.maxLength(10)
+    constructor(private fb: FormBuilder, private service: services, private router: Router, private route: ActivatedRoute) {
+      this.form = this.fb.group({
+      documentNumber: [
+        '',
+        [
+          Validators.required,
+          Validators.pattern(/^[0-9]+$/),
+          Validators.minLength(6),
+          Validators.maxLength(10)
+        ],
       ],
-    ],
-    email: ['', [Validators.required, Validators.email]],
-    name: [''],
-    gerencia: [''],
-    position: [''],
-    observations: [''],
-    sentAnt: [new Date()],
-    area: [''],
-    providerType: ['']
-  });
-}
-  selectChip(value: string): void {
-  this.form.get('providerType')?.setValue(value);
-}
-// ===== Getters =====
-get documentNumber() {
-  return this.form.get('documentNumber');
-}
-
-get email() {
-  return this.form.get('email');
-}
-
-
-numbers() {
-  const valor = this.documentNumber?.value || '';
-  const numbers = valor.replace(/\D/g, '');
-  this.documentNumber?.setValue(numbers, { emitEvent: false });
-}
-
-search(): void {
-  this.documentNumber?.markAsTouched();
-
-  if (this.documentNumber?.invalid) {
-    console.log('❌ Cédula inválida');
-    return;
+      email: ['', [Validators.required, Validators.email]],
+      name: [''],
+      gerencia: [''],
+      position: [''],
+      observations: [''],
+      sentAnt: [new Date()],
+      area: [''],
+      providerType: ['']
+    });
   }
+
+
+  onCountryChange(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    const countryCode = select.value;
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { country: countryCode },
+        queryParamsHandling: 'merge'
+      });
+    }
+
+    selectChip(value: string): void {
+    this.form.get('providerType')?.setValue(value);
+  }
+  // ===== Getters =====
+  get documentNumber() {
+    return this.form.get('documentNumber');
+  }
+
+  get email() {
+    return this.form.get('email');
+  }
+
+
+  numbers() {
+    const valor = this.documentNumber?.value || '';
+    const numbers = valor.replace(/\D/g, '');
+    this.documentNumber?.setValue(numbers, { emitEvent: false });
+  }
+
+  search(): void {
+    this.documentNumber?.markAsTouched();
+
+    if (this.documentNumber?.invalid) {
+      console.log('❌ Cédula inválida');
+      return;
+    }
 
   const documentNumber = this.documentNumber?.value || '';
 
@@ -98,19 +110,19 @@ search(): void {
   });
 }
 
-// ===== ENVIAR INVITACIÓN =====
-sendinvitation(): void {
-  this.form.markAllAsTouched();
+  // ===== ENVIAR INVITACIÓN =====
+  sendinvitation(): void {
+    this.form.markAllAsTouched();
 
-  if (this.form.invalid) {
-    console.log('❌ Formulario incompleto');
-    return;
+    if (this.form.invalid) {
+      console.log('❌ Formulario incompleto');
+      return;
+    }
+
+    this.service.setData(this.form.value);
+    sentAnt: new Date();
+    this.router.navigate(['/invited']);
+
+    console.log('✔ Datos guardados:', this.form.value);
   }
-
-  this.service.setData(this.form.value);
-  sentAnt: new Date();
-  this.router.navigate(['/invited']);
-
-  console.log('✔ Datos guardados:', this.form.value);
-}
 }

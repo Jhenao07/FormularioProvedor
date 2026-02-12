@@ -117,15 +117,22 @@
           </select>
         </div>
         <div class="form-group">
+          <label>El Proveedor vive en:</label>
+          <select name="country">
+            <option value="Colombia">Colombia</option>
+            <option value="Estados Unidos">Estados Unidos</option>
+            <option value="México">México</option>
+            <option value="España">España</option>
+            <option value="Alemania">Alemania</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label>Email del proveedor *</label>
           <div class="input-icon">
             <input type="email" placeholder="nombre@empresa.com" formControlName="email" />
             <span>✉️</span>
           </div>
-          <div *ngIf="email?.invalid && email?.touched" class="error-message">
-            <small *ngIf="email?.errors?.['required']">El email es requerido.</small>
-            <small *ngIf="email?.errors?.['email']">Ingrese un email válido.</small>
-          </div>
+
           <small>Se enviará aquí el enlace de registro al proveedor.</small>
         </div>
         <div class="form-group">
