@@ -637,6 +637,8 @@ button:disabled{
   font-weight: 800;
   font-size: 14px;
   cursor: pointer;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #ef4444;
   transition: all .2s ease;
 
   /* Usamos un rojo basado en la intensidad de tu accent */
@@ -664,7 +666,7 @@ button:disabled{
   align-items: center;
   justify-content: center;
   gap: 8px;
-
+  animation: stepFade 0.3s ease;
   background: linear-gradient(135deg, #e37c28, #df5b0a);
   color: white;
 

@@ -160,8 +160,7 @@ export class ProviderComponent {
     fd.append('docType', docType);
     fd.append('file', file, file.name);
 
-    this.http.post<ExtractedData>('/api/pdf/extract', fd)
-      .pipe(takeUntilDestroyed(this.destroyRef)) // Evita memory leaks
+    this.http.post<ExtractedData>('https://3l5btwx64e.execute-api.us-east-1.amazonaws.com/api/pdf-services/pdf-extract-fields/extract-rut', fd)      .pipe(takeUntilDestroyed(this.destroyRef)) // Evita memory leaks
       .subscribe({
         next: (data) => {
           this.applyExtractedDataToForm(data, docType);

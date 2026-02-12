@@ -11,6 +11,7 @@ import { EmployeesResponse, Employee } from '../interface/employees.interface';
   templateUrl: './form.component.html',
   styleUrl: './form.component.css'
 })
+
 export class FormComponent {
     EmployeesResponse!: EmployeesResponse;
     name = signal ('');
