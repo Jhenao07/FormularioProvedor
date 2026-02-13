@@ -6,134 +6,168 @@
     </header>
 
     <nav class="steps">
-      <div class="step" [class.active]="currentStep === 1">Documentos</div>
-      <div class="step" [class.active]="currentStep === 2">Datos del proveedor</div>
-      <div class="step" [class.active]="currentStep === 3">Revisión</div>
+      <div class="step" [class.active]="currentStep === 1">1. Ubicación</div>
+      <div class="step" [class.active]="currentStep === 2">2. Documentos</div>
+      <div class="step" [class.active]="currentStep === 3">3. Información</div>
+      <div class="step" [class.active]="currentStep === 4">4. Revisión</div>
     </nav>
 
     <section class="provider-card" [formGroup]="form">
-      <div class="step-container">
 
-      <div *ngIf="currentStep === 1" formGroupName="step1" class="step-content">
-
-        @if (!countrySelected) {
-          <div class="empty-state">
-            <div class="icon-info">🌍</div>
-            <h2>Selecciona tu ubicación</h2>
-            <p>Para mostrarte los documentos requeridos, por favor selecciona el país donde resides en el formulario anterior.</p>
-          </div>
-        }
-
-        @else {
-          <h2>Documentos requeridos para {{ countrySelected }}</h2>
-
-          <div class="option-list">
-            @for(doc of arrayItems(); track doc.key) {
-              <div class="doc-item">
-                <div class="option-text">
-                  <strong>{{ doc.title }}</strong>
-                  <p>Formato PDF, JPG o PNG</p>
-                </div>
-
-                <div class="doc-actions">
-                  <input type="file" [id]="doc.key" hidden #fileInput (change)="onFileSelected($event, doc.key)" />
-
-                  @if (!form.get('step1.' + doc.key)?.value) {
-                    <button type="button" class="btn-outline" (click)="fileInput.click()">
-                      Adjuntar
-                    </button>
-                  } @else {
-                    <button type="button" class="btn-ai" (click)="procesarPdf(doc.key)">
-                      ✨ Procesar
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </div>
-
-        <div *ngIf="currentStep === 2" formGroupName="step2" class="step-content">
-          <div class="card">
-            <h2 class="title">Identificación del proveedor</h2>
-
-            <div class="tabs">
-              <button type="button" class="tab" [class.active]="providerType === 'juridica'" (click)="providerType='juridica'">
-                Persona Jurídica
-              </button>
-              <button type="button" class="tab" [class.active]="providerType === 'natural'" (click)="providerType='natural'">
-                Persona Natural
-              </button>
-            </div>
-
-            <div class="form-grid">
-              <div class="form-group">
-                <label class="label">Razón Social <span class="req">*</span></label>
-                <div class="input-with-badge">
-                  <input type="text" formControlName="businessName" placeholder="Nombre completo" />
-                  <span class="badge" *ngIf="form.get('step2.businessName')?.value">Autocompletado</span>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label class="label">NIT / Documento <span class="req">*</span></label>
-                <div class="input-with-badge">
-                  <input type="text" formControlName="nit" placeholder="Escribe el NIT" />
-                  <span class="badge" *ngIf="form.get('step2.nit')?.value">Autocompletado</span>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label class="label">Representante Legal <span class="req">*</span></label>
-                <div class="input-with-badge">
-                  <input type="text" formControlName="legalRepName" placeholder="Nombre completo" />
-                  <span class="badge" *ngIf="form.get('step2.legalRepName')?.value">Autocompletado</span>
-                </div>
-              </div>
-
-              <div class="form-group full">
-                <label class="label">¿Cuenta con sistema de gestión de riesgo?</label>
-                <div class="radio-row">
-                  <label class="radio">
-                    <input type="radio" formControlName="riskOption" value="SI" /> <span>Sí</span>
-                  </label>
-                  <label class="radio">
-                    <input type="radio" formControlName="riskOption" value="NO" /> <span>No</span>
-                  </label>
-                </div>
-              </div>
-
-              <div class="form-group" *ngIf="form.get('step2.riskOption')?.value === 'SI'">
-                <label class="label">¿Cuál?</label>
-                <input type="text" formControlName="riskWhich" placeholder="Ej: SAGRILAFT" />
-              </div>
-            </div>
-
-            <div class="actions">
-              <button type="button" class="btn-secondary" (click)="prevStep()">Atrás</button>
-              <button type="button" class="btn-primary" (click)="nextStep()" [disabled]="form.get('step2')?.invalid">
-                Siguiente
-              </button>
-            </div>
-          </div>
+      <div *ngIf="currentStep === 1" class="step-content">
+        <h2>¿Dónde se encuentra el proveedor?</h2>
+        <div class="form-group">
+          <select [value]="countrySelected || ''" (change)="onCountryChange($event)" class="form-control country-select country-select-large">
+            <option value="" disabled [selected]="!countrySelected">Seleccione un país</option>
+            <option value="Colombia">Colombia</option>
+            <option value="México">México</option>
+            <option value="Estados Unidos">Estados Unidos</option>
+            <option value="España">España</option>
+            <option value="Alemania">Alemania</option>
+          </select>
         </div>
 
-        <div *ngIf="currentStep === 3" class="step-content">
-          <h2>Revisión y envío</h2>
-          <div class="review-card">
-            <ul class="review-list">
-              <li>✔ Documentos listos</li>
-              <li>✔ Datos extraídos y validados</li>
-            </ul>
-          </div>
-          <div class="actions">
-            <button class="btn-secondary" (click)="prevStep()">Atrás</button>
-            <button class="btn-primary" (click)="submitForm()">Enviar registro</button>
-          </div>
+        <div class="manual-trigger" (click)="irARegistroManual()">
+          <p>Mi país no aparece en la lista (Registro manual)</p>
         </div>
 
+        <div class="actions">
+          <button class="btn-primary" [disabled]="!countrySelected" (click)="goToStep(2)">Continuar</button>
+        </div>
       </div>
+
+   <div *ngIf="currentStep === 2" [formGroup]="form" class="step-content">
+      <div formGroupName="step2_docs">
+        <h2>Documentos para {{ countrySelected }}</h2>
+        <p style="color: var(--muted); margin-bottom: 24px; font-size: 14px;">
+          Sube los archivos necesarios para validar tu cuenta.
+        </p>
+
+        <div class="option-list">
+          @for(doc of arrayItems(); track doc.key) {
+            <div class="doc-item" [class.has-file]="form.get('step2_docs.' + doc.key)?.value">
+              <div class="doc-info">
+                <strong>{{ doc.title }}</strong>
+                <span *ngIf="form.get('step2_docs.' + doc.key)?.value" class="file-status-text">
+                  ✅ {{ form.get('step2_docs.' + doc.key)?.value.name }}
+                </span>
+              </div>
+
+              <div class="doc-actions">
+                <label *ngIf="!form.get('step2_docs.' + doc.key)?.value"
+                      [for]="'file-' + doc.key"
+                      class="btn-secondary btn-sm">
+                  Adjuntar
+                </label>
+
+                <ng-container *ngIf="form.get('step2_docs.' + doc.key)?.value">
+                  <button type="button" class="btn-remove" (click)="removeFile(doc.key)" title="Eliminar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                  </button>
+
+                  <button type="button" class="btn-ai-sm" (click)="procesarPdf(doc.key)">
+                    ✨ Procesar
+                  </button>
+                </ng-container>
+
+                <input [id]="'file-' + doc.key"
+                      type="file"
+                      class="input-file-hidden"
+                      (change)="onFileSelected($event, doc.key)" />
+              </div>
+            </div>
+          }
+        </div>
+
+    <div class="actions">
+      <button type="button" class="btn-secondary" (click)="prevStep()">Atrás</button>
+      <button type="button" class="btn-primary" [disabled]="form.get('step2_docs')?.invalid" (click)="goToStep(3)">
+        Siguiente
+      </button>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="currentStep === 3" [formGroup]="form" class="step-content">
+  <div formGroupName="step2"> <h2 class="title">Identificación del proveedor</h2>
+
+    <div class="tabs">
+      <button type="button" class="tab" [class.active]="providerType === 'juridica'" (click)="providerType='juridica'">
+        Persona Jurídica
+      </button>
+      <button type="button" class="tab" [class.active]="providerType === 'natural'" (click)="providerType='natural'">
+        Persona Natural
+      </button>
+    </div>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="label">Razón Social <span class="req">*</span></label>
+        <div class="input-with-badge">
+          <input type="text" formControlName="businessName" placeholder="Nombre completo" />
+          <span class="badge-auto" *ngIf="form.get('step2.businessName')?.value">Autocompletado</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="label">NIT / Documento <span class="req">*</span></label>
+        <div class="input-with-badge">
+          <input type="text" formControlName="nit" placeholder="Escribe el NIT" />
+          <span class="badge-auto" *ngIf="form.get('step2.nit')?.value">Autocompletado</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="label">Representante Legal <span class="req">*</span></label>
+        <div class="input-with-badge">
+          <input type="text" formControlName="legalRepName" placeholder="Nombre completo" />
+          <span class="badge-auto" *ngIf="form.get('step2.legalRepName')?.value">Autocompletado</span>
+        </div>
+      </div>
+
+      <div class="form-group full">
+        <label class="label">¿Cuenta con sistema de gestión de riesgo?</label>
+        <div class="radio-row">
+          <label class="radio-label">
+            <input type="radio" formControlName="riskOption" value="SI" />
+            <span>Sí</span>
+          </label>
+          <label class="radio-label">
+            <input type="radio" formControlName="riskOption" value="NO" />
+            <span>No</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group full" *ngIf="form.get('step2.riskOption')?.value === 'SI'">
+        <label class="label">¿Cuál?</label>
+        <input type="text" formControlName="riskWhich" placeholder="Ej: SAGRILAFT" />
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn-secondary" (click)="prevStep()">Atrás</button>
+      <button type="button" class="btn-primary" (click)="goToStep(4)" [disabled]="form.get('step3')?.invalid">
+        Siguiente
+      </button>
+    </div>
+  </div>
+</div>
+
+      <div *ngIf="currentStep === 4" class="step-content">
+        <h2>Revisión y envío</h2>
+        <div class="review-card">
+          <p>País: {{ countrySelected }}</p>
+          
+        </div>
+        <div class="actions">
+          <button class="btn-secondary" (click)="prevStep()">Atrás</button>
+          <button class="btn-primary" (click)="submitForm()">Finalizar Registro</button>
+        </div>
+      </div>
+
     </section>
   </div>
 </div>
@@ -142,9 +176,5 @@
   [open]="overlayOpen"
   [title]="overlayTitle"
   [subtitle]="overlaySubtitle"
-  [indeterminate]="overlayIndeterminate"
-  [current]="overlayCurrent"
-  [total]="overlayTotal"
-  [closable]="overlayClosable"
   (close)="onOverlayClose()">
 </app-progress-overlay>
