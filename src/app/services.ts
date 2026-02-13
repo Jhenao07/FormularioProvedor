@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { catchError, Observable, throwError } from 'rxjs';
+import { catchError, Observable, of, throwError } from 'rxjs';
 import { EmployeesResponse } from './interface/employees.interface';
 @Injectable({
   providedIn: 'root'
@@ -11,8 +11,15 @@ export class services {
   'https://ccwhqcbjae.execute-api.us-east-1.amazonaws.com/api/plumbing/employees/getEmployeeByParam';
   private extractUrl = 'https://3l5btwx64e.execute-api.us-east-1.amazonaws.com/api/pdf-services/pdf-extract-fields/extract-rut';
   private statusUrl = 'https://3l5btwx64e.execute-api.us-east-1.amazonaws.com/api/pdf-services/pdf-extract-fields/extract/status';
+  private invitedUrl = 'https://ccwhqcbjae.execute-api.us-east-1.amazonaws.com/api/ntp/commercialOperation/v1/createCompleteOrder/SR';
 
   constructor(private http: HttpClient) {}
+
+createInvitation(payload: any): Observable<any> {
+  console.log("Simulando envío de este JSON:", payload);
+  // Retorna un observable de éxito sin llamar a la URL real
+  return of({ status: 200, message: "Simulado con éxito" });
+}
 
 search(documentNumber: string): Observable<EmployeesResponse> {
   return this.http.get<EmployeesResponse>(

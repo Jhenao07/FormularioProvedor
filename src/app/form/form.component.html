@@ -1,155 +1,162 @@
 <form [formGroup]="form" novalidate>
-<div class="page">
-  <div class="card">
-    <div class="header">
-      <img src="assets/nuvant.png" alt="Nuvant" />
-      <div class="input-group">
-        <h3>Digite su cédula:</h3>
-        <div class="input-icon">
+  <div class="page">
+    <div class="card">
 
-          <input
-            type="text"
-            placeholder="Ingrese su cédula"
-            formControlName="documentNumber"
-            (input)="numbers()"
-             [ngClass]="{ 'is-invalid': documentNumber?.invalid && documentNumber?.touched }"
-          />
-          <span>🪪</span>
-
-        </div>
-         <div *ngIf="documentNumber?.invalid && documentNumber?.touched" class="error-message">
-          <small *ngIf="documentNumber?.errors?.['required']">La cédula es requerida.</small>
-          <small *ngIf="documentNumber?.errors?.['pattern']">Solo se permiten números.</small>
-          <small *ngIf="documentNumber?.errors?.['minlength']">Debe tener al menos 6 dígitos.</small>
-          <small *ngIf="documentNumber?.errors?.['maxlength']">No puede tener más de 10 dígitos.</small>
-        </div>
-      </div>
-     <button type="button" class="btn consult" (click)="search()">Consultar</button>
-
-    </div>
-
-    <div class="body">
-      <h1>Nueva solicitud de proveedor</h1>
-      <p class="subtitle">Espacio exclusivo para Nuvant</p>
-      <div class="form-card">
-
-        <h3>Datos del solicitante (Nuvant)</h3>
-        <p class="hint">*Espacio exclusivo para Nuvant</p>
-        <div class="form-group">
-          <label>Solicitado por *</label>
-          <input type="text" placeholder="Seleccione o escriba un nombre..." formControlName="name" />
-        </div>
-        <div class="grid-2">
-          <div class="form-group">
-            <label>Gerencia a la que pertenece *</label>
-            <input type="text" placeholder="Gerencia" formControlName="gerencia" />
-          </div>
-          <div class="form-group">
-            <label>Cargo del solicitante *</label>
-            <input type="text" placeholder="Cargo" formControlName="position" />
-          </div>
-          <div class="form-group">
-            <label >Area</label>
-            <input type="text" placeholder="Area" formControlName="area" />
-          </div>
-        </div>
-        <div class="form-group">
-  <label>Tipo de proveedor *</label>
-
-  <div class="chips">
-    <button
-      type="button"
-      class="chip"
-      [class.active]="form.get('providerType')?.value === 'Repuestos'"
-      (click)="selectChip('Repuestos')"
-    >
-      Repuestos
-    </button>
-
-    <button
-      type="button"
-      class="chip"
-      [class.active]="form.get('providerType')?.value === 'Servicios'"
-      (click)="selectChip('Servicios')"
-    >
-      Servicios
-    </button>
-
-    <button
-      type="button"
-      class="chip"
-      [class.active]="form.get('providerType')?.value === 'Asesoría / Consultoría'"
-      (click)="selectChip('Asesoría / Consultoría')"
-    >
-      Asesoría / Consultoría
-    </button>
-
-    <button
-      type="button"
-      class="chip"
-      [class.active]="form.get('providerType')?.value === 'Maquinaria'"
-      (click)="selectChip('Maquinaria')"
-    >
-      Maquinaria
-    </button>
-
-    <button
-      type="button"
-      class="chip"
-      [class.active]="form.get('providerType')?.value === 'Otros'"
-      (click)="selectChip('Otros')"
-    >
-      Otros
-    </button>
-  </div>
-
-  <input
-    class="mt"
-    type="text"
-    placeholder="Describa otros..."
-    formControlName="providerType"
-  />
-</div>
-        <div class="form-group">
-          <label>Clasificación del proveedor *</label>
-          <select>
-            <option>Seleccione</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>El Proveedor vive en:</label>
-          <select name="country">
-            <option value="Colombia">Colombia</option>
-            <option value="Estados Unidos">Estados Unidos</option>
-            <option value="México">México</option>
-            <option value="España">España</option>
-            <option value="Alemania">Alemania</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Email del proveedor *</label>
+      <div class="header">
+        <img src="assets/nuvant.png" alt="Nuvant" />
+        <div class="input-group">
+          <h3>Digite su cédula:</h3>
           <div class="input-icon">
-            <input type="email" placeholder="nombre@empresa.com" formControlName="email" />
-            <span>✉️</span>
+            <input
+              type="text"
+              placeholder="Ingrese su cédula"
+              formControlName="documentNumber"
+              (input)="numbers()"
+              [class.is-invalid]="form.get('documentNumber')?.invalid && form.get('documentNumber')?.touched"
+            />
+            <span>🪪</span>
           </div>
 
-          <small>Se enviará aquí el enlace de registro al proveedor.</small>
+          <div *ngIf="form.get('documentNumber')?.invalid && form.get('documentNumber')?.touched" class="error-message">
+            <small *ngIf="form.get('documentNumber')?.errors?.['required']">La cédula es requerida.</small>
+            <small *ngIf="form.get('documentNumber')?.errors?.['pattern']">Solo números.</small>
+            <small *ngIf="form.get('documentNumber')?.errors?.['minlength']">Mínimo 6 dígitos.</small>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Observaciones para el proveedor (opcional)</label>
-          <textarea maxlength="300" formControlName="observations" placeholder="Trl..."></textarea>
-          <div class="counter">0 / 300</div>
-        </div>
-        <p class="note">
-          La firma se solicitará después de la validación de Compras.
-        </p>
-        <div class="actions">
-          <button type="button" class="btn secondary">Cancelar</button>
-          <button type="button" class="btn primary" (click)="sendinvitation()">Enviar invitación</button>
+        <button type="button" class="btn consult" (click)="search()">Consultar</button>
+      </div>
+
+      <div class="body">
+        <h1>Nueva solicitud de proveedor</h1>
+        <p class="subtitle">Espacio exclusivo para Nuvant</p>
+
+        <div class="form-card">
+          <h3>Datos del solicitante (Nuvant)</h3>
+          <p class="hint">*Espacio exclusivo para Nuvant</p>
+
+          <div class="form-group">
+            <label>Solicitado por *</label>
+            <input type="text" placeholder="Nombre del solicitante" formControlName="name" readonly />
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Gerencia *</label>
+              <input type="text" placeholder="Gerencia" formControlName="gerencia" readonly />
+            </div>
+            <div class="form-group">
+              <label>Cargo *</label>
+              <input type="text" placeholder="Cargo" formControlName="position" readonly />
+            </div>
+            <div class="form-group">
+              <label>Area</label>
+              <input type="text" placeholder="Area" formControlName="area" readonly />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Tipo de proveedor *</label>
+            <div class="chips">
+              @for (type of ['Repuestos', 'Servicios', 'Asesoría / Consultoría', 'Maquinaria', 'Otros']; track type) {
+                <button
+                  type="button"
+                  class="chip"
+                  [class.active]="form.get('providerType')?.value === type"
+                  (click)="selectChip(type)"
+                >
+                  {{ type }}
+                </button>
+              }
+            </div>
+            <input
+              *ngIf="form.get('providerType')?.value === 'Otros'"
+              class="mt" type="text" placeholder="Describa otros..."
+            />
+             <small *ngIf="form.get('providerType')?.invalid && form.get('providerType')?.touched" class="error-text">
+              Seleccione un tipo.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>Clasificación del proveedor *</label>
+            <select formControlName="classification" [class.is-invalid]="form.get('classification')?.invalid && form.get('classification')?.touched">
+              <option value="" disabled selected>Seleccione</option>
+
+            </select>
+            <small *ngIf="form.get('classification')?.invalid && form.get('classification')?.touched" class="error-text">
+              Requerido.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>Ubicación del Proveedor *</label>
+
+            <div class="custom-select" [class.is-invalid]="form.get('country')?.invalid && form.get('country')?.touched">
+
+              <div class="select-trigger" (click)="toggleDropdown()">
+                @if (form.get('country')?.value) {
+                  <div class="selected-content">
+                    <img [src]="selectedFlag || 'assets/flags/co.png'" class="flag-icon-mini">
+                    <span>{{ form.get('country')?.value }}</span>
+                  </div>
+                } @else {
+                  <span class="placeholder">Seleccione ubicación...</span>
+                }
+                <span class="arrow" [class.open]="dropdownOpen">▼</span>
+              </div>
+
+              @if (dropdownOpen) {
+                <div class="options-list">
+                  @for (c of countriesList; track c.code) {
+                    <div class="option-item" (click)="selectCountry(c)">
+                      <img [src]="c.flag" class="flag-icon-mini">
+                      <span>{{ c.name }}</span>
+                      <span class="check" *ngIf="form.get('country')?.value === c.name">✓</span>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <small *ngIf="form.get('country')?.invalid && form.get('country')?.touched" class="error-text">
+              Debe seleccionar una ubicación.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>Email del proveedor *</label>
+            <div class="input-icon">
+              <input
+                type="email"
+                placeholder="nombre@empresa.com"
+                formControlName="email"
+                [class.is-invalid]="form.get('email')?.invalid && form.get('email')?.touched"
+              />
+              <span>✉️</span>
+            </div>
+            <small class="hint">Se enviará aquí el enlace de registro.</small>
+            <small *ngIf="form.get('email')?.invalid && form.get('email')?.touched" class="error-text">
+              Email inválido o requerido.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>Observaciones para el proveedor (opcional)</label>
+            <textarea maxlength="300" formControlName="observations" placeholder="Escriba aquí..."></textarea>
+            <div class="counter">0 / 300</div>
+          </div>
+
+          <p class="note">
+            La firma se solicitará después de la validación de Compras.
+          </p>
+
+          <div class="actions">
+            <button type="button" class="btn secondary">Cancelar</button>
+            <button type="button" class="btn primary" (click)="sendinvitation()">Enviar invitación</button>
+          </div>
+
         </div>
       </div>
     </div>
   </div>
-</div>
 </form>
-

@@ -503,7 +503,7 @@ input[type="file"] {
   background-color: var(--surface-2) !important; /* Fondo oscuro sutil */
   border: 1px solid var(--border-strong) !important;
   border-radius: var(--r-md) !important;
-  color: var(--text) !important;
+  color: black !important;
   padding: 0 16px !important;
   font-size: 14px !important;
   font-weight: 500 !important;

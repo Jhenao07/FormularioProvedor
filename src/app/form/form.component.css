@@ -1,276 +1,420 @@
+/* =========================================
+   RESET & LAYOUT PRINCIPAL
+   ========================================= */
 *,
 *::before,
 *::after {
- box-sizing: border-box;
- margin: 0;
- padding: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
+
 .page {
- min-height: 100vh;
- background: #ffffff;
- display: flex;
- justify-content: center;
- align-items: center;
- padding: 24px;
- font-family: "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  background: #f3f4f6; /* Fondo un poco más gris para resaltar la tarjeta */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 .card {
- width: 100%;
- max-width: 860px;
- background: #ffffff;
- border-radius: 18px;
- box-shadow: 0 25px 45px rgba(0, 0, 0, 0.25);
- overflow: hidden;
+  width: 100%;
+  max-width: 860px;
+  background: #ffffff;
+  border-radius: 20px; /* Un poco más redondeado */
+  /* Sombra más suave y moderna (Elevation) */
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1), 0 10px 15px rgba(0, 0, 0, 0.05);
+  overflow: visible; /* IMPORTANTE: Visible para que el dropdown pueda salir */
 }
 
+/* =========================================
+   HEADER
+   ========================================= */
 .header {
- background: #080D29;
- padding: 28px 32px 20px;
+  background: linear-gradient(135deg, #080D29 0%, #1a1f4d 100%); /* Degradado sutil */
+  padding: 32px 40px;
+  border-radius: 20px 20px 0 0;
+  color: white;
 }
+
 .header img {
- height: 90px;
- margin-bottom: 16px;
+  height: 80px; /* Ajustado ligeramente */
+  margin-bottom: 20px;
+  display: block;
 }
+
 .input-group {
- background: rgba(255, 255, 255, 0.08);
- padding: 18px 22px;
- border-radius:   16px;
+  background: rgba(255, 255, 255, 0.1); /* Más cristalino */
+  padding: 20px 24px;
+  border-radius: 16px;
+  backdrop-filter: blur(5px); /* Efecto vidrio */
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 .input-group h3 {
- margin: 0 0 8px;
- color: #ffffff;
- font-size: 15px;
- font-weight: 500;
+  margin: 0 0 12px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
-/* --- Body --- */
+
+/* INPUT CON ICONO (HEADER) */
+.input-icon {
+  width: 100%;
+  position: relative;
+}
+
+.input-icon input {
+  width: 100%;
+  padding: 14px 45px 14px 18px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1b1010;
+  font-size: 15px;
+  transition: all 0.3s ease;
+}
+
+.input-icon input:focus {
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2); /* Anillo de luz */
+  outline: none;
+}
+
+.input-icon span {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  opacity: 0.7;
+}
+
+/* =========================================
+   BODY & FORMULARIO
+   ========================================= */
 .body {
- padding: 36px 42px;
+  padding: 40px 48px;
 }
+
 h1 {
- margin: 0;
- font-size: 28px;
- color: #1f2937;
- font-weight: 700;
+  margin: 0;
+  font-size: 32px; /* Más grande */
+  color: #111827;
+  font-weight: 800;
+  letter-spacing: -0.5px;
 }
+
 .subtitle {
- margin: 6px 0 26px;
- color: #6b7280;
+  margin: 8px 0 32px;
+  color: #6b7280;
+  font-size: 15px;
 }
-/* --- Form Card --- */
+
 .form-card {
- background: #f9fafb;
- border-radius: 14px;
- padding: 30px;
- border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 0; /* Quitamos padding interno para limpieza */
+  border: none;
 }
+
 .form-card h3 {
- margin: 0;
+  margin: 0 0 10px 0;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 700;
 }
+
 .hint {
- margin-bottom: 20px;
- color: #6b7280;
- font-size: 13px;
+  margin-bottom: 24px;
+  color: #9ca3af;
+  font-size: 13px;
+  font-style: italic;
 }
-/* --- Form --- */
+
+/* =========================================
+   INPUTS & CONTROLES GENERALES
+   ========================================= */
 .form-group {
- margin-bottom: 20px;
+  margin-bottom: 24px;
+  position: relative;
 }
+
 label {
- font-weight: 600;
- margin-bottom: 6px;
- display: block;
- color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: block;
+  color: #374151;
 }
-input,
+
+input:not([type="radio"]),
 select,
 textarea {
- width: 100%;
- padding: 14px 16px;
- border-radius: 10px;
- border: 1px solid #d1d5db;
- font-size: 15px;
- background: #ffffff;
- transition: 0.25s ease;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb; /* Gris muy suave */
+  font-size: 15px;
+  background: #fff;
+  color: #1f2937;
+  transition: all 0.25s ease;
 }
-input::placeholder,
-textarea::placeholder {
- color: #9ca3af;
+
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: #d1d5db;
 }
+
 input:focus,
 select:focus,
 textarea:focus {
- border-color: #FF6647;
- outline: none;
+  border-color: #FF6647;
+  box-shadow: 0 0 0 4px rgba(255, 102, 71, 0.1); /* Anillo Naranja suave */
+  outline: none;
 }
+
 textarea {
- resize: none;
- min-height: 90px;
-}
-
-.input-icon {
-  width: 100%;
- position: relative;
-}
-.input-icon input {
-  width: 100%;
-  padding: 14px 40px 14px 16px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.25);
-  color: #1b1010;
-  box-sizing: border-box;
-
-}
-.input-icon span {
- position: absolute;
- right: 14px;
- top: 50%;
- transform: translateY(-50%);
- opacity: 0.5;
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
 }
 
 .grid-2 {
- display: grid;
- grid-template-columns: 1fr 1fr;
- gap: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
 }
 
+/* CHIPS (Tipo de Proveedor) */
 .chips {
- display: flex;
- flex-wrap: wrap;
- gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
+
 .chip {
- padding: 10px 20px;
- border-radius: 999px;
- background: #f1f5ff;
- color: #FF6647;
- border: 1px solid #d6ddff;
- font-size: 14px;
- cursor: pointer;
- font-weight: 600;
- transition: all 0.25s ease;
+  padding: 10px 24px;
+  border-radius: 50px;
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid transparent;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 .chip:hover {
- background: #e3e9ff;
+  background: #e5e7eb;
+  transform: translateY(-1px);
 }
+
 .chip.active {
- background: #080D29;
- color: #ffffff;
- border-color: transparent;
- box-shadow: 0 6px 14px rgba(55, 66, 250, 0.35);
-}
-.mt {
- margin-top: 12px;
+  background: #080D29;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(8, 13, 41, 0.25);
+  transform: scale(1.02);
 }
 
-small {
- font-size: 13px;
- color: #6b7280;
-}
-.counter {
- text-align: right;
- font-size: 12px;
- color: #9ca3af;
-}
-.note {
- margin: 20px 0 8px;
- font-size: 13px;
- color: #6b7280;
+.mt { margin-top: 12px; }
+.counter { text-align: right; font-size: 12px; color: #9ca3af; margin-top: 4px; }
+.note { margin: 24px 0 0; font-size: 13px; color: #6b7280; background: #f9fafb; padding: 10px; border-radius: 8px; border-left: 3px solid #FF6647; }
+
+/* =========================================
+   DROPDOWN "PRO" (ESTILOS NUEVOS Y ESENCIALES)
+   ========================================= */
+
+/* Contenedor relativo */
+.custom-select {
+  position: relative;
+  width: 100%;
+  user-select: none; /* Evita que se seleccione el texto */
 }
 
+/* La caja principal (Trigger) */
+.select-trigger {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+  min-height: 48px;
+  transition: all 0.2s ease;
+}
+
+.select-trigger:hover {
+  border-color: #bfa099; /* Un tono suave del primario */
+}
+
+/* Estado activo del trigger cuando se abre (opcional) */
+.custom-select.active .select-trigger {
+  border-color: #FF6647;
+  box-shadow: 0 0 0 4px rgba(255, 102, 71, 0.1);
+}
+
+/* La Lista Flotante */
+.options-list {
+  position: absolute;
+  top: 100%; /* Justo debajo */
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #f3f4f6;
+  border-radius: 12px;
+  margin-top: 8px;
+  padding: 8px 0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); /* Sombra Pro */
+  z-index: 100; /* IMPORTANTE: Para flotar sobre todo */
+  max-height: 300px;
+  overflow-y: auto;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Elemento Individual de la lista */
+.option-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.option-item:hover {
+  background-color: #fff1ee; /* Color naranja muy suave */
+}
+
+/* Elementos visuales del Dropdown */
+.flag-icon-mini {
+  width: 24px;
+  height: 16px;
+  object-fit: cover;
+  border-radius: 4px; /* Un poco más redondeado */
+  margin-right: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.selected-content {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  color: #111827;
+}
+
+.placeholder { color: #9ca3af; }
+.check { margin-left: auto; color: #FF6647; font-weight: bold; }
+
+.arrow {
+  font-size: 12px;
+  color: #9ca3af;
+  transition: transform 0.3s ease;
+}
+.arrow.open { transform: rotate(180deg); }
+
+/* =========================================
+   BOTONES Y ACCIONES
+   ========================================= */
 .actions {
- display: flex;
- justify-content: flex-end;
- gap: 14px;
- margin-top: 28px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #f3f4f6;
 }
+
 .btn {
- padding: 12px 22px;
- border-radius: 10px;
- font-size: 15px;
- font-weight: 600;
- cursor: pointer;
- border: none;
- transition: 0.25s ease;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.25s ease;
 }
+
 .btn.secondary {
- background: #ffffff;
- border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
 }
+
+.btn.secondary:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
 .btn.primary {
- background: #FF6647;
- color: #ffffff;
+  background: #FF6647;
+  color: #ffffff;
+  box-shadow: 0 4px 6px -1px rgba(255, 102, 71, 0.3);
 }
+
 .btn.primary:hover {
- transform: translateY(-1px);
+  background: #ff5530;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px -1px rgba(255, 102, 71, 0.4);
 }
 
 .btn.consult {
- margin-top: 20px;
- background: #f36b45;
+  margin-top: 16px;
+  background: #ff7a5e;
+  color: white;
+  width: auto;
+  min-width: 120px;
 }
+.btn.consult:hover { background: #ff5530; }
 
-@media (max-width: 768px) {
- .body {
-   padding: 28px 22px;
- }
- .form-card {
-   padding: 22px;
- }
- .grid-2 {
-   grid-template-columns: 1fr;
- }
- .actions {
-   flex-direction: column;
- }
- .btn {
-   width: 100%;
- }
-}
-
+/* =========================================
+   VALIDACIONES Y ERRORES
+   ========================================= */
 .is-invalid {
-  border-color: #ff3b30 !important;
-  background: #ffecec;
-  animation: shake 0.25s ease-in-out;
-  box-shadow: 0 0 8px rgba(255, 59, 48, 0.35);
+  border-color: #ef4444 !important; /* Rojo moderno */
+  background-color: #fef2f2; /* Fondo rojizo muy suave */
+}
+
+/* Animación Shake para el dropdown inválido */
+.custom-select.is-invalid .select-trigger {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+  animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
 }
 
 @keyframes shake {
-  0% { transform: translateX(0); }
-  25% { transform: translateX(-3px); }
-  50% { transform: translateX(3px); }
-  75% { transform: translateX(-3px); }
-  100% { transform: translateX(0); }
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
-
-.error-message small {
-  color: #ff3b30 !important;
-  font-weight: 600;
-  animation: fadeIn 0.3s ease forwards;
+.error-text {
+  color: #ef4444;
+  font-size: 13px;
+  margin-top: 6px;
+  display: block;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-
-.is-invalid {
-  border-color: #ff3b30 !important;
-  background: #ffecec;
-  animation: shake 0.25s ease-in-out;
-  box-shadow: 0 0 8px rgba(255, 59, 48, 0.35);
-}
-
-.error-message small {
-  color: #ff3b30 !important;
-  font-weight: 600;
-  animation: fadeIn 0.3s ease forwards;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+@media (max-width: 768px) {
+  .body { padding: 24px; }
+  .grid-2 { grid-template-columns: 1fr; gap: 16px; }
+  .actions { flex-direction: column-reverse; }
+  .btn { width: 100%; }
+  .header { padding: 24px; }
 }

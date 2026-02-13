@@ -1,128 +1,211 @@
 import { CommonModule } from '@angular/common';
-import { Component, signal } from '@angular/core';
-import { Router, RouterOutlet, ActivatedRoute } from '@angular/router';
-import { FormBuilder,Validators, ReactiveFormsModule, FormGroup } from '@angular/forms';
-import { services } from '../services';
+import { Component, ElementRef, HostListener, inject, signal } from '@angular/core';
+import { Router, ActivatedRoute } from '@angular/router';
+import { FormBuilder, Validators, ReactiveFormsModule, FormGroup } from '@angular/forms';
+import { services } from '../services'; // Asegúrate de la ruta correcta
 import { EmployeesResponse, Employee } from '../interface/employees.interface';
 
 @Component({
   selector: 'app-form',
+  standalone: true,
   imports: [ReactiveFormsModule, CommonModule],
   templateUrl: './form.component.html',
   styleUrl: './form.component.css'
 })
-
 export class FormComponent {
-    EmployeesResponse!: EmployeesResponse;
-    name = signal ('');
-    Employee = signal <Employee | null>(null);
-    position = signal ('');
-    area = signal ('');
-    management = signal ('');
-    form: FormGroup;
+  EmployeesResponse!: EmployeesResponse;
 
+  // Signals para UI (opcionales si usas form reactivo, pero los dejo si los usas en el HTML)
+  name = signal('');
+  Employee = signal<Employee | null>(null);
+  position = signal('');
+  area = signal('');
+  management = signal('');
 
+  form: FormGroup;
+  private elementRef = inject(ElementRef);
 
-    constructor(private fb: FormBuilder, private service: services, private router: Router, private route: ActivatedRoute) {
-      this.form = this.fb.group({
-      documentNumber: [
-        '',
-        [
+  // Estados del Dropdown Personalizado
+  dropdownOpen = false;
+  selectedFlag: string | null = null;
+
+  // Lista unificada de países (Asegúrate de tener las imágenes en assets/flags/)
+  countriesList = [
+    { name: 'Colombia', flag: 'assets/co.png', code: 'CO' },
+    { name: 'Estados Unidos', flag: 'assets/us.png', code: 'USA' },
+    { name: 'México', flag: 'assets/mx.png', code: 'MX' },
+    { name: 'España', flag: 'assets/es.png', code: 'ES' },
+    { name: 'Alemania', flag: 'assets/de.png', code: 'DE' }
+  ];
+
+  constructor(
+    private fb: FormBuilder,
+    private service: services,
+    private router: Router,
+    private route: ActivatedRoute
+  ) {
+    this.form = this.fb.group({
+      documentNumber: ['', [
           Validators.required,
           Validators.pattern(/^[0-9]+$/),
           Validators.minLength(6),
           Validators.maxLength(10)
-        ],
-      ],
-      email: ['', [Validators.required, Validators.email]],
-      name: [''],
-      gerencia: [''],
-      position: [''],
+      ]],
+      email: ['', [Validators.required, Validators.email]], // Corregido a 'email' para consistencia
+      name: ['', Validators.required],
+      gerencia: ['', Validators.required],
+      position: ['', Validators.required],
       observations: [''],
       sentAnt: [new Date()],
       area: [''],
-      providerType: ['']
+      country: ['', Validators.required],     // Campo clave para el dropdown
+      providerType: ['', Validators.required], // Chips
+      classification: ['',] // Select de clasificación
     });
   }
 
+  // =========================================================
+  // LÓGICA DEL DROPDOWN PERSONALIZADO (PRO)
+  // =========================================================
 
-  onCountryChange(event: Event) {
-    const select = event.target as HTMLSelectElement;
-    const countryCode = select.value;
-      this.router.navigate([], {
-        relativeTo: this.route,
-        queryParams: { country: countryCode },
-        queryParamsHandling: 'merge'
-      });
+  @HostListener('document:click', ['$event'])
+  clickOutside(event: Event) {
+    // Cierra el dropdown si el clic fue fuera del componente
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.dropdownOpen = false;
     }
+  }
 
-    selectChip(value: string): void {
+  toggleDropdown() {
+    this.dropdownOpen = !this.dropdownOpen;
+  }
+
+  selectCountry(country: any) {
+    this.dropdownOpen = false;
+    this.selectedFlag = country.flag;
+
+    // 1. Actualizar Formulario
+    this.form.patchValue({ country: country.name });
+    this.form.get('country')?.markAsTouched();
+
+    // 2. Actualizar URL (Query Params) para el siguiente paso
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { country: country.name },
+      queryParamsHandling: 'merge'
+    });
+  }
+
+  // =========================================================
+  // LÓGICA DE NEGOCIO Y FORMULARIO
+  // =========================================================
+
+  selectChip(value: string): void {
     this.form.get('providerType')?.setValue(value);
   }
-  // ===== Getters =====
-  get documentNumber() {
-    return this.form.get('documentNumber');
-  }
 
-  get email() {
-    return this.form.get('email');
-  }
+  // Getters
+  get documentNumber() { return this.form.get('documentNumber'); }
+  get emailControl() { return this.form.get('email'); }
 
-
+  // Solo permite números en la cédula
   numbers() {
     const valor = this.documentNumber?.value || '';
     const numbers = valor.replace(/\D/g, '');
     this.documentNumber?.setValue(numbers, { emitEvent: false });
   }
 
+  // Busca el empleado en la API
   search(): void {
     this.documentNumber?.markAsTouched();
+    if (this.documentNumber?.invalid) return;
 
-    if (this.documentNumber?.invalid) {
-      console.log('❌ Cédula inválida');
-      return;
-    }
+    this.service.search(this.documentNumber?.value).subscribe({
+      next: (res: EmployeesResponse) => {
+        if (res.users && res.users.length > 0) {
+          const emp = res.users[0];
+          this.form.patchValue({
+            name: emp.name,
+            gerencia: emp.management,
+            position: emp.position,
+            area: emp.area,
+            email: emp.email
+          });
+        } else {
+            console.error('Usuario no encontrado');
+        }
+      },
+      error: (err) => console.error('Error API Empleados:', err)
+    });
+  }
 
-  const documentNumber = this.documentNumber?.value || '';
 
-  this.service.search(documentNumber).subscribe({
-    next: (res: EmployeesResponse) => {
-      if (!res.users || res.users.length === 0) {
-        console.error('❌ No se encontró empleado');
-        return;
-      }
+  private getFormattedDate(): string {
+    const d = new Date();
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
 
-      const employee = res.users[0];
-
-      this.form.patchValue({
-        name: employee.name,
-        gerencia: employee.management,
-        position: employee.position,
-        area: employee.area,
-        email: employee.email
-      });
-
-      console.log('✔ Datos cargados correctamente');
-    },
-    error: (err) => {
-      console.error('❌ Error consultando API', err);
-    }
-  });
-}
-
-  // ===== ENVIAR INVITACIÓN =====
   sendinvitation(): void {
     this.form.markAllAsTouched();
 
     if (this.form.invalid) {
-      console.log('❌ Formulario incompleto');
+      alert('Por favor completa todos los campos requeridos (marcados en rojo).');
       return;
     }
 
-    this.service.setData(this.form.value);
-    sentAnt: new Date();
-    this.router.navigate(['/invited']);
+    const raw = this.form.getRawValue();
 
-    console.log('✔ Datos guardados:', this.form.value);
+    const payload = {
+      "commercialOperationType": "SR",
+      "observations": raw.email, // Mapeado según tu requerimiento
+      "dataFields": [
+        {
+          "labelIdField": "requestedBy",
+          "valueField": raw.name
+        },
+        {
+          "labelIdField": "managementWhichItBelongs",
+          "valueField": raw.gerencia
+        },
+        {
+          "labelIdField": "ApplicantPosition",
+          "valueField": raw.position
+        },
+        {
+          "labelIdField": "supplierType",
+          "valueField": raw.providerType
+        },
+        {
+          "labelIdField": "supplierClassification",
+          "valueField": raw.classification
+        },
+        {
+          "labelIdField": "date",
+          "valueField": this.getFormattedDate()
+        },
+        {
+          "labelIdField": "isCounterpartySelect",
+          "valueField": "No"
+        },
+        {
+            "labelIdField": "supplierLocation",
+            "valueField": raw.country
+        }
+      ]
+    };
+
+    console.log('📤 JSON a enviar:', JSON.stringify(payload, null, 2));
+
+    this.service.createInvitation(payload).subscribe({
+      next: (res) => {
+        console.log('✅ Enviado:', res);
+        this.service.setData(payload);
+        this.router.navigate(['/invited']);
+      },
+      error: (err) => console.error('❌ Error API Invitación:', err)
+    });
   }
 }
