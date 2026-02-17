@@ -28,6 +28,7 @@ export class FormComponent {
   // Estados del Dropdown Personalizado
   dropdownOpen = false;
   selectedFlag: string | null = null;
+  selectedCountryCode: string = 'co';
 
   // Lista unificada de países (Asegúrate de tener las imágenes en assets/flags/)
   countriesList = [
@@ -87,7 +88,7 @@ export class FormComponent {
     // 1. Actualizar Formulario
     this.form.patchValue({ country: country.name });
     this.form.get('country')?.markAsTouched();
-
+    this.selectedCountryCode = country.code.toLowerCase();
     // 2. Actualizar URL (Query Params) para el siguiente paso
     this.router.navigate([], {
       relativeTo: this.route,
@@ -160,7 +161,7 @@ export class FormComponent {
 
     const payload = {
       "commercialOperationType": "SR",
-      "observations": raw.email, // Mapeado según tu requerimiento
+      "observations": raw.email,
       "dataFields": [
         {
           "labelIdField": "requestedBy",
@@ -199,11 +200,20 @@ export class FormComponent {
 
     console.log('📤 JSON a enviar:', JSON.stringify(payload, null, 2));
 
+
+
     this.service.createInvitation(payload).subscribe({
       next: (res) => {
         console.log('✅ Enviado:', res);
         this.service.setData(payload);
-        this.router.navigate(['/invited']);
+        this.router.navigate(['/invited'], {
+          queryParams: {
+            country: this.selectedCountryCode,
+            oc: res.numServiceOrder,
+            os: res.orderServerId
+          },
+          queryParamsHandling: 'merge'
+        })
       },
       error: (err) => console.error('❌ Error API Invitación:', err)
     });

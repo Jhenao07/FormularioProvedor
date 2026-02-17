@@ -290,6 +290,7 @@ textarea {
   padding: 12px 20px;
   cursor: pointer;
   transition: background 0.1s;
+  color: black
 }
 
 .option-item:hover {

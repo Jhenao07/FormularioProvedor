@@ -5,6 +5,7 @@ import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validator
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { ProgressOverlayComponent } from '../components/progress-overlay/progressOverlay.component';
 import { ActivatedRoute, Router } from '@angular/router';
+import { services } from '../services';
 
 interface DocConfig {
   title: string;
@@ -58,6 +59,7 @@ export class ProviderComponent implements OnInit {
   private fb = inject(FormBuilder);
   private http = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
+  private services = inject(services);
 
   // --- Estado ---
   currentStep = 1;
@@ -228,22 +230,86 @@ export class ProviderComponent implements OnInit {
     fd.append('file', file);
     fd.append('docType', docKey);
 
-    this.http.post<ExtractedData>('https://3l5btwx64e.execute-api.us-east-1.amazonaws.com/api/pdf-services/pdf-extract-fields/extract-rut', fd)
+    this.services.startExtraction(file, docKey)
       .subscribe({
         next: (data) => {
+          console.log("Datos extraídos con éxito:", data);
           this.form.get('step3_data')?.patchValue({
             businessName: data.nombres || '',
             nit: data.numeroDocumento || ''
           });
+
           this.overlayOpen = false;
+        const jobId = data.jobId;
+          if (jobId) {
+              this.overlayTitle = 'Analizando documento...';
+              // 2. Iniciamos el ciclo de preguntas al servidor
+              this.verificarEstado(jobId);
+            } else {
+              this.overlayTitle = 'Error: No se recibió un número de ticket (jobId)';
+              setTimeout(() => this.overlayOpen = false, 3000);
+            }
         },
-        error: () => {
+        error: (err) => {
+          console.error("Error al extraer PDF:", err);
           this.overlayTitle = 'Error en extracción';
           setTimeout(() => this.overlayOpen = false, 2000);
         }
       });
   }
 
+  verificarEstado(jobId: string) {
+    this.services.checkStatus(jobId).subscribe({
+      // Usamos 'any' para evitar que TypeScript marque error con la estructura dinámica
+      next: (statusRes: any) => {
+        console.log("⏳ Estado actual del análisis:", statusRes);
+
+        // Convertimos a minúsculas por seguridad, ya que el Swagger dice "completed"
+        const estado = statusRes.status?.toLowerCase();
+
+        if (estado === 'pending' || estado === 'processing' || estado === 'in_progress') {
+           // Si AWS sigue leyendo el PDF, esperamos 3 segundos y volvemos a preguntar
+           console.log("AWS sigue procesando, reintentando en 3 segundos...");
+           setTimeout(() => {
+             this.verificarEstado(jobId);
+           }, 3000);
+
+        } else if (estado === 'completed' || estado === 'success') {
+           // ¡Terminó de leer el documento!
+           console.log("🎉 ¡Datos extraídos!");
+
+           // 🌟 Navegamos por el JSON anidado exactamente como lo dicta tu Swagger
+           const fields = statusRes.result?.resultsByPage?.[0]?.fields || [];
+
+           // Buscamos el campo que contiene la palabra "NIT" (ej: "5. Número de Identificación Tributaria (NIT)")
+           const nitField = fields.find((f: any) => f.field && f.field.includes('NIT'));
+
+           // Buscamos el nombre (en el RUT de Colombia suele ser "Razón social" o "Apellidos y Nombres")
+           const nameField = fields.find((f: any) => f.field &&
+             (f.field.includes('Razón social') || f.field.toLowerCase().includes('nombres'))
+           );
+
+           // Llenamos los campos del formulario con los valores extraídos ("value")
+           this.form.get('step3_data')?.patchValue({
+             businessName: nameField ? nameField.value : '',
+             nit: nitField ? nitField.value : ''
+           });
+
+           this.overlayOpen = false; // Cerramos la pantalla de carga
+
+        } else {
+           // Si el estado es 'failed' o devuelve un error de lectura
+           this.overlayTitle = 'No se pudo leer el documento';
+           setTimeout(() => this.overlayOpen = false, 3000);
+        }
+      },
+      error: (err: any) => {
+        console.error("❌ Error al verificar estado:", err);
+        this.overlayTitle = 'Error consultando el estado';
+        setTimeout(() => this.overlayOpen = false, 3000);
+      }
+    });
+  }
   onOverlayClose() {
     this.overlayOpen = false;
   }

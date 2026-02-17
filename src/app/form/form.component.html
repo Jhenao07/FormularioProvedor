@@ -81,7 +81,9 @@
             <label>Clasificación del proveedor *</label>
             <select formControlName="classification" [class.is-invalid]="form.get('classification')?.invalid && form.get('classification')?.touched">
               <option value="" disabled selected>Seleccione</option>
-
+              <option value="PequeñaEmpresa">Pequeña Empresa</option>
+              <option value="MedianaEmpresa">Mediana Empresa</option>
+              <option value="GranEmpresa">Gran Empresa</option>
             </select>
             <small *ngIf="form.get('classification')?.invalid && form.get('classification')?.touched" class="error-text">
               Requerido.
