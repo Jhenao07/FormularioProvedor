@@ -4,6 +4,8 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { FormBuilder, Validators, ReactiveFormsModule, FormGroup } from '@angular/forms';
 import { services } from '../services'; // Asegúrate de la ruta correcta
 import { EmployeesResponse, Employee } from '../interface/employees.interface';
+import Swal from 'sweetalert2';
+
 
 @Component({
   selector: 'app-form',
@@ -52,7 +54,7 @@ export class FormComponent {
           Validators.minLength(6),
           Validators.maxLength(10)
       ]],
-      email: ['', [Validators.required, Validators.email]], // Corregido a 'email' para consistencia
+      email: ['', [Validators.required, Validators.email]],
       name: ['', Validators.required],
       gerencia: ['', Validators.required],
       position: ['', Validators.required],
@@ -130,7 +132,6 @@ export class FormComponent {
             gerencia: emp.management,
             position: emp.position,
             area: emp.area,
-            email: emp.email
           });
         } else {
             console.error('Usuario no encontrado');
@@ -215,7 +216,20 @@ export class FormComponent {
           queryParamsHandling: 'merge'
         })
       },
-      error: (err) => console.error('❌ Error API Invitación:', err)
+        error: (err: any) => {
+
+        const mensajeBackend = err.error?.message || 'Ocurrió un error inesperado.';
+
+        // Disparo del popup
+        Swal.fire({
+          icon: 'error',
+          title: 'Atención',
+          text: mensajeBackend,
+          confirmButtonColor: '#d33'
+        }).then(() => {
+          console.log("🚨 3. El popup se cerró o terminó de ejecutarse");
+        });
+      }
     });
   }
 }

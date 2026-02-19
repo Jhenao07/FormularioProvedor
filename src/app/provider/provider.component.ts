@@ -6,6 +6,7 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { ProgressOverlayComponent } from '../components/progress-overlay/progressOverlay.component';
 import { ActivatedRoute, Router } from '@angular/router';
 import { services } from '../services';
+import { trigger, transition, style, animate } from '@angular/animations';
 
 interface DocConfig {
   title: string;
@@ -51,7 +52,8 @@ const COUNTRY_CONFIG: Record<string, DocConfig[]> = {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, ProgressOverlayComponent, HttpClientModule],
   templateUrl: './provider.component.html',
-  styleUrl: './provider.component.css'
+  styleUrl: './provider.component.css',
+
 })
 export class ProviderComponent implements OnInit {
   private route = inject(ActivatedRoute);
@@ -66,7 +68,7 @@ export class ProviderComponent implements OnInit {
   countrySelected?: string;
   isManualMode = false;
   providerType: 'juridica' | 'natural' = 'juridica';
-
+  toastMessage = signal<string | null>(null);
   arrayItems = signal<DocConfig[]>([]);
   form: FormGroup;
 
@@ -110,6 +112,12 @@ export class ProviderComponent implements OnInit {
         }
       });
 
+  }
+
+  mostrarToast(mensaje: string) {
+    this.toastMessage.set(mensaje);
+    // Se oculta solo después de 3 segundos
+    setTimeout(() => this.toastMessage.set(null), 3000);
   }
 
   // --- Validador de archivos ---
@@ -315,11 +323,12 @@ export class ProviderComponent implements OnInit {
   }
 
     submitForm() {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      // Opcional: mostrar una alerta si algo falta
-      alert('Por favor completa todos los campos obligatorios antes de finalizar.');
-      return;
+      if (this.form.invalid) {
+        this.form.markAllAsTouched(); // Esto pinta los campos de rojo automáticamente
+
+        // 🌟 Reemplazamos el alert() por nuestro nuevo Toast
+        this.mostrarToast('Por favor completa los campos en rojo antes de continuar.');
+        return;
     }
 
     // Estructuramos el objeto final combinando los datos de los grupos
