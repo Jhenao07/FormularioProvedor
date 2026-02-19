@@ -2,7 +2,7 @@ import { Component, ElementRef, QueryList, ViewChildren } from '@angular/core';
 import { services } from '../services';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 @Component({
   selector: 'app-registerprovider',
   standalone: true,
@@ -15,7 +15,6 @@ export class RegisterproviderComponent {
   tokenSent = false;
   loading = false;
   userEmail = 'proveedor@ejemplo.com';
-
   data: any = null;
   form: FormGroup;
   providerType: 'juridica' | 'natural' = 'juridica';
@@ -24,6 +23,10 @@ export class RegisterproviderComponent {
   ngOnInit() {
     this.data = this.dataService.getData();
     console.log('Datos recibidos:', this.data);
+
+
+    const params = this.route.snapshot.queryParams;
+    console.log('Parámetros de navegación:', params);
   }
   requestToken() {
     this.loading = true;
@@ -43,19 +46,19 @@ export class RegisterproviderComponent {
   }
 
 
-  constructor(private dataService: services, private fb: FormBuilder, private router: Router  ) {
+  constructor(private dataService: services, private fb: FormBuilder, private router: Router, private route: ActivatedRoute) {
 
 
- this.form = this.fb.group({
-    digits: this.fb.array<FormControl<string>>(
-      Array.from({ length: 6 }, () =>
-        new FormControl<string>('', {
-          nonNullable: true,
-          validators: [Validators.required, Validators.pattern(/^\d$/)]
-        })
-      )
-    )
-  });
+    this.form = this.fb.group({
+        digits: this.fb.array<FormControl<string>>(
+          Array.from({ length: 6 }, () =>
+            new FormControl<string>('', {
+              nonNullable: true,
+              validators: [Validators.required, Validators.pattern(/^\d$/)]
+            })
+          )
+        )
+      });
 
 }
 @ViewChildren('otpInput') inputs!: QueryList<ElementRef<HTMLInputElement>>;

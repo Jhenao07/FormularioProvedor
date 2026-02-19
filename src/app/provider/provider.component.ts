@@ -65,7 +65,7 @@ export class ProviderComponent implements OnInit {
 
   // --- Estado ---
   currentStep = 1;
-  countrySelected?: string;
+  countrySelected: string | undefined = '';
   isManualMode = false;
   providerType: 'juridica' | 'natural' = 'juridica';
   toastMessage = signal<string | null>(null);
@@ -92,26 +92,34 @@ export class ProviderComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.route.queryParams
+      this.route.queryParams
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(params => {
-        // Si params está vacío, currentStep será 1 por defecto
+        // 1. El paso por defecto sigue siendo 1, pero ahora 1 es "Documentos"
         this.currentStep = Number(params['step']) || 1;
-        this.countrySelected = params['country'] || undefined;
         this.isManualMode = params['mode'] === 'manual';
 
-        // Si no hay país en la URL, reseteamos el signal de documentos
+        // 2. Transformamos el 'co' de la URL a 'Colombia'
+        // (Ajusta esto si tu COUNTRY_CONFIG usa las siglas en vez del nombre completo)
+        const countryParam = params['country'];
+        if (countryParam === 'co') {
+          this.countrySelected = 'Colombia';
+        } else {
+          this.countrySelected = countryParam || undefined;
+        }
+
+        // 3. Reseteamos si no hay país
         if (!this.countrySelected) {
           this.arrayItems.set([]);
         }
 
-        if (this.currentStep === 2 && this.countrySelected) {
+        // 4. 🔥 LA CLAVE: Cambiamos currentStep === 2 por currentStep === 1
+        if (this.currentStep === 1 && this.countrySelected) {
           const config = COUNTRY_CONFIG[this.countrySelected] || [];
           this.arrayItems.set(config);
           this.rebuildStep2Docs(config);
         }
       });
-
   }
 
   mostrarToast(mensaje: string) {
@@ -133,7 +141,7 @@ export class ProviderComponent implements OnInit {
   private rebuildStep2Docs(config: DocConfig[]) {
     const group: any = {};
     config.forEach(doc => {
-      group[doc.key] = [null]; // No ponemos required aquí para usar el grupal
+      group[doc.key] = [null];
     });
 
     this.form.setControl('step2_docs', this.fb.group(group, {

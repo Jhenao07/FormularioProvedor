@@ -38,7 +38,8 @@ export class FormComponent {
     { name: 'Estados Unidos', flag: 'assets/us.png', code: 'USA' },
     { name: 'México', flag: 'assets/mx.png', code: 'MX' },
     { name: 'España', flag: 'assets/es.png', code: 'ES' },
-    { name: 'Alemania', flag: 'assets/de.png', code: 'DE' }
+    { name: 'Alemania', flag: 'assets/de.png', code: 'DE' },
+    { name: 'Otro', flag: 'assets/otro.png', code: '' },
   ];
 
   constructor(
@@ -83,21 +84,24 @@ export class FormComponent {
     this.dropdownOpen = !this.dropdownOpen;
   }
 
-  selectCountry(country: any) {
-    this.dropdownOpen = false;
-    this.selectedFlag = country.flag;
+    selectCountry(country: any) {
+        this.dropdownOpen = false;
+        this.selectedFlag = country.flag;
 
-    // 1. Actualizar Formulario
-    this.form.patchValue({ country: country.name });
-    this.form.get('country')?.markAsTouched();
-    this.selectedCountryCode = country.code.toLowerCase();
-    // 2. Actualizar URL (Query Params) para el siguiente paso
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { country: country.name },
-      queryParamsHandling: 'merge'
-    });
-  }
+        // Actualizamos el valor legible para el formulario
+        this.form.patchValue({ country: country.name });
+        this.form.get('country')?.markAsTouched();
+
+        // Guardamos el código ISO (CO, MX, etc.)
+        this.selectedCountryCode = country.code.toUpperCase(); // Forzamos Mayúsculas para el backend
+
+        // Actualizamos la URL local si es necesario, pero ahora usando 'sn'
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { sn: this.selectedCountryCode },
+          queryParamsHandling: 'merge'
+        });
+      }
 
   // =========================================================
   // LÓGICA DE NEGOCIO Y FORMULARIO
@@ -152,11 +156,13 @@ export class FormComponent {
 
   sendinvitation(): void {
     this.form.markAllAsTouched();
+        if (this.form.invalid) {
 
-    if (this.form.invalid) {
-      alert('Por favor completa todos los campos requeridos (marcados en rojo).');
-      return;
-    }
+          alert('Por favor completa todos los campos requeridos (marcados en rojo).');
+
+          return;
+
+        }
 
     const raw = this.form.getRawValue();
 
@@ -205,31 +211,29 @@ export class FormComponent {
 
     this.service.createInvitation(payload).subscribe({
       next: (res) => {
-        console.log('✅ Enviado:', res);
         this.service.setData(payload);
+
+        // 🚀 NAVEGACIÓN LIMPIA DESDE EL INICIO
+        // Aquí es donde definimos que country NO exista y sn SÍ.
         this.router.navigate(['/invited'], {
           queryParams: {
-            country: this.selectedCountryCode,
-            oc: res.numServiceOrder,
-            os: res.orderServerId
-          },
-          queryParamsHandling: 'merge'
-        })
+            oc: res.orderServerId,
+            os: res.orderServerId,
+            sn: this.selectedCountryCode // Usamos 'sn' en lugar de 'country'
+          }
+          // Quitamos 'merge' para asegurar que la URL se limpie de parámetros viejos
+        });
       },
-        error: (err: any) => {
-
+      error: (err: any) => {
         const mensajeBackend = err.error?.message || 'Ocurrió un error inesperado.';
-
-        // Disparo del popup
         Swal.fire({
           icon: 'error',
           title: 'Atención',
           text: mensajeBackend,
           confirmButtonColor: '#d33'
-        }).then(() => {
-          console.log("🚨 3. El popup se cerró o terminó de ejecutarse");
         });
       }
     });
   }
 }
+

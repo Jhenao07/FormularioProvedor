@@ -1,138 +1,249 @@
-/* Page */
+/* Page & Base */
 .page {
   min-height: 100vh;
-  background: #f3f4f6;
+  background: #f4f6f8;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 24px;
-  font-family: "Segoe UI", Roboto, sans-serif;
+  font-family: "Inter", "Segoe UI", Roboto, sans-serif;
+  color: #334155;
 }
 
-/* Card */
+/* Card Principal */
 .invited-card {
   background: #ffffff;
   width: 100%;
-  max-width: 560px;
-  border-radius: 14px;
-  padding: 32px 28px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  max-width: 520px;
+  border-radius: 16px;
+  padding: 40px 32px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+  border: 1px solid #e2e8f0;
 }
 
-/* Check icon */
+/* Header Centrado */
+.card-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
 .check-circle {
-  width: 56px;
-  height: 56px;
-  background: #22c55e;
+  width: 64px;
+  height: 64px;
+  background: #ecfdf5;
+  color: #10b981;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 0 8px #f0fdf4; /* Efecto de halo brillante */
 }
 
-.check-circle span {
-  color: #ffffff;
-  font-size: 28px;
-  font-weight: 700;
+.check-circle svg {
+  width: 32px;
+  height: 32px;
 }
 
-/* Titles */
 h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
-  color: #111827;
+  color: #0f172a;
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
-  margin: 6px 0 24px;
+  margin: 8px 0 0;
   font-size: 14px;
-  color: #6b7280;
+  color: #64748b;
 }
 
-/* Sections */
-.section {
-  margin-bottom: 24px;
+.divider {
+  border: none;
+  height: 1px;
+  background: #e2e8f0;
+  margin: 24px 0;
 }
 
-.section h3 {
-  margin-bottom: 14px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #374151;
+/* Caja de Datos (Resumen) */
+.info-box {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #f1f5f9;
+  margin-bottom: 28px;
 }
 
-/* Rows */
+.info-box h3 {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: #475569;
+}
+
 .row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
+  align-items: center;
+  padding: 10px 0;
   font-size: 14px;
+  border-bottom: 1px dashed #e2e8f0;
+}
+
+.row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .label {
-  color: #6b7280;
-}
-
-.value {
-  color: #111827;
+  color: #64748b;
   font-weight: 500;
 }
 
-.status {
-  color: #2563eb;
+.value {
+  color: #0f172a;
+  font-weight: 600;
+  text-align: right;
+  max-width: 60%;
 }
 
-/* Link */
-.section label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 13px;
+.observations {
+  font-weight: 400;
+  color: #64748b;
+  font-style: italic;
+}
+
+/* Badge del Estado */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
   font-weight: 600;
-  color: #374151;
+}
+
+.badge-pending {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fef3c7;
+}
+
+/* Sección del Enlace */
+.link-section {
+  margin-bottom: 32px;
+}
+
+.link-section label {
+  display: flex;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 10px;
+}
+
+.required {
+  color: #ef4444;
+  margin-left: 4px;
 }
 
 .link-wrapper {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
 .link-wrapper input {
   flex: 1;
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #d1d5db;
-  font-size: 13px;
-  background: #f9fafb;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font-size: 14px;
+  background: #ffffff;
+  color: #334155;
+  outline: none;
+  transition: all 0.2s ease;
 }
 
-.link-wrapper button {
-  padding: 0 14px;
-  border-radius: 8px;
+.link-wrapper input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Botón de Copiar */
+.copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
+  border-radius: 10px;
   border: none;
-  background: #111827;
+  background: #1e293b;
   color: #ffffff;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.copy-btn:hover {
+  background: #0f172a;
+  transform: translateY(-1px);
+}
+
+/* Estado cuando se copia exitosamente */
+.copy-btn.copied {
+  background: #10b981;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+}
+
+.copy-btn .icon {
+  width: 18px;
+  height: 18px;
 }
 
 .hint {
   display: block;
-  margin-top: 6px;
-  font-size: 12px;
-  color: #9ca3af;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
 }
 
-/* Primary button */
+/* Botón Principal (Ir a registrarte) */
+.actions {
+  margin-top: 10px;
+}
+
 .primary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
-  padding: 12px;
+  padding: 14px;
   border-radius: 10px;
   border: none;
-  background: #111827;
+  background: #2563eb;
   color: #ffffff;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+}
+
+.primary-btn:hover {
+  background: #1d4ed8;
+  box-shadow: 0 6px 10px -1px rgba(37, 99, 235, 0.3);
+  transform: translateY(-1px);
+}
+
+.icon-right {
+  width: 18px;
+  height: 18px;
 }
