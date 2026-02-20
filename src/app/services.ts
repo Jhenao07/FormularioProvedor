@@ -41,13 +41,10 @@ export class services {
   );
 }
 
- validarEstadoOrden(oc: string, os: string, sn: string): Observable<any> {
-  // Limpiamos cualquier espacio o carácter extraño y construimos la URL limpia
-  const url = `${this.apiValidarOrden}?oc=${oc.trim()}&os=${os.trim()}&sn=${sn.trim()}`;
-
+  validarEstadoOrden(oc: string, os: string): Observable<any> {
+  const url = `${this.apiValidarOrden}?oc=${oc}&os=${os}`;
   return this.http.get<any>(url, { observe: 'response' }).pipe(
     catchError((error: HttpErrorResponse) => {
-      // Manejo especial para el 302 que AWS usa como éxito
       if (error.status === 302) {
         return of({ status: 302, body: error.error });
       }
@@ -66,18 +63,17 @@ export class services {
 
     startExtraction(file: File, docType: string): Observable<any> {
     const pdfToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjczM2VhNDNhLTc4N2QtNDM4Yi04ZTAwLTU0ZDc0YjVlMGRkOSIsImRhdGEiOiIzMzY0MDBlZWI0MWVjYzAwYWMwYmVkODZlNjk2YTk5OSIsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzY4NjkzMTM2LCJleHAiOjIwODQyNjkxMzZ9.qZn1fMZMfxJvx90t6huKa_saFKzBKYpU0MrBzpVonMY';
-
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${pdfToken}`
     });
 
     const fd = new FormData();
     fd.append('file', file);
-    fd.append('docType', docType);
-
-    // Ojo a la URL: Usamos this.extractUrl directamente porque ya termina en /extract-rut
+    fd.append('render', JSON.stringify({ "dpi": 200, "pages": "1" }));
+   
     return this.http.post<any>(this.extractUrl, fd, { headers });
     }
+
   // --- API PDF Step 2: Consultar estado ---
     checkStatus(jobId: string): Observable<any> {
       const pdfToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjczM2VhNDNhLTc4N2QtNDM4Yi04ZTAwLTU0ZDc0YjVlMGRkOSIsImRhdGEiOiIzMzY0MDBlZWI0MWVjYzAwYWMwYmVkODZlNjk2YTk5OSIsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzY4NjkzMTM2LCJleHAiOjIwODQyNjkxMzZ9.qZn1fMZMfxJvx90t6huKa_saFKzBKYpU0MrBzpVonMY';

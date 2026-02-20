@@ -95,28 +95,42 @@ export class ProviderComponent implements OnInit {
       this.route.queryParams
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(params => {
-        // 1. El paso por defecto sigue siendo 1, pero ahora 1 es "Documentos"
+        // 1. El paso por defecto
         this.currentStep = Number(params['step']) || 1;
         this.isManualMode = params['mode'] === 'manual';
 
-        // 2. Transformamos el 'co' de la URL a 'Colombia'
-        // (Ajusta esto si tu COUNTRY_CONFIG usa las siglas en vez del nombre completo)
-        const countryParam = params['country'];
-        if (countryParam === 'co') {
-          this.countrySelected = 'Colombia';
+        // 🚀 2. LEEMOS EL NUEVO PARÁMETRO 'sn'
+        const snParam = params['sn']?.toUpperCase();
+
+        // 🗺️ 3. DICCIONARIO PRO: Traducimos el código ISO al nombre completo de tu configuración
+        const diccionariPaises: Record<string, string> = {
+          'CO': 'Colombia',
+          'US': 'Estados Unidos', // o 'USA' dependiendo de cómo lo mandes
+          'MX': 'México',
+          'ES': 'España',
+          'DE': 'Alemania'
+        };
+
+        // Si viene un código válido, asignamos el nombre completo. Si no, es 'Otro'
+        if (snParam && diccionariPaises[snParam]) {
+          this.countrySelected = diccionariPaises[snParam];
         } else {
-          this.countrySelected = countryParam || undefined;
+          this.countrySelected = 'Otro';
         }
 
-        // 3. Reseteamos si no hay país
-        if (!this.countrySelected) {
+        // 4. Reseteamos los documentos si es 'Otro' o no hay país
+        if (!this.countrySelected || this.countrySelected === 'Otro') {
           this.arrayItems.set([]);
         }
 
-        // 4. 🔥 LA CLAVE: Cambiamos currentStep === 2 por currentStep === 1
-        if (this.currentStep === 1 && this.countrySelected) {
+        // 5. 🔥 LA MAGIA: Llenamos los documentos usando el nombre mapeado
+        if (this.currentStep === 1 && this.countrySelected && this.countrySelected !== 'Otro') {
           const config = COUNTRY_CONFIG[this.countrySelected] || [];
+
+          // Llenamos la señal visual (HTML)
           this.arrayItems.set(config);
+
+          // Construimos el formulario reactivo dinámicamente
           this.rebuildStep2Docs(config);
         }
       });
@@ -235,97 +249,184 @@ export class ProviderComponent implements OnInit {
       }
     }
 
-  procesarPdf(docKey: string) {
+   procesarPdf(docKey: string) {
     const file = this.form.get(`step2_docs.${docKey}`)?.value;
     if (!(file instanceof File)) return;
 
     this.overlayOpen = true;
-    this.overlayTitle = 'Analizando ' + docKey.toUpperCase();
+    this.overlayTitle = 'Enviando documento a AWS...';
 
     const fd = new FormData();
     fd.append('file', file);
-    fd.append('docType', docKey);
+    // 🚀 OBLIGATORIO SEGÚN SWAGGER:
+    fd.append('render', JSON.stringify({ "dpi": 200, "pages": "1" }));
 
-    this.services.startExtraction(file, docKey)
-      .subscribe({
-        next: (data) => {
-          console.log("Datos extraídos con éxito:", data);
-          this.form.get('step3_data')?.patchValue({
-            businessName: data.nombres || '',
-            nit: data.numeroDocumento || ''
-          });
-
-          this.overlayOpen = false;
+    this.services.startExtraction(file, docKey).subscribe({
+      next: (data) => {
         const jobId = data.jobId;
-          if (jobId) {
-              this.overlayTitle = 'Analizando documento...';
-              // 2. Iniciamos el ciclo de preguntas al servidor
-              this.verificarEstado(jobId);
-            } else {
-              this.overlayTitle = 'Error: No se recibió un número de ticket (jobId)';
-              setTimeout(() => this.overlayOpen = false, 3000);
-            }
-        },
-        error: (err) => {
-          console.error("Error al extraer PDF:", err);
-          this.overlayTitle = 'Error en extracción';
-          setTimeout(() => this.overlayOpen = false, 2000);
+        if (jobId) {
+          console.log(`🎫 Ticket recibido: ${jobId}. Iniciando consultas automáticas...`);
+          // Arrancamos el ciclo automático de 5 segundos
+          this.iniciarPolling(jobId);
+        } else {
+          this.overlayTitle = 'Error: No se recibió Ticket de AWS';
+          setTimeout(() => this.overlayOpen = false, 3000);
         }
-      });
+      },
+      error: (err) => {
+        console.error("❌ Error enviando PDF:", err);
+        this.overlayTitle = 'Error de conexión con AWS';
+        setTimeout(() => this.overlayOpen = false, 3000);
+      }
+    });
+  }
+
+  iniciarPolling(jobId: string) {
+    this.services.checkStatus(jobId).subscribe({
+      next: (res: any) => {
+        // Leemos el estado y el progreso que manda AWS
+        const estado = res.status ? res.status.toLowerCase() : '';
+        const progreso = res.progress || 0;
+
+        console.log(`⏳ AWS Responde - Estado: ${estado} | Progreso: ${progreso}%`);
+
+        // Actualizamos la UI para que el usuario vea el % avanzando
+        this.overlayTitle = `Analizando documento (${progreso}%)...`;
+
+        if (estado === 'completed' || progreso === 100) {
+          // 🎉 ¡Terminó con éxito!
+          console.log("✅ ¡Datos listos!", res);
+          this.extraerDatosDelJSON(res);
+
+        } else if (estado === 'failed' || estado === 'error') {
+          // ❌ Hubo un error procesando en AWS
+          this.overlayTitle = 'Error leyendo el documento en AWS';
+          setTimeout(() => this.overlayOpen = false, 3000);
+
+        } else {
+          // 🔄 Aún no termina (not_found, in_progress, pending). Esperamos 5 segundos.
+          setTimeout(() => {
+            this.iniciarPolling(jobId);
+          }, 5000); // 5000 ms = 5 segundos exactos
+        }
+      },
+      error: (err: any) => {
+        // Si AWS responde con un error HTTP 404 (NOT_FOUND) porque aún no crea el ticket,
+        // no nos rendimos. Seguimos intentando en 5 segundos.
+        console.warn("⚠️ AWS no encontró el ticket aún. Reintentando en 5 segundos...");
+        setTimeout(() => {
+          this.iniciarPolling(jobId);
+        }, 5000);
+      }
+    });
+  }
+
+  extraerDatosDelJSON(statusRes: any) {
+    console.log("=======================================");
+    console.log("🚀 INICIANDO EXTRACCIÓN MASIVA PRO");
+    console.log("=======================================");
+
+    const fields = statusRes.result?.resultsByPage?.[0]?.fields || [];
+
+    // 🌟 1. IMPRIMIR TODOS LOS DATOS (Tu petición) 🌟
+    console.log(`📑 Total de campos encontrados: ${fields.length}`);
+    console.log("--- LISTA COMPLETA DE DATOS EXTRAÍDOS ---");
+
+    fields.forEach((item: any) => {
+      if (item.field) {
+        // Imprime en consola: 🔹 [Nombre del Campo]: valor
+        console.log(`🔹 [${item.field}]: ${item.value}`);
+      }
+    });
+    console.log("-----------------------------------------");
+
+    // 🛡️ 2. BÚSQUEDA BLINDADA (A prueba de fallos y tildes)
+
+    // Buscamos el NIT convirtiendo a minúsculas
+    const nitField = fields.find((f: any) =>
+      f.field && f.field.toLowerCase().includes('nit')
+    );
+
+    // Buscamos la Razón Social abarcando todas las posibilidades
+    const nameField = fields.find((f: any) => {
+      if (!f.field) return false;
+      const nombreCampo = f.field.toLowerCase();
+
+      // Atrapamos "razón social" (con tilde), "razon social" (sin tilde), o "nombres"
+      return nombreCampo.includes('razón social') ||
+             nombreCampo.includes('razon social') ||
+             nombreCampo.includes('nombres');
+    });
+
+    // Extraemos el valor asegurándonos de que no sea null
+    const nitExtraido = nitField?.value ? nitField.value : '';
+    const nombreExtraido = nameField?.value ? nameField.value : '';
+
+    console.log("🎯 DATOS LISTOS PARA EL FORMULARIO:");
+    console.log(`   ➡️ NIT a guardar: ${nitExtraido}`);
+    console.log(`   ➡️ Razón Social a guardar: ${nombreExtraido}`);
+
+    // 3. Inyectamos los datos limpios en tu formulario reactivo
+    this.form.get('step3_data')?.patchValue({
+      businessName: nombreExtraido,
+      nit: nitExtraido
+    });
+
+    // 4. Cerramos el modal
+    this.overlayTitle = '¡Análisis completado con éxito!';
+    setTimeout(() => this.overlayOpen = false, 1500);
   }
 
   verificarEstado(jobId: string) {
     this.services.checkStatus(jobId).subscribe({
-      // Usamos 'any' para evitar que TypeScript marque error con la estructura dinámica
       next: (statusRes: any) => {
         console.log("⏳ Estado actual del análisis:", statusRes);
 
-        // Convertimos a minúsculas por seguridad, ya que el Swagger dice "completed"
-        const estado = statusRes.status?.toLowerCase();
+        // Convertimos a MAYÚSCULAS para que no haya problemas si AWS lo manda en minúsculas
+        const estado = statusRes.status?.toUpperCase();
 
-        if (estado === 'pending' || estado === 'processing' || estado === 'in_progress') {
-           // Si AWS sigue leyendo el PDF, esperamos 3 segundos y volvemos a preguntar
-           console.log("AWS sigue procesando, reintentando en 3 segundos...");
+        // 🛡️ ESCUDO: Agregamos NOT_FOUND a la lista de "sigue intentando"
+        if (estado === 'PENDING' || estado === 'IN_PROGRESS' || estado === 'PROCESSING' || estado === 'NOT_FOUND') {
+
+           console.log(`AWS dice: ${estado}, reintentando en 3 segundos...`);
            setTimeout(() => {
              this.verificarEstado(jobId);
            }, 3000);
 
-        } else if (estado === 'completed' || estado === 'success') {
-           // ¡Terminó de leer el documento!
-           console.log("🎉 ¡Datos extraídos!");
+        } else if (estado === 'COMPLETED' || estado === 'SUCCESS') {
+           console.log("🎉 ¡Datos extraídos exitosamente!", statusRes);
 
-           // 🌟 Navegamos por el JSON anidado exactamente como lo dicta tu Swagger
+           // 🌟 Navegamos por el JSON (Asegúrate de que esta ruta sea igual a tu Swagger)
            const fields = statusRes.result?.resultsByPage?.[0]?.fields || [];
 
-           // Buscamos el campo que contiene la palabra "NIT" (ej: "5. Número de Identificación Tributaria (NIT)")
            const nitField = fields.find((f: any) => f.field && f.field.includes('NIT'));
-
-           // Buscamos el nombre (en el RUT de Colombia suele ser "Razón social" o "Apellidos y Nombres")
            const nameField = fields.find((f: any) => f.field &&
              (f.field.includes('Razón social') || f.field.toLowerCase().includes('nombres'))
            );
 
-           // Llenamos los campos del formulario con los valores extraídos ("value")
            this.form.get('step3_data')?.patchValue({
              businessName: nameField ? nameField.value : '',
              nit: nitField ? nitField.value : ''
            });
 
-           this.overlayOpen = false; // Cerramos la pantalla de carga
+           this.overlayTitle = '¡Análisis completado!';
+           setTimeout(() => this.overlayOpen = false, 1000);
 
         } else {
-           // Si el estado es 'failed' o devuelve un error de lectura
-           this.overlayTitle = 'No se pudo leer el documento';
+           // Si llega FAILED u otra cosa
+           this.overlayTitle = 'Error en la lectura del documento';
+           console.error('Estado desconocido o fallido:', statusRes);
            setTimeout(() => this.overlayOpen = false, 3000);
         }
       },
       error: (err: any) => {
-        console.error("❌ Error al verificar estado:", err);
+        console.error("❌ Error al consultar el estado:", err);
         this.overlayTitle = 'Error consultando el estado';
         setTimeout(() => this.overlayOpen = false, 3000);
       }
     });
   }
+
   onOverlayClose() {
     this.overlayOpen = false;
   }

@@ -1,125 +1,90 @@
-:host {
-  display: contents;
-}
-
-.po-backdrop {
+/* Fondo oscuro semitransparente que cubre la pantalla actual */
+.overlay-backdrop {
   position: fixed;
-  inset: 0;
-  z-index: 2000;
-  background: rgba(33, 37, 41, var(--po-backdrop-opacity, 0.55));
-  backdrop-filter: blur(var(--po-blur, 10px));
-}
-
-.po-wrap {
-  position: fixed;
-  inset: 0;
-  z-index: 2001;
-  display: grid;
-  place-items: center;
-  padding: 18px;
-}
-
-.po-card {
-  --po-accent: #ff6647;
-  --po-track-opacity: 0.18;
-  --po-radius: 16px;
-  --po-bar-h: 10px;
-
-  border-radius: var(--po-radius);
-  background:
-    radial-gradient(
-      900px 500px at 15% -20%,
-      rgba(255, 102, 71, 0.18),
-      transparent
-    ),
-    radial-gradient(
-      700px 420px at 120% 0%,
-      rgba(255, 102, 71, 0.12),
-      transparent
-    ),
-    #fff;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-  padding: 16px 16px 14px;
-  color: #111;
-}
-
-.po-elev {
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
-}
-
-.po-header {
-  margin-bottom: 12px;
-
-  .po-title {
-    font-weight: 700;
-    font-size: 16px;
-    letter-spacing: 0.2px;
-  }
-
-  .po-subtitle {
-    margin-top: 4px;
-    font-size: 13px;
-    color: #555;
-  }
-}
-
-.po-track {
-  height: var(--po-bar-h);
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(255, 102, 71, var(--po-track-opacity));
-  border: 1px solid rgba(255, 102, 71, 0.25);
-}
-
-.po-bar {
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    var(--po-accent),
-    rgba(255, 102, 71, 0.55)
-  );
-  box-shadow: 0 0 0 1px rgba(255, 102, 71, 0.2) inset;
-  transition: width 220ms cubic-bezier(0.2, 0, 0, 1);
-}
-
-.po-bar--ind {
-  width: 40%;
-  animation: po-ind 1.05s ease-in-out infinite;
-}
-
-@keyframes po-ind {
-  0% {
-    transform: translateX(-110%);
-  }
-  50% {
-    transform: translateX(35%);
-  }
-  100% {
-    transform: translateX(260%);
-  }
-}
-
-.po-meta {
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.7); /* Azul muy oscuro tipo Nuvant */
+  backdrop-filter: blur(4px); /* Difumina un poco lo que está detrás */
+  z-index: 9999;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  margin-top: 10px;
-
-  .po-count {
-    font-size: 13px;
-    color: #333;
-  }
-
-  .po-percent {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--po-accent);
-  }
 }
 
-.po-hint {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #666;
+/* El recuadro flotante central */
+.floating-modal {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  width: 340px; /* Ancho fijo para que se vea elegante */
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Contenedor del video para darle bordes curvos */
+.video-container {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden; /* Esto asegura que el video respete los bordes redondos */
+  margin-bottom: 20px;
+  background-color: #f1f5f9; /* Color de fondo por si el video tarda un microsegundo en cargar */
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* El video adaptado al 100% de la cajita */
+.modal-video {
+  width: 100%;
+  height: 180px; /* Alto fijo para mantener proporción */
+  object-fit: cover; /* Recorta suavemente para llenar el espacio sin deformar */
+  display: block; /* Elimina márgenes fantasma */
+}
+
+/* Textos */
+.text-content {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.subtitle {
+  font-size: 0.95rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Botón de cancelar */
+.btn-cancel {
+  background: transparent;
+  color: #ef4444;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  padding: 8px 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: #fef2f2;
+}
+
+/* Animación de entrada */
+.fade-in-up {
+  animation: fadeInUp 0.4s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }

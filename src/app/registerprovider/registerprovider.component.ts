@@ -3,6 +3,7 @@ import { services } from '../services';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import Swal from 'sweetalert2';
 @Component({
   selector: 'app-registerprovider',
   standalone: true,
@@ -11,7 +12,8 @@ import { ActivatedRoute, Router } from '@angular/router';
   styleUrl: './registerprovider.component.css'
 })
 export class RegisterproviderComponent {
-
+  ordenValida = false; // Controla la visibilidad del HTML
+  loadingValidacion = true;
   tokenSent = false;
   loading = false;
   userEmail = 'proveedor@ejemplo.com';
@@ -24,9 +26,45 @@ export class RegisterproviderComponent {
     this.data = this.dataService.getData();
     console.log('Datos recibidos:', this.data);
 
-
     const params = this.route.snapshot.queryParams;
     console.log('Parámetros de navegación:', params);
+
+    const { oc, os } = params;
+
+    if (oc && os ) {
+      this.validarOrdenAlEntrar(oc, os);
+    } else {
+      this.mostrarErrorYSalir('Faltan parámetros de seguridad.');
+    }
+  }
+
+  validarOrdenAlEntrar(oc: string, os: string) {
+    this.dataService.validarEstadoOrden(oc, os).subscribe({
+      next: (res) => {
+        if (res.status === 302) {
+          this.ordenValida = true; // 🌟 Aquí se "abre" el div del formulario
+          this.loadingValidacion = false;
+        } else {
+          this.mostrarErrorYSalir(res.body?.es || 'Orden no válida');
+        }
+      },
+      error: (err) => {
+        const msg = err.error?.es || 'Error de conexión con el servidor';
+        this.mostrarErrorYSalir(msg);
+      }
+    });
+  }
+
+  mostrarErrorYSalir(mensaje: string) {
+    Swal.fire({
+      title: 'Atención',
+      text: mensaje,
+      icon: 'warning',
+      confirmButtonColor: '#2563eb',
+      allowOutsideClick: false
+    }).then(() => {
+      this.router.navigate(['/invited'], { queryParamsHandling: 'preserve' });
+    });
   }
   requestToken() {
     this.loading = true;

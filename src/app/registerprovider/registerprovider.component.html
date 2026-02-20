@@ -9,8 +9,13 @@
       <div class="icon-circle">
         <img src="assets/favicon.ico" />
       </div>
-        <h1>Completa tu registro como proveedor</h1>
+      <div *ngIf="loadingValidacion" class="spinner-container text-center" style="margin-top: 40px; color: white;">
+      <div class="spinner" style="margin: 0 auto 15px;"></div>
+      <p>Verificando estado de la orden...</p>
+    </div>
 
+    <div *ngIf="ordenValida" class="main-content fade-in">
+        <h1>Completa tu registro como proveedor</h1>
         @if (!tokenSent) {
           <div class="login-intro">
             <p>Para comenzar, enviaremos un código de seguridad a tu correo electrónico registrado.</p>

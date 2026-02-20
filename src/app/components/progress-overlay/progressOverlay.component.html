@@ -1,61 +1,23 @@
-@if (open) {
-  <div
-    class="po-backdrop"
-    [style.--po-backdrop-opacity]="backdropOpacity"
-    [style.--po-blur]="blurPx + 'px'"
-  ></div>
+<div class="overlay-backdrop" *ngIf="open">
 
-  <div class="po-wrap" role="dialog" aria-modal="true">
-    <div
-      class="po-card"
-      [class.po-elev]="elevation"
-      [style.width]="width"
-      [style.--po-accent]="accent"
-      [style.--po-track-opacity]="trackOpacity"
-      [style.--po-radius]="radius + 'px'"
-      [style.--po-bar-h]="barHeight + 'px'"
-    >
-      <div class="po-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
-        <div>
-          <div class="po-title">{{ title }}</div>
-          @if (subtitle) {
-            <div class="po-subtitle">{{ subtitle }}</div>
-          }
-        </div>
-        @if (closable) {
-          <button
-            type="button"
-            aria-label="Cerrar"
-            class="po-close-btn"
-            style="background: none; border: none; font-size: 1.5em; cursor: pointer; margin-left: 12px;"
-            (click)="onClose()"
-          >&times;</button>
-        }
-      </div>
+  <div class="floating-modal fade-in-up">
 
-      <div class="po-progress">
-        <div class="po-track">
-          <div
-            class="po-bar"
-            [class.po-bar--ind]="indeterminate"
-            [style.width.%]="indeterminate ? 40 : percent"
-          ></div>
-        </div>
-
-        <div class="po-meta">
-          @if (showNumbers) {
-            <div class="po-count">{{ current }} / {{ total }}</div>
-            <div class="po-percent">{{ percent }}%</div>
-          } @else {
-            <div class="po-count">Procesando…</div>
-          }
-        </div>
-      </div>
-
-      <div class="po-hint">
-        Por favor, No cierres está ventana y espera mientras se completa el
-        proceso.
-      </div>
+    <div class="video-container">
+      <video autoplay loop [muted]="true" volume="0" playsinline class="modal-video">
+        <source src="/assets/loading2.mp4" type="video/mp4">
+        Tu navegador no soporta videos HTML5.
+      </video>
     </div>
+
+    <div class="text-content">
+      <h2 class="title">{{ title }}</h2>
+      <p class="subtitle" *ngIf="subtitle">{{ subtitle }}</p>
+    </div>
+
+    <button class="btn-cancel" (click)="close.emit()">
+      Cancelar
+    </button>
+
   </div>
-}
+
+</div>

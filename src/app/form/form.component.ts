@@ -157,11 +157,8 @@ export class FormComponent {
   sendinvitation(): void {
     this.form.markAllAsTouched();
         if (this.form.invalid) {
-
           alert('Por favor completa todos los campos requeridos (marcados en rojo).');
-
           return;
-
         }
 
     const raw = this.form.getRawValue();
@@ -199,29 +196,31 @@ export class FormComponent {
           "valueField": "No"
         },
         {
-            "labelIdField": "supplierLocation",
-            "valueField": raw.country
+            "labelIdField": "supplierNationality",
+            "valueField":this.selectedCountryCode
         }
       ]
     };
 
-    console.log('📤 JSON a enviar:', JSON.stringify(payload, null, 2));
-
+  console.log('📤 JSON a enviar a AWS:', JSON.stringify(payload, null, 2));
 
 
     this.service.createInvitation(payload).subscribe({
       next: (res) => {
         this.service.setData(payload);
 
-        // 🚀 NAVEGACIÓN LIMPIA DESDE EL INICIO
-        // Aquí es donde definimos que country NO exista y sn SÍ.
         this.router.navigate(['/invited'], {
           queryParams: {
             oc: res.orderServerId,
             os: res.orderServerId,
-            sn: this.selectedCountryCode // Usamos 'sn' en lugar de 'country'
+            sn: this.selectedCountryCode
           }
-          // Quitamos 'merge' para asegurar que la URL se limpie de parámetros viejos
+
+        });
+        console.log('✅ Invitación creada. Parámetros para la URL:', {
+          oc: res.orderServerId,
+          os: res.orderServerId,
+          sn: this.selectedCountryCode
         });
       },
       error: (err: any) => {
