@@ -16,33 +16,23 @@
 
     <div *ngIf="ordenValida" class="main-content fade-in">
         <h1>Completa tu registro como proveedor</h1>
-        @if (!tokenSent) {
-          <div class="login-intro">
-            <p>Para comenzar, enviaremos un código de seguridad a tu correo electrónico registrado.</p>
-            <div class="actions">
-              <button type="button" class="btn-primary" (click)="requestToken()" [disabled]="loading">
-                {{ loading ? 'Enviando...' : 'Login' }}
-              </button>
-            </div>
-          </div>
-        }
 
-        @else {
-          <div class="token-section" style="animation: fadeIn 0.5s ease;">
-            <p class="token-label">Ingresa el token enviado a tu correo</p>
 
-            <div class="token-box" (paste)="onPaste($event)">
-              <input
-                #otpInput
-                *ngFor="let ctrl of digitsFA.controls; let i = index"
-                type="text"
-                inputmode="numeric"
-                maxlength="1"
-                [formControl]="ctrl"
-                (input)="onInput($event, i)"
-                (keydown)="onKeydown($event, i)"
-              />
-            </div>
+        <div class="token-box" (paste)="onPaste($event)" [formGroup]="form">
+          <ng-container formArrayName="digits">
+            <input
+              #otpInput
+              *ngFor="let ctrl of digitsFA.controls; let i = index"
+              type="text"
+              inputmode="numeric"
+              maxlength="1"
+              [formControlName]="i"
+              (input)="onInput($event, i)"
+              (keydown)="onKeydown($event, i)"
+              [class.error-input]="ctrl.hasError('invalid')"
+            />
+          </ng-container>
+        </div>
 
             <div class="actions">
               <button type="button" class="btn-primary" (click)="validateToken()">
@@ -54,7 +44,7 @@
               ¿No recibiste el código? <a (click)="requestToken()" style="cursor:pointer; color: blue;">Reenviar</a>
             </p>
           </div>
-        }
+        
 
         <div class="info-list">
           <div class="info-item">

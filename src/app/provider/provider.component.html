@@ -73,75 +73,68 @@
       </div>
 
       <div *ngIf="currentStep === 2" [formGroup]="form" class="step-content">
-        <div formGroupName="step2">
-          <h2 class="title">Identificación del proveedor</h2>
 
-          <div class="tabs">
-            <button type="button" class="tab" [class.active]="providerType === 'juridica'" (click)="providerType='juridica'">
-              Persona Jurídica
-            </button>
-            <button type="button" class="tab" [class.active]="providerType === 'natural'" (click)="providerType='natural'">
-              Persona Natural
-            </button>
-          </div>
+        <div formGroupName="formDinamico">
+          <h2 class="title">Información del Documento</h2>
+          <p style="color: var(--muted); margin-bottom: 24px; font-size: 14px;">
+            Verifica los datos extraídos automáticamente de tu archivo.
+          </p>
 
           <div class="form-grid">
-            <div class="form-group">
-              <label class="label">Razón Social <span class="req">*</span></label>
+
+            <div class="form-group"
+                 *ngFor="let campo of camposDinamicos"
+                 [class.full]="campo.isLong">
+
+              <label class="label">{{ campo.label }} <span class="req">*</span></label>
+
               <div class="input-with-badge">
-                <input type="text" formControlName="businessName" placeholder="Nombre completo" />
-                <span class="badge-auto" *ngIf="form.get('step2.businessName')?.value">Autocompletado</span>
+                <input type="text" [formControlName]="campo.key" />
+                <span class="badge-auto">Autocompletado</span>
               </div>
+
             </div>
 
-            <div class="form-group">
-              <label class="label">NIT / Documento <span class="req">*</span></label>
-              <div class="input-with-badge">
-                <input type="text" formControlName="nit" placeholder="Escribe el NIT" />
-                <span class="badge-auto" *ngIf="form.get('step2.nit')?.value">Autocompletado</span>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="label">Representante Legal <span class="req">*</span></label>
-              <div class="input-with-badge">
-                <input type="text" formControlName="legalRepName" placeholder="Nombre completo" />
-                <span class="badge-auto" *ngIf="form.get('step2.legalRepName')?.value">Autocompletado</span>
-              </div>
-            </div>
-
-            <div class="form-group full">
-              <label class="label">¿Cuenta con sistema de gestión de riesgo?</label>
-              <div class="radio-row">
-                <label class="radio-label">
-                  <input type="radio" formControlName="riskOption" value="SI" />
-                  <span>Sí</span>
-                </label>
-                <label class="radio-label">
-                  <input type="radio" formControlName="riskOption" value="NO" />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
           </div>
 
           <div class="actions">
-            <button *ngIf="countrySelected !== 'Otro'" type="button" class="btn-secondary" (click)="prevStep()">Atrás</button>
-            <button type="button" class="btn-primary" (click)="goToStep(3)" [disabled]="form.get('step2')?.invalid">
-              Siguiente
+            <button type="button" class="btn-secondary" (click)="currentStep = 1">Volver a Documentos</button>
+            <button type="button" class="btn-primary" (click)="currentStep = 3"
+                    [disabled]="form.get('formDinamico')?.invalid">
+              Confirmar y Continuar
             </button>
           </div>
+
         </div>
       </div>
 
-      <div *ngIf="currentStep === 3" class="step-content">
+     <div *ngIf="currentStep === 3" class="step-content">
         <h2>Revisión y envío</h2>
+        <p style="color: var(--muted); margin-bottom: 24px; font-size: 14px;">
+          Verifica que la información extraída sea correcta antes de finalizar.
+        </p>
+
         <div class="review-card">
-          <p>País: <strong>{{ countrySelected }}</strong></p>
-          <p>Razón Social: {{ form.get('step2.businessName')?.value }}</p>
+          <div class="review-item">
+            <label>País de Operación</label>
+            <span>{{ countrySelected }}</span>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid var(--border-strong); margin: 16px 0;">
+          <p style="font-size: 13px; font-weight: 700; color: var(--primary-color); margin-bottom: 12px;">
+            Datos Extraídos del Documento
+          </p>
+
+          <div class="review-item" *ngFor="let campo of camposDinamicos">
+            <label>{{ campo.label }}</label>
+            <span style="text-align: right; max-width: 60%;">
+              {{ form.get('formDinamico.' + campo.key)?.value || 'N/A' }}
+            </span>
+          </div>
         </div>
+
         <div class="actions">
-          <button type="button" class="btn-secondary" (click)="prevStep()">Atrás</button>
+          <button type="button" class="btn-secondary" (click)="currentStep = 2">Atrás</button>
           <button type="button" class="btn-primary" (click)="submitForm()">Finalizar Registro</button>
         </div>
       </div>

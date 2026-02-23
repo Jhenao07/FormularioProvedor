@@ -1,5 +1,6 @@
 /* =========================================
    VARIABLES Y CONFIGURACIÓN GLOBAL
+   (Exactamente las mismas del Register)
    ========================================= */
 :root {
   --accent: #ff6647;
@@ -17,6 +18,9 @@
   --text: #111827;
   --text-2: #374151;
   --muted: #6b7280;
+
+  --error: #ef4444;
+  --success: #10b981;
 
   --shadow-sm: 0 6px 16px rgba(0, 0, 0, .06);
   --shadow-md: 0 18px 40px rgba(0, 0, 0, .08);
@@ -50,7 +54,7 @@
 }
 
 /* =========================================
-   RESET Y LAYOUT BASE
+   LAYOUT PRINCIPAL
    ========================================= */
 * {
   box-sizing: border-box;
@@ -76,7 +80,7 @@ body {
 
 .provider-wrapper {
   width: 100%;
-  max-width: 800px;
+  max-width: 800px; /* Ancho perfecto para formulario de 2 columnas */
 }
 
 .provider-header {
@@ -90,7 +94,7 @@ body {
 }
 
 /* =========================================
-   STEPS NAVIGATION (4 PASOS)
+   STEPS NAVIGATION (Indicador de pasos)
    ========================================= */
 .steps {
   display: flex;
@@ -107,12 +111,12 @@ body {
   font-size: 13px;
   font-weight: 700;
   color: var(--muted);
-  transition: all .3s ease;
+  transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
 }
 
 .step.active {
-  background: var(--accent);
+  background: linear-gradient(180deg, var(--accent), var(--accent-600));
   color: #fff;
   border-color: transparent;
   box-shadow: var(--shadow-accent);
@@ -120,7 +124,7 @@ body {
 }
 
 /* =========================================
-   CONTAINER CARD (GLASSMORPHISM)
+   CONTAINER CARD (El mismo Glassmorphism del Login)
    ========================================= */
 .provider-card {
   background: var(--surface);
@@ -133,11 +137,11 @@ body {
 }
 
 .step-content {
-  animation: stepSlide .3s ease-out both;
+  animation: stepSlide .4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes stepSlide {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(15px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -146,16 +150,27 @@ h2 {
   font-weight: 800;
   margin-bottom: 8px;
   letter-spacing: -0.5px;
+  color: var(--text);
 }
 
 /* =========================================
-   FORM ELEMENTS
+   INPUTS ESTILO LOGIN (El mismo diseño)
    ========================================= */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-group.full {
+  grid-column: 1 / -1;
+}
+
 .form-group {
   margin-bottom: 20px;
 }
 
-.form-group label {
+.form-group label.label {
   display: block;
   font-size: 13px;
   font-weight: 700;
@@ -163,376 +178,67 @@ h2 {
   color: var(--text-2);
 }
 
-/* Contenedor del Select para control total */
-.form-group select {
-  appearance: none; /* Elimina el estilo feo por defecto */
-  -webkit-appearance: none;
-  -moz-appearance: none;
+.req {
+  color: var(--accent);
+}
 
-  cursor: pointer;
+.input-with-badge {
+  position: relative;
   width: 100%;
-  padding: 14px 44px 14px 16px; /* Espacio extra a la derecha para el icono */
-  border-radius: var(--r-md);
-  border: 1px solid var(--border-strong);
-  background-color: var(--surface);
-
-  /* Icono de flecha personalizado (SVG) */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23ff6647' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'%3E%3C/path%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  background-size: 16px;
-
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
 }
 
-/* Estado Focus del Select */
-.form-group select:focus {
-  outline: none;
-  border-color: var(--accent);
-  background-color: var(--surface);
-  box-shadow: 0 0 0 4px var(--accent-100), var(--shadow-sm);
-  transform: translateY(-1px);
-}
-
-/* Estilo para las opciones (Limitado por el SO, pero mejorado) */
-.form-group select option {
-  background-color: var(--bg);
-  color: var(--text);
-  padding: 12px;
-}
-
-/* Hover suave solo para dispositivos que lo soportan */
-@media (hover: hover) {
-  .form-group select:hover:not(:disabled) {
-    border-color: rgba(255, 102, 71, 0.5);
-    background-color: color-mix(in srgb, var(--surface), var(--accent) 2%);
-  }
-}
-
-input[type="file"] {
+.badge-auto {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
-}
-
-
-/* =========================================
-   DOCUMENT ITEMS & UPLOAD (PASO 2)
-   ========================================= */
-.option-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.doc-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  transition: all .2s ease;
-}
-
-.doc-item:hover {
-  border-color: var(--accent-100);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
-}
-
-.doc-item strong {
-  font-size: 14px;
-  color: var(--text);
-}
-
-.doc-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.file-ok {
-  color: #10b981;
-  font-weight: bold;
-  font-size: 18px;
-  animation: scalePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-.file-status-text {
-  font-size: 11px;
-  color: #10b981;
-  font-weight: 700;
-  display: block;
-  margin-top: 4px;
-}
-.input-file-hidden {
-  display: none;
-}
-
-/* Botones pequeños para la lista de documentos */
-.btn-secondary-sm, .btn-ai-sm {
-  height: 34px;
-  padding: 0 12px;
-  border-radius: var(--r-sm);
-  font-size: 12px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-}
-
-.btn-secondary-sm {
-  background: var(--surface-3);
-  color: var(--text-2);
-  border: 1px solid var(--border);
-}
-
-.btn-ai-sm {
-  background: #ff6647;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  height: 34px;
-  padding: 0 12px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.btn-remove {
-  background: #fee2e2;
-  color: #b91c1c;
-  border: none;
-  border-radius: 8px;
-  height: 34px;
-  padding: 0 12px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.btn-remove:hover {
-  background: #fecaca;
-  transform: translateY(-1px);
-}
-.btn-ai-sm:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.1);
-}
-
-/* Estado cuando ya se subió un archivo */
-.doc-item.has-file {
-  border-color: #10b981;
-  background: color-mix(in srgb, var(--surface), #10b981 5%);
-}
-
-.doc-item.has-file strong {
-  color: #059669;
-}
-
-@keyframes scalePop {
-  0% { transform: scale(0); }
-  100% { transform: scale(1); }
-}
-
-/* =========================================
-   BOTONES Y ACCIONES
-   ========================================= */
-.actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 32px;
-}
-
-.btn-primary, .btn-secondary, .btn-outline, .btn-ai {
-  padding: 12px 24px;
-  border-radius: var(--r-md);
-  font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all .2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-}
-
-.btn-primary {
-  flex: 2;
-  background: linear-gradient(180deg, var(--accent), var(--accent-600));
-  color: white;
-  box-shadow: var(--shadow-accent);
-}
-
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  filter: brightness(1.05);
-}
-
-.btn-secondary {
-  flex: 1;
-  background: var(--surface-3);
-  color: var(--text-2);
-  border: 1px solid var(--border);
-}
-
-.btn-secondary:hover {
-  background: var(--surface-2);
-}
-
-.btn-outline {
-  background: transparent;
-  border: 1.5px solid var(--accent);
-  color: var(--accent);
-}
-
-.btn-outline:hover {
-  background: var(--accent-060);
-}
-
-.btn-ai {
-  background: #4f46e5;
-  color: whbtn-ai-smite;
-  box-shadow: #ff6647;
-}
-
-.btn-ai:hover {
-  background: #4338ca;
-  transform: translateY(-1px);
-}
-
-/* REGISTRO MANUAL TRIGGER */
-.manual-trigger {
-  margin-top: 24px;
-  padding: 16px;
-  border: 1px dashed var(--accent);
-  background: var(--accent-060);
-  border-radius: var(--r-md);
-  text-align: center;
-  cursor: pointer;
-}
-
-.manual-trigger p {
-  color: var(--accent);
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.manual-trigger:hover {
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
   background: var(--accent-100);
+  color: var(--accent-600);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 99px;
+  pointer-events: none;
 }
 
-/* =========================================
-   REVISIÓN (PASO 4)
-   ========================================= */
-.review-box {
-  background: var(--surface-2);
-  padding: 24px;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--border);
-}
-
-.review-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.review-item:last-child { border: none; }
-
-.review-item label {
-  color: var(--muted);
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.review-item span {
-  font-weight: 700;
-  font-size: 13px;
-}
-
-.tabs {
-  display: flex;
-  background: var(--surface-2);
-  padding: 4px;
-  border-radius: var(--r-md);
-  gap: 4px;
-  margin-bottom: 24px;
-}
-
-.tab {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  border-radius: var(--r-sm);
-  transition: all 0.2s;
-}
-
-.tab.active {
-  background: var(--surface);
-  color: var(--accent);
-  box-shadow: var(--shadow-sm);
-}
-
-/* Estilo base para todos los inputs de texto en el formulario */
+/* Misma estética de los cuadritos OTP del Register */
+/* Busca este bloque en tu CSS y asegúrate de que el padding sea así: */
 .form-group input[type="text"],
 .form-group input[type="email"],
 .form-group input[type="number"],
 .form-group select {
-  width: 100% !important;
-  height: 48px !important; /* Altura igual a los botones */
-  background-color: var(--surface-2) !important; /* Fondo oscuro sutil */
-  border: 1px solid var(--border-strong) !important;
-  border-radius: var(--r-md) !important;
-  color: black !important;
-  padding: 0 16px !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  outline: none !important;
-  transition: all 0.2s ease !important;
-  box-sizing: border-box !important;
+  width: 100%;
+  height: 52px;
+  background-color: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  color: var(--text);
+
+  /* 👇 FIX: Padding derecho grande para que el texto nunca choque con el badge */
+  padding: 0 110px 0 16px;
+
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+.form-group input:focus,
+.form-group select:focus {
+  border-color: var(--accent);
+  background-color: var(--surface);
+  box-shadow: var(--focus), var(--shadow-sm); /* Misma sombra al enfocar */
+  transform: translateY(-1px);
 }
 
-/* Efecto Focus (Cuando el usuario hace clic) */
-.form-group input:focus {
-  border-color: var(--accent) !important;
-  background-color: var(--surface-3) !important;
-  box-shadow: 0 0 0 3px var(--accent-100) !important;
-}
-
-/* Placeholder sutil para que no brille tanto */
 .form-group input::placeholder {
   color: var(--muted);
-  opacity: 0.5;
+  font-weight: 400;
+  opacity: 0.6;
 }
 
-/* Arreglo para el contenedor del badge */
-.input-with-badge {
-  width: 100%;
-  display: flex;
-  align-items: center;
-}
-
-/* Estilo para los Radios (Sí/No) */
+/* Radios */
 .radio-row {
   display: flex;
   gap: 24px;
@@ -551,30 +257,286 @@ input[type="file"] {
 }
 
 .radio-label input[type="radio"] {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--accent); /* Cambia el color del círculo al naranja */
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
   cursor: pointer;
 }
 
+/* =========================================
+   DOCUMENT ITEMS (PASO 1)
+   ========================================= */
+.option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.doc-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.doc-item:hover {
+  border-color: var(--accent-100);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.doc-item strong {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.doc-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.file-status-text {
+  font-size: 12px;
+  color: var(--success);
+  font-weight: 700;
+  display: block;
+  margin-top: 6px;
+  animation: scalePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.doc-item.has-file {
+  border-color: var(--success);
+  background: color-mix(in srgb, var(--surface), var(--success) 4%);
+}
+
+.doc-item.has-file strong {
+  color: #059669;
+}
+
+@keyframes scalePop {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.input-file-hidden {
+  display: none;
+}
+
+/* Botones dentro de los documentos */
+.btn-secondary-sm, .btn-ai-sm, .btn-remove {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+}
+
+.btn-secondary-sm {
+  background: var(--surface-3);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary-sm:hover {
+  background: var(--border-strong);
+}
+
+.btn-ai-sm {
+  background: linear-gradient(135deg, #4f46e5, #6366f1); /* Color mágico IA */
+  color: white;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+}
+
+.btn-ai-sm:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+}
+
+.btn-remove {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--error);
+  padding: 0 10px;
+}
+
+.btn-remove:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: translateY(-2px);
+}
+
+/* =========================================
+   TABS (Paso 2)
+   ========================================= */
+.tabs {
+  display: flex;
+  background: var(--surface-2);
+  padding: 6px;
+  border-radius: var(--r-md);
+  gap: 6px;
+  margin-bottom: 24px;
+}
+
+.tab {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  transition: all 0.2s ease;
+}
+
+.tab.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+/* =========================================
+   REVISIÓN (PASO 3)
+   ========================================= */
+.review-card {
+  background: var(--surface-2);
+  padding: 24px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+}
+
+.review-card p {
+  margin-bottom: 12px;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.review-card strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+/* =========================================
+   BOTONES PRINCIPALES (Los mismos del Register)
+   ========================================= */
+.actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 14px 24px;
+  border-radius: var(--r-md);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+}
+
+.btn-primary {
+  flex: 2;
+  background: linear-gradient(180deg, var(--accent), var(--accent-600));
+  color: white;
+  box-shadow: var(--shadow-accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
+.btn-primary:disabled {
+  background: var(--surface-3);
+  box-shadow: none;
+  color: var(--muted);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-secondary {
+  flex: 1;
+  background: var(--surface-3);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  background: var(--border-strong);
+}
+
+/* =========================================
+   TOAST NOTIFICATION
+   ========================================= */
+.toast-notification {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--surface);
+  padding: 14px 24px;
+  border-radius: 99px;
+  font-weight: 600;
+  font-size: 14px;
+  box-shadow: var(--shadow-md);
+  z-index: 1000;
+}
+
+.fade-in-up {
+  animation: toastPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes toastPop {
+  from { opacity: 0; transform: translate(-50%, 20px) scale(0.9); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
 @media (max-width: 640px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
   .steps {
     flex-wrap: wrap;
   }
+
   .step {
     flex: 1 1 40%;
     text-align: center;
   }
+
   .actions {
     flex-direction: column-reverse;
   }
+
   .doc-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 16px;
   }
+
   .doc-actions {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-end;
   }
 }

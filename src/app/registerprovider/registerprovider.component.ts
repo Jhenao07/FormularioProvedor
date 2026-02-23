@@ -23,22 +23,27 @@ export class RegisterproviderComponent {
 
 
   ngOnInit() {
-    this.data = this.dataService.getData();
-    console.log('Datos recibidos:', this.data);
-
+  this.data = this.dataService.getData();
     const params = this.route.snapshot.queryParams;
-    console.log('Parámetros de navegación:', params);
 
-    const { oc, os } = params;
+    const oc = params['oc'];
+    const os = params['os'];
 
-    if (oc && os ) {
+    // 🛡️ ESCUDO PROTECTOR PARA EL PAÍS (Vital para que todo el flujo funcione)
+    let sn = params['sn'];
+    if (!sn || sn === 'null' || sn === 'undefined') {
+      sn = 'CO';
+    }
+    sn = sn.replace('}', '').toUpperCase();
+
+    if (oc && os && sn) {
       this.validarOrdenAlEntrar(oc, os);
     } else {
       this.mostrarErrorYSalir('Faltan parámetros de seguridad.');
     }
   }
 
-  validarOrdenAlEntrar(oc: string, os: string) {
+  validarOrdenAlEntrar(oc: string, os: string, ) {
     this.dataService.validarEstadoOrden(oc, os).subscribe({
       next: (res) => {
         if (res.status === 302) {
@@ -69,39 +74,37 @@ export class RegisterproviderComponent {
   requestToken() {
     this.loading = true;
 
-    this.dataService.sendTokenEmail(this.userEmail).subscribe({
-      next: () => {
-        this.tokenSent = true;
-        this.loading = false;
-        setTimeout(() => this.focus(0), 100);
-      },
-      error: (err) => {
-        console.error('Error al enviar token', err);
-        alert('No se pudo enviar el token. Intenta de nuevo.');
-        this.loading = false;
-      }
-    });
+    // 🚀 SIMULACIÓN: En lugar de llamar a la API, esperamos 1.5s y mostramos las cajas
+    setTimeout(() => {
+      this.tokenSent = true;
+      this.loading = false;
+
+      // Hacemos focus en el primer cuadrito después de un instante
+      setTimeout(() => this.focus(0), 100);
+    }, 1500);
+
   }
 
 
   constructor(private dataService: services, private fb: FormBuilder, private router: Router, private route: ActivatedRoute) {
 
 
-    this.form = this.fb.group({
-        digits: this.fb.array<FormControl<string>>(
-          Array.from({ length: 6 }, () =>
-            new FormControl<string>('', {
-              nonNullable: true,
-              validators: [Validators.required, Validators.pattern(/^\d$/)]
-            })
-          )
+
+   this.form = this.fb.group({
+      digits: this.fb.array<FormControl<string>>(
+        Array.from({ length: 6 }, () =>
+          new FormControl<string>('', {
+            nonNullable: true,
+            validators: [Validators.required, Validators.pattern(/^\d$/)]
+          })
         )
-      });
+      )
+    });
 
 }
 @ViewChildren('otpInput') inputs!: QueryList<ElementRef<HTMLInputElement>>;
 
-  get digitsFA(): FormArray<FormControl<string>> {
+get digitsFA(): FormArray<FormControl<string>> {
     return this.form.get('digits') as FormArray<FormControl<string>>;
   }
 
@@ -109,15 +112,21 @@ export class RegisterproviderComponent {
     return this.digitsFA.controls.map(c => c.value).join('');
   }
 
+  focus(idx: number) {
+    const el = this.inputs.get(idx)?.nativeElement;
+    el?.focus();
+    el?.select();
+  }
+
   onInput(event: Event, idx: number) {
     const input = event.target as HTMLInputElement;
     input.value = (input.value || '').replace(/\D/g, '').slice(0, 1);
-    this.digitsFA.at(idx).setValue(input.value as any, { emitEvent: false });
+    this.digitsFA.at(idx).setValue(input.value, { emitEvent: false });
 
     if (input.value && idx < this.digitsFA.length - 1) this.focus(idx + 1);
   }
 
-  onKeydown(event: KeyboardEvent, idx: number) {
+ onKeydown(event: KeyboardEvent, idx: number) {
     const key = event.key;
 
     if (key === 'Backspace') {
@@ -125,7 +134,7 @@ export class RegisterproviderComponent {
       if (!current && idx > 0) {
         event.preventDefault();
         this.focus(idx - 1);
-        this.digitsFA.at(idx - 1).setValue('' as any, { emitEvent: false });
+        this.digitsFA.at(idx - 1).setValue('', { emitEvent: false });
       }
       return;
     }
@@ -144,55 +153,42 @@ export class RegisterproviderComponent {
     const digits = text.replace(/\D/g, '').slice(0, 6).split('');
     digits.forEach((d, i) => {
       if (i < this.digitsFA.length) {
-        this.digitsFA.at(i).setValue(d as any, { emitEvent: false });
+        this.digitsFA.at(i).setValue(d, { emitEvent: false });
       }
     });
     const last = Math.min(digits.length, this.digitsFA.length) - 1;
     if (last >= 0) this.focus(last);
   }
 
-  focus(idx: number) {
-    const el = this.inputs.get(idx)?.nativeElement;
-    el?.focus(); el?.select();
-  }
 
   readonly QToken = "123456"
 
 
-  validateToken() {
-  const ingresado = this.token;
+ validateToken() {
+    const ingresado = this.token;
 
-  if (ingresado.length < 6) {
-    this.marcarError();
-    return;
-  }
+    if (ingresado.length < 6 || ingresado !== this.QToken) {
+      this.marcarError();
+      return;
+    }
 
-  if (ingresado !== this.QToken) {
-    this.marcarError();
-    return;
-  }
+    // 🌟 Si el token es correcto, navegamos al siguiente componente manteniendo el país
+    const snActual = this.route.snapshot.queryParams['sn'] || 'CO';
 
-  this.router.navigate(['/provider']);
-
+    this.router.navigate(['/provider'], {
+      queryParams: {
+        step: 1,
+        sn: snActual // Aseguramos que el componente Provider reciba el país
+      }
+    });
   }
 
   marcarError() {
-  this.digitsFA.controls.forEach(c => c.setErrors({ invalid: true }));
-
-  const box = document.querySelector('.token-box');
-  box?.classList.add('shake');
-
-  setTimeout(() => box?.classList.remove('shake'), 300);
-}
-
-
-
-  validatedToken() {
-    if (this.token.length < 6) {
-      const idx = this.digitsFA.controls.findIndex(c => !c.value);
-      if (idx >= 0) this.focus(idx);
-      return;
-    }
-    console.log('Token a validar:', this.token);
+    this.digitsFA.controls.forEach(c => c.setErrors({ invalid: true }));
+    const box = document.querySelector('.token-box');
+    box?.classList.add('shake');
+    setTimeout(() => box?.classList.remove('shake'), 300);
   }
+
+
 }

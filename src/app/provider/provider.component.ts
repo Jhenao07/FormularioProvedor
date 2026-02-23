@@ -7,6 +7,7 @@ import { ProgressOverlayComponent } from '../components/progress-overlay/progres
 import { ActivatedRoute, Router } from '@angular/router';
 import { services } from '../services';
 import { trigger, transition, style, animate } from '@angular/animations';
+import Swal from 'sweetalert2';
 
 interface DocConfig {
   title: string;
@@ -17,6 +18,12 @@ interface ExtractedData {
   nombres?: string;
   apellidos?: string;
   numeroDocumento?: string;
+}
+
+interface CampoDinamico {
+  key: string;
+  label: string;
+  isLong: boolean;
 }
 
 const COUNTRY_CONFIG: Record<string, DocConfig[]> = {
@@ -71,7 +78,7 @@ export class ProviderComponent implements OnInit {
   toastMessage = signal<string | null>(null);
   arrayItems = signal<DocConfig[]>([]);
   form: FormGroup;
-
+  camposDinamicos: CampoDinamico[] = [];
   // --- Overlay UI ---
   overlayOpen = false;
   overlayTitle = '';
@@ -242,6 +249,8 @@ export class ProviderComponent implements OnInit {
       this.form.get(`step2_docs.${docKey}`)?.setValue(null);
       this.form.get('step2_docs')?.updateValueAndValidity();
 
+      this.camposDinamicos = [];
+      this.form.removeControl('formDinamico');
       // 2. Limpiar el input físico para poder re-subir el mismo archivo si se desea
       const fileInput = document.getElementById('file-' + docKey) as HTMLInputElement;
       if (fileInput) {
@@ -254,7 +263,7 @@ export class ProviderComponent implements OnInit {
     if (!(file instanceof File)) return;
 
     this.overlayOpen = true;
-    this.overlayTitle = 'Enviando documento a AWS...';
+    this.overlayTitle = 'Extrayendo Documento...';
 
     const fd = new FormData();
     fd.append('file', file);
@@ -288,7 +297,7 @@ export class ProviderComponent implements OnInit {
         const estado = res.status ? res.status.toLowerCase() : '';
         const progreso = res.progress || 0;
 
-        console.log(`⏳ AWS Responde - Estado: ${estado} | Progreso: ${progreso}%`);
+        console.log(`⏳  Responde - Estado: ${estado} | Progreso: ${progreso}%`);
 
         // Actualizamos la UI para que el usuario vea el % avanzando
         this.overlayTitle = `Analizando documento (${progreso}%)...`;
@@ -321,7 +330,7 @@ export class ProviderComponent implements OnInit {
     });
   }
 
-  extraerDatosDelJSON(statusRes: any) {
+ extraerDatosDelJSON(statusRes: any) {
     console.log("=======================================");
     console.log("🚀 INICIANDO EXTRACCIÓN MASIVA PRO");
     console.log("=======================================");
@@ -334,31 +343,24 @@ export class ProviderComponent implements OnInit {
 
     fields.forEach((item: any) => {
       if (item.field) {
-        // Imprime en consola: 🔹 [Nombre del Campo]: valor
         console.log(`🔹 [${item.field}]: ${item.value}`);
       }
     });
     console.log("-----------------------------------------");
 
     // 🛡️ 2. BÚSQUEDA BLINDADA (A prueba de fallos y tildes)
-
-    // Buscamos el NIT convirtiendo a minúsculas
     const nitField = fields.find((f: any) =>
       f.field && f.field.toLowerCase().includes('nit')
     );
 
-    // Buscamos la Razón Social abarcando todas las posibilidades
     const nameField = fields.find((f: any) => {
       if (!f.field) return false;
       const nombreCampo = f.field.toLowerCase();
-
-      // Atrapamos "razón social" (con tilde), "razon social" (sin tilde), o "nombres"
       return nombreCampo.includes('razón social') ||
              nombreCampo.includes('razon social') ||
              nombreCampo.includes('nombres');
     });
 
-    // Extraemos el valor asegurándonos de que no sea null
     const nitExtraido = nitField?.value ? nitField.value : '';
     const nombreExtraido = nameField?.value ? nameField.value : '';
 
@@ -372,9 +374,42 @@ export class ProviderComponent implements OnInit {
       nit: nitExtraido
     });
 
-    // 4. Cerramos el modal
+    // 👇 3.5 AÑADIDO: MOTOR DE FORMULARIO DINÁMICO 👇
+   // 👇 3.5 AÑADIDO: MOTOR DE FORMULARIO DINÁMICO 👇
+    this.camposDinamicos = [];
+    const controlesExtraidos: { [key: string]: any } = {};
+
+    fields.forEach((item: any, i: number) => {
+      // OMITIMOS LOS NULL: Solo procesa si tiene un valor real
+      if (item.value !== null && item.value !== undefined && String(item.value).trim() !== '') {
+        const safeKey = `campo_dinamico_${i}`;
+        const textoExtraido = String(item.value); // Convertimos a string por seguridad
+
+        controlesExtraidos[safeKey] = [textoExtraido];
+
+        // 🌟 LA MAGIA: Calculamos si el texto es muy largo para ponerlo a pantalla completa
+        // Ajusta el '40' según lo que consideres "demasiado largo" para una sola columna
+        const esMuyLargo = textoExtraido.length > 40;
+
+        // Guardamos la info para pintarla en el HTML
+        this.camposDinamicos.push({
+          key: safeKey,
+          label: item.field,
+          isLong: esMuyLargo // <--- Propiedad nueva
+        });
+      }
+    });
+
+    this.form.setControl('formDinamico', this.fb.group(controlesExtraidos));
+    // 👆 FIN DE LA ADICIÓN DINÁMICA 👆
+
+
+    // 4. Cerramos el modal y avanzamos al siguiente paso automáticamente
     this.overlayTitle = '¡Análisis completado con éxito!';
-    setTimeout(() => this.overlayOpen = false, 1500);
+    setTimeout(() => {
+      this.overlayOpen = false;
+      this.currentStep = 2; // Asumiendo que el step 2 es donde se pintan los datos
+    }, 1500);
   }
 
   verificarEstado(jobId: string) {
@@ -430,35 +465,51 @@ export class ProviderComponent implements OnInit {
   onOverlayClose() {
     this.overlayOpen = false;
   }
+  submitForm() {
+    this.overlayOpen = true;
+    this.overlayTitle = 'Enviando información a Nuvant...';
 
-    submitForm() {
-      if (this.form.invalid) {
-        this.form.markAllAsTouched(); // Esto pinta los campos de rojo automáticamente
+    const formData = new FormData();
 
-        // 🌟 Reemplazamos el alert() por nuestro nuevo Toast
-        this.mostrarToast('Por favor completa los campos en rojo antes de continuar.');
-        return;
+    // Empacamos el país
+    formData.append('country', this.countrySelected || '');
+
+    // Empacamos el JSON con todos los datos dinámicos extraídos por AWS
+    const datosExtraidos = this.form.get('formDinamico')?.value || {};
+    formData.append('providerData', JSON.stringify(datosExtraidos));
+
+    // Empacamos los PDFs originales
+    const docs = this.form.get('step2_docs')?.value;
+    if (docs) {
+      Object.keys(docs).forEach(key => {
+        const file = docs[key];
+        if (file instanceof File) {
+          formData.append(`document_${key}`, file);
+        }
+      });
     }
 
-    // Estructuramos el objeto final combinando los datos de los grupos
-    const finalData = {
-      pais: this.countrySelected,
-      modo: this.isManualMode ? 'Manual' : 'Asistido',
-      documentos: this.form.get('step2_docs')?.value,
-      informacion: this.form.get('step3_data')?.value
-    };
+    // 🌟 TRUCO PRO: Imprimimos el contenido real del FormData para validación tuya
+    console.log("=======================================");
+    console.log("📦 CAJA FUERTE (FormData) LISTA PARA EL BACKEND:");
+    formData.forEach((value, key) => {
+      console.log(`➡️ ${key}:`, value);
+    });
+    console.log("=======================================");
 
-    console.log('Formulario enviado con éxito:', finalData);
-
-    // Aquí llamarías a tu servicio final de guardado
-    this.overlayOpen = true;
-    this.overlayTitle = 'Guardando registro...';
-
-    // Simulación de guardado
+    // 🚀 SIMULACIÓN DE API: Esperamos 2 segundos y mostramos éxito
     setTimeout(() => {
       this.overlayOpen = false;
-      alert('Registro completado con éxito.');
-      this.router.navigate(['/']); // Redirigir al inicio o dashboard
-    }, 2000);
+
+      Swal.fire({
+        title: '¡Registro Exitoso! (Simulado)',
+        text: 'Todooo melooo!',
+        icon: 'success',
+        confirmButtonColor: '#2563eb'
+      }).then(() => {
+        console.log("Flujo 100% completado en Frontend. 🎉");
+      });
+
+    }, 2000); 
   }
 }

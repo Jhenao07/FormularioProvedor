@@ -1,0 +1,277 @@
+/* =========================================================
+   VARIABLES GLOBALES (Paleta Nuvant)
+   ========================================================= */
+:host {
+  --primary-color: #2563eb;       /* Azul corporativo */
+  --primary-hover: #1d4ed8;
+  --bg-color: #f8fafc;            /* Fondo gris muy claro */
+  --card-bg: #ffffff;
+  --text-main: #0f172a;           /* Texto oscuro principal */
+  --muted: #64748b;               /* Texto secundario/gris */
+  --border-color: #cbd5e1;
+  --error-color: #ef4444;         /* Rojo para errores */
+  --success-color: #10b981;
+}
+
+/* =========================================================
+   LAYOUT PRINCIPAL
+   ========================================================= */
+.provider-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-color);
+  padding: 20px;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+.provider-wrapper {
+  width: 100%;
+  max-width: 480px; /* Ancho perfecto para un login */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* =========================================================
+   HEADER & CARD
+   ========================================================= */
+.provider-header {
+  margin-bottom: 24px;
+}
+
+.provider-header img {
+  height: 40px; /* Ajusta según el tamaño de tu logo nuvant.png */
+  object-fit: contain;
+}
+
+.provider-card {
+  background: var(--card-bg);
+  width: 100%;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  padding: 40px;
+  position: relative;
+  text-align: center;
+}
+
+.icon-circle {
+  width: 64px;
+  height: 64px;
+  background-color: #f1f5f9;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.icon-circle img {
+  width: 32px;
+  height: 32px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 12px;
+  line-height: 1.3;
+}
+
+.login-intro p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 30px;
+}
+
+/* =========================================================
+   SECCIÓN DEL TOKEN (LOS CUADRITOS OTP)
+   ========================================================= */
+.token-section {
+  margin-top: 20px;
+}
+
+.token-label {
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 16px;
+  font-size: 0.95rem;
+}
+
+.token-box {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.token-box input {
+  width: 48px;
+  height: 56px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-main);
+  background-color: #fff;
+  transition: all 0.2s ease;
+  outline: none;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+/* Efecto al hacer clic en el cuadrito */
+.token-box input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Efecto visual cuando el token es incorrecto */
+.token-box input.error-input {
+  border-color: var(--error-color);
+  color: var(--error-color);
+  background-color: #fef2f2;
+}
+
+/* =========================================================
+   BOTONES Y ACCIONES
+   ========================================================= */
+.actions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 32px;
+  font-size: 1rem;
+  font-weight: 600;
+  width: 100%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+}
+
+.btn-primary:disabled {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+a {
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* =========================================================
+   FOOTER Y MENSAJES EXTRA
+   ========================================================= */
+.info-list {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.help {
+  margin-top: 24px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.provider-footer {
+  margin-top: 30px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* =========================================================
+   ANIMACIONES
+   ========================================================= */
+.fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Animación de error (temblor) */
+.shake {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+/* =========================================================
+   SPINNER DE CARGA (Validando Orden)
+   ========================================================= */
+.spinner-container {
+  color: var(--muted) !important; /* Forzamos color oscuro si el fondo es blanco */
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* =========================================================
+   RESPONSIVE (Móviles)
+   ========================================================= */
+@media (max-width: 480px) {
+  .provider-card {
+    padding: 30px 20px;
+  }
+
+  .token-box input {
+    width: 40px;
+    height: 50px;
+    font-size: 1.2rem;
+  }
+
+  .token-box {
+    gap: 8px;
+  }
+}
