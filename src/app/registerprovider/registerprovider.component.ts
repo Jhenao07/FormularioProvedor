@@ -160,9 +160,7 @@ get digitsFA(): FormArray<FormControl<string>> {
     if (last >= 0) this.focus(last);
   }
 
-
   readonly QToken = "123456"
-
 
  validateToken() {
     const ingresado = this.token;
@@ -175,12 +173,7 @@ get digitsFA(): FormArray<FormControl<string>> {
     // 🌟 Si el token es correcto, navegamos al siguiente componente manteniendo el país
     const snActual = this.route.snapshot.queryParams['sn'] || 'CO';
 
-    this.router.navigate(['/provider'], {
-      queryParams: {
-        step: 1,
-        sn: snActual // Aseguramos que el componente Provider reciba el país
-      }
-    });
+    this.router.navigate(['/provider'], { queryParamsHandling: 'preserve' });
   }
 
   marcarError() {

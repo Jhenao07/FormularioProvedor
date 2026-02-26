@@ -25,3 +25,10 @@ interface PdfItem {
   result?: any; // lo que devuelva el backend (id, mensaje, etc.)
 }
 
+interface CampoDinamico {
+  key: string;
+  label: string;
+  isLong: boolean;
+  type: string;      // 🟢 Obligatorio para el Switch
+  options?: string[]; // 🟢 Opcional para el ngFor
+}

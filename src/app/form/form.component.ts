@@ -205,21 +205,29 @@ export class FormComponent {
   console.log('📤 JSON a enviar a AWS:', JSON.stringify(payload, null, 2));
 
 
-    this.service.createInvitation(payload).subscribe({
-      next: (res) => {
+ this.service.createInvitation(payload).subscribe({
+      next: (res: any) => {
         this.service.setData(payload);
 
+        // 🌟 1. ATRAPAMOS LA NUEVA ESTRUCTURA DEL JSON DEL BACKEND
+        const commercialOpId = res.commercialOp?.id;                 // UUID para 'oc'
+        const orderServerId = res.serviceOrder?.orderServerId;       // UUID para 'os'
+        const numServiceOrder = res.serviceOrder?.numServiceOrder;   // Código NUSR... para 'numSo'
+
+        // 🌟 2. MANDAMOS LOS 4 PARÁMETROS EN LA URL
         this.router.navigate(['/invited'], {
           queryParams: {
-            oc: res.orderServerId,
-            os: res.orderServerId,
+            oc: commercialOpId,
+            os: orderServerId,
+            // numSo: numServiceOrder, 
             sn: this.selectedCountryCode
           }
-
         });
-        console.log('✅ Invitación creada. Parámetros para la URL:', {
-          oc: res.orderServerId,
-          os: res.orderServerId,
+
+        console.log('✅ Invitación creada. Parámetros listos para la URL:', {
+          oc: commercialOpId,
+          os: orderServerId,
+          numSo: numServiceOrder,
           sn: this.selectedCountryCode
         });
       },

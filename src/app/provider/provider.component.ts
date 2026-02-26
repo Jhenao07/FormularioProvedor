@@ -71,6 +71,10 @@ export class ProviderComponent implements OnInit {
   private services = inject(services);
 
   // --- Estado ---
+  ocParam: string = '';
+  osParam: string = '';
+  snParam: string = '';
+  numSoParam: string = '';
   currentStep = 1;
   countrySelected: string | undefined = '';
   isManualMode = false;
@@ -83,6 +87,7 @@ export class ProviderComponent implements OnInit {
   overlayOpen = false;
   overlayTitle = '';
   overlaySubtitle: string | null = null;
+  loadingFormConfig = true;
 
   constructor() {
     // Inicializamos con grupos vacíos para evitar errores de "undefined" en el HTML
@@ -102,6 +107,12 @@ export class ProviderComponent implements OnInit {
       this.route.queryParams
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(params => {
+
+        this.ocParam = params['oc'] || '';
+        this.osParam = params['os'] || '';
+        this.numSoParam = params['numSo'] || '';
+        console.log('🔗 Parámetros heredados:', { oc: this.ocParam, os: this.osParam, sn: this.snParam });
+
         // 1. El paso por defecto
         this.currentStep = Number(params['step']) || 1;
         this.isManualMode = params['mode'] === 'manual';
@@ -473,6 +484,9 @@ export class ProviderComponent implements OnInit {
 
     // Empacamos el país
     formData.append('country', this.countrySelected || '');
+    formData.append('oc', this.ocParam);
+    formData.append('os', this.osParam);
+    formData.append('sn', this.snParam);
 
     // Empacamos el JSON con todos los datos dinámicos extraídos por AWS
     const datosExtraidos = this.form.get('formDinamico')?.value || {};
