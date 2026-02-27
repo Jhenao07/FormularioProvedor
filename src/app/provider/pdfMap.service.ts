@@ -1,16 +1,11 @@
 import { Injectable } from '@angular/core';
+import { CampoEstructura, EstructuraFormularioAPI } from '../interface/employees.interface';
 
-@Injectable({
-  providedIn: 'root'
-})
+
+@Injectable({ providedIn: 'root' })
 export class PdfMapService {
 
-  /**
-   * Tabla de Equivalencias:
-   * Key: El 'labelId' que espera tu formulario dinámico.
-   * Value: El nombre exacto del campo que extrae AWS del PDF.
-   */
-  private readonly EQUIVALENCIAS: Record<string, string> = {
+ private readonly EQUIVALENCIAS: Record<string, string> = {
     'nitId': '5. Número de Identificación Tributaria (NIT)',
     'identificationNumber': '5. Número de Identificación Tributaria (NIT)',
     'companyname': '35. Razón social',
@@ -26,70 +21,48 @@ export class PdfMapService {
   constructor() { }
 
   /**
-   * Función principal para realizar el match
-   * @param pdfResponse Respuesta JSON que viene de AWS (statusRes)
-   * @param formStructure Estructura del formulario (JSON con data de campos)
-   * @returns Estructura del formulario con los 'valueField' actualizados
+   * Toma el molde de la API y lo llena con los datos extraídos de AWS
    */
   public fillFormWithPdfData(pdfResponse: any, formStructure: any): any {
+    
     if (!pdfResponse || !formStructure) {
-      console.warn('PdfMapService: Datos de entrada incompletos.');
       return formStructure;
     }
 
-    // 1. Convertimos los campos del PDF en un mapa (Diccionario) para búsqueda rápida
-    const fieldsFromAws = pdfResponse.result?.resultsByPage?.[0]?.fields || [];
-    const pdfDataMap: Record<string, any> = {};
-
-    fieldsFromAws.forEach((item: any) => {
-      if (item.field && item.value !== null) {
-        pdfDataMap[item.field] = item.value;
+    // 1. Convertimos la respuesta de AWS en un Diccionario { "Nombre Campo": "Valor" }
+    const camposAws = pdfResponse.result?.resultsByPage?.[0]?.fields || [];
+    const diccionarioAws: Record<string, string> = {};
+    
+    camposAws.forEach((item: any) => {
+      if (item.field && item.value) {
+        diccionarioAws[item.field] = item.value;
       }
     });
 
-    // 2. Procesamos las secciones del formulario dinámico
-    if (formStructure.allowedToRead?.data) {
-      this.mapSection(formStructure.allowedToRead.data, pdfDataMap);
-    }
+    // 2. Función para inyectar los valores en las secciones de tu API
+    const inyectarValores = (seccionData: any[]) => {
+      if (!seccionData) return;
+      
+      seccionData.forEach(item => {
+        const idDelCampo = item.fields?.labelId;
+        const nombreEnAws = this.EQUIVALENCIAS[idDelCampo];
 
-    if (formStructure.isAllowedToWrite?.data) {
-      this.mapSection(formStructure.isAllowedToWrite.data, pdfDataMap);
-    }
+        // Si existe en nuestra tabla y AWS lo encontró, lo inyectamos
+        if (nombreEnAws && diccionarioAws[nombreEnAws]) {
+          item.valueField = diccionarioAws[nombreEnAws];
+        }
+
+        // 🌟 Regla Especial: Forzar selección de NIT si detectamos que es un RUT
+        if (idDelCampo === 'identification' && diccionarioAws['5. Número de Identificación Tributaria (NIT)']) {
+          item.valueField = 'NIT';
+        }
+      });
+    };
+
+    // 3. Aplicamos la inyección a ambas secciones (lectura y escritura) y devolvemos el molde lleno
+    inyectarValores(formStructure.allowedToRead?.data);
+    inyectarValores(formStructure.isAllowedToWrite?.data);
 
     return formStructure;
-  }
-
-  /**
-   * Método privado para recorrer y asignar valores a cada campo de una sección
-   */
-  private mapSection(sectionData: any[], pdfDataMap: Record<string, any>): void {
-    sectionData.forEach(item => {
-      const labelId = item.fields?.labelId;
-      
-      // Buscamos si el labelId actual tiene una equivalencia definida
-      const awsFieldName = this.EQUIVALENCIAS[labelId];
-
-      if (awsFieldName && pdfDataMap[awsFieldName]) {
-        // Asignamos el valor extraído al valueField del formulario
-        item.valueField = pdfDataMap[awsFieldName];
-      }
-
-      // Reglas Especiales Lógicas
-      this.applySpecialRules(item, pdfDataMap);
-    });
-  }
-
-  /**
-   * Aplica reglas que no son match 1 a 1 (Lógica de negocio)
-   */
-  private applySpecialRules(item: any, pdfDataMap: Record<string, any>): void {
-    const labelId = item.fields?.labelId;
-
-    // Si el formulario tiene un selector de tipo de documento y el PDF es un NIT
-    if (labelId === 'identification' && pdfDataMap['5. Número de Identificación Tributaria (NIT)']) {
-      item.valueField = 'NIT';
-    }
-    
-    // Aquí puedes agregar más reglas, por ejemplo, formatear fechas o limpiar strings
   }
 }

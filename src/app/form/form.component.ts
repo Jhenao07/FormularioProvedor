@@ -219,7 +219,7 @@ export class FormComponent {
           queryParams: {
             oc: commercialOpId,
             os: orderServerId,
-            // numSo: numServiceOrder, 
+            numSo: numServiceOrder, 
             sn: this.selectedCountryCode
           }
         });

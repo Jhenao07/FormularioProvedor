@@ -72,41 +72,49 @@
         </div>
       </div>
 
-      <div *ngIf="currentStep === 2" [formGroup]="form" class="step-content">
 
-        <div formGroupName="formDinamico">
-          <h2 class="title">Información del Documento</h2>
-          <p style="color: var(--muted); margin-bottom: 24px; font-size: 14px;">
-            Verifica los datos extraídos automáticamente de tu archivo.
-          </p>
+    <div *ngIf="currentStep === 2" [formGroup]="form" class="step-content">
 
-          <div class="form-grid">
+  <div formGroupName="formDinamico">
+    <h2 class="title">Información del Documento</h2>
 
-            <div class="form-group"
-                 *ngFor="let campo of camposDinamicos"
-                 [class.full]="campo.isLong">
+    <p class="step-description">
+      Verifica los datos extraídos automáticamente de tu archivo.
+    </p>
 
-              <label class="label">{{ campo.label }} <span class="req">*</span></label>
+    <div class="form-grid">
+      <div class="form-group"
+           *ngFor="let campo of camposDinamicos"
+           [class.full]="campo.isLong">
 
-              <div class="input-with-badge">
-                <input type="text" [formControlName]="campo.key" />
-                <span class="badge-auto">Autocompletado</span>
-              </div>
+        <label class="label">{{ campo.label }} <span class="req">*</span></label>
 
-            </div>
+        <div class="input-with-badge">
 
-          </div>
+          <app-dynamic-field
+            [config]="campo"
+            [formControlName]="campo.key">
+          </app-dynamic-field>
 
-          <div class="actions">
-            <button type="button" class="btn-secondary" (click)="currentStep = 1">Volver a Documentos</button>
-            <button type="button" class="btn-primary" (click)="currentStep = 3"
-                    [disabled]="form.get('formDinamico')?.invalid">
-              Confirmar y Continuar
-            </button>
-          </div>
+          <span class="badge-auto" *ngIf="campo.autocompletado">Autocompletado</span>
 
         </div>
       </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn-secondary" (click)="currentStep = 1">
+        Volver a Documentos
+      </button>
+      <button type="button" class="btn-primary" (click)="currentStep = 3"
+              [disabled]="form.get('formDinamico')?.invalid">
+        Confirmar y Continuar
+      </button>
+    </div>
+
+  </div>
+
+</div>
 
      <div *ngIf="currentStep === 3" class="step-content">
         <h2>Revisión y envío</h2>
