@@ -73,7 +73,7 @@
       </div>
 
 
-    <div *ngIf="currentStep === 2" [formGroup]="form" class="step-content">
+<div *ngIf="currentStep === 2" [formGroup]="form" class="step-content">
 
   <div formGroupName="formDinamico">
     <h2 class="title">Información del Documento</h2>
@@ -90,15 +90,29 @@
         <label class="label">{{ campo.label }} <span class="req">*</span></label>
 
         <div class="input-with-badge">
-
           <app-dynamic-field
             [config]="campo"
             [formControlName]="campo.key">
           </app-dynamic-field>
 
           <span class="badge-auto" *ngIf="campo.autocompletado">Autocompletado</span>
-
         </div>
+
+        <ng-container *ngIf="campo.key === 'finalBeneficiary'">
+
+          <button type="button" class="btn-secondary-sm btn-full" style="margin-top: 12px;"
+                  (click)="mostrarCamposBeneficiario = !mostrarCamposBeneficiario">
+            {{ mostrarCamposBeneficiario ? '- Cancelar' : '+ Agregar Beneficiario Extra' }}
+          </button>
+
+          <div *ngIf="mostrarCamposBeneficiario" class="beneficiario-box">
+            <input type="text" placeholder="Nombre completo" class="dynamic-input" />
+            <input type="text" placeholder="Número de Documento" class="dynamic-input" />
+            <input type="number" placeholder="Participación (%)" class="dynamic-input" />
+          </div>
+
+        </ng-container>
+
       </div>
     </div>
 

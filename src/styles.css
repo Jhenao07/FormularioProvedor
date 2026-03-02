@@ -616,3 +616,38 @@ select.dynamic-input {
   font-weight: 400;
   opacity: 0.6;
 }
+.btn-full {
+  width: 100%;
+  height: 52px; /* Exactamente la misma altura que tus inputs */
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: var(--r-md);
+  margin-top: 4px;
+}
+
+/* La tarjeta punteada que agrupa los 3 inputs */
+.beneficiario-box {
+  background: var(--surface-3); /* Un gris un poco más profundo para resaltarlo */
+  padding: 16px;
+  border-radius: var(--r-md);
+  border: 1px dashed var(--accent-600); /* Borde punteado naranja elegante */
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* Espacio perfecto entre los inputs */
+  margin-top: 12px;
+
+  /* Magia: animación fluida al abrirse */
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Animación para que baje suavemente en lugar de aparecer de golpe */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -61,6 +61,7 @@ export class ProviderComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private services = inject(services);
   private pdfMapService = inject(PdfMapService); // Inyectamos el servicio de mapeo
+
   // --- Estado ---
   ocParam: string = '';
   osParam: string = '';
@@ -76,6 +77,8 @@ export class ProviderComponent implements OnInit {
 
   // --- Datos Dinámicos ---
   camposDinamicos: any[] = [];
+  mostrarCamposBeneficiario: boolean = false;
+
   formularioEstructuraDestino: any = null; // Guardará el JSON de tu API
   loadingFormConfig = true;
 
