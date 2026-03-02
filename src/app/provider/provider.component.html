@@ -60,6 +60,13 @@
                          class="input-file-hidden"
                          (change)="onFileSelected($event, doc.key)" />
                 </div>
+             <div class="archivo-adjunto-box" *ngIf="archivoSeleccionado">
+              <span>📄 {{ archivoSeleccionado.name }}</span>
+
+              <button type="button" class="btn-icon-delete" (click)="removeFile()">
+                Eliminar archivo 🗑️
+              </button>
+            </div>
               </div>
             }
           </div>
@@ -112,7 +119,12 @@
           </div>
 
         </ng-container>
-
+        <div class="form-group full" *ngIf="esEmpresaJuridica && beneficiariosActivos < 10">
+        <button type="button" class="btn-secondary-sm btn-full" style="margin-top: 16px; border: 1px dashed var(--accent-600);"
+                (click)="agregarBeneficiario()">
+          + Agregar un Beneficiario Final
+        </button>
+      </div>
       </div>
     </div>
 

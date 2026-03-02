@@ -78,10 +78,11 @@ export class ProviderComponent implements OnInit {
   // --- Datos Dinámicos ---
   camposDinamicos: any[] = [];
   mostrarCamposBeneficiario: boolean = false;
-
+  beneficiariosActivos: number = 0; // 🟢 Lleva el conteo de los grupos visibles
+  esEmpresaJuridica: boolean = false; // 🟢 Para saber si pintamos el botón al final
   formularioEstructuraDestino: any = null; // Guardará el JSON de tu API
   loadingFormConfig = true;
-
+  archivoSeleccionado: File | null = null;
   // --- Overlay UI ---
   overlayOpen = false;
   overlayTitle = '';
@@ -265,11 +266,17 @@ export class ProviderComponent implements OnInit {
     }
   }
 
-  removeFile(docKey: string) {
+  removeFile(docKey: string = '') {
     this.form.get(`step2_docs.${docKey}`)?.setValue(null);
     this.form.get('step2_docs')?.updateValueAndValidity();
     this.camposDinamicos = [];
     this.form.setControl('formDinamico', this.fb.group({})); // Resetea el grupo pero no lo borra
+
+
+    this.overlayOpen = false;
+    this.currentStep = 1;
+    alert("Archivo eliminado. Por favor, adjunta un documento válido.");
+    this.cdr.detectChanges();
 
     const fileInput = document.getElementById('file-' + docKey) as HTMLInputElement;
     if (fileInput) fileInput.value = '';
@@ -325,84 +332,164 @@ export class ProviderComponent implements OnInit {
       }
     });
   }
+agregarBeneficiario() {
+    if (this.beneficiariosActivos < 10) {
+      this.beneficiariosActivos++;
 
-  // ESTA ES LA FUNCIÓN CLAVE CORREGIDA
-  extraerDatosDelJSON(statusRes: any) {
-    console.log("🚀 Iniciando extracción y mapeo dinámico...");
-
-    const fields = statusRes.result?.resultsByPage?.[0]?.fields || [];
-
-    // 1. Datos Fijos (Step 3 - Si aún los necesitas separados)
-    const nitField = fields.find((f: any) => f.field?.toLowerCase().includes('nit'));
-    const nameField = fields.find((f: any) => {
-      const n = f.field?.toLowerCase() || '';
-      return n.includes('razón social') || n.includes('razon social') || n.includes('nombres');
-    });
-
-    this.form.get('step3_data')?.patchValue({
-      businessName: nameField?.value || '',
-      nit: nitField?.value || ''
-    });
-
-    // 2. MOTOR DINÁMICO
-    if (this.formularioEstructuraDestino) {
-
-      // A. Mapeo Mágico a través del Servicio
-      this.formularioEstructuraDestino = this.pdfMapService.fillFormWithPdfData(
-        statusRes,
-        this.formularioEstructuraDestino
-      );
-
-      this.camposDinamicos = [];
-      const controlesReactivos: { [key: string]: any } = {};
-
-      // B. Unificamos la estructura leída
-      const dataRead = this.formularioEstructuraDestino.allowedToRead?.data || [];
-      const dataWrite = this.formularioEstructuraDestino.isAllowedToWrite?.data || [];
-      const secciones = [...dataRead, ...dataWrite];
-
-      // C. Recorremos para armar el UI y el FormBuilder
-      secciones.forEach((item: any) => {
-        if (item.fields && item.fields.labelId) {
-          const key = item.fields.labelId;
-          const valorExtraido = item.valueField; // Tomamos el valor que cruzó el Service
-
-          const fueExtraidoPorIA = valorExtraido !== null && valorExtraido !== undefined && String(valorExtraido).trim() !== '';
-          // 🛡️ LA MAGIA: Solo agregamos el campo si tiene un valor real (no nulo ni vacío)
-
-
-            // 1. Lo agregamos al formulario reactivo
-        controlesReactivos[key] = [fueExtraidoPorIA ? valorExtraido : ''];
-            // 2. Lo enviamos al HTML respetando el TYPE de la API
-        this.camposDinamicos.push({
-            key: key,
-            label: item.fields.labelName,
-            type: item.fields.labelType || 'text',
-            options: item.fields.options || [],
-            // Si la pregunta es muy larga (ej. la de Lavado de Activos), la ponemos a pantalla completa
-            isLong: String(item.fields.labelName).length > 50,
-            autocompletado: fueExtraidoPorIA // ✨ Le pasamos el flag al HTML
-          });
+      // Recorremos los campos y volvemos visibles los del grupo actual
+      this.camposDinamicos.forEach(campo => {
+        if (campo.grupoBeneficiario === this.beneficiariosActivos) {
+          campo.visible = true;
         }
       });
-
-      // D. Inyectar todo al form principal
-      this.form.setControl('formDinamico', this.fb.group(controlesReactivos));
-      console.log("🎯 Formulario dinámico creado:", this.form.get('formDinamico')?.value);
-
     } else {
-      console.error("⚠️ La plantilla de la API no estaba cargada.");
+      alert("Has alcanzado el límite máximo de 10 beneficiarios.");
+    }
+  }
+ extraerDatosDelJSON(statusRes: any) {
+    console.log("🚀 Iniciando extracción inteligente...");
+
+    const fieldsExtraidos = statusRes.result?.resultsByPage?.[0]?.fields || [];
+
+    // 🟢 1. REGLA DE NEGOCIO: VALIDAR VIGENCIA DEL RUT (Máximo 30 días)
+    const campoFecha = fieldsExtraidos.find((f: any) => f.field === 'Fecha generación documento');
+    if (campoFecha && campoFecha.value) {
+      const esValido = this.validarVigenciaRut(campoFecha.value);
+      if (!esValido) {
+        alert("❌ El documento tiene más de 30 días de antigüedad. Por favor, adjunta uno reciente.");
+        this.removeFile(); // Limpiamos el archivo para que suba el correcto
+        return; // Detenemos el proceso aquí
+      }
     }
 
-    // 3. Finalizar y mover a la vista del formulario
+    // 🟢 2. REGLA DE NEGOCIO: DETECTAR EL TIPO DE CONTRIBUYENTE
+    const tipoContribuyenteObj = fieldsExtraidos.find((f: any) => f.field.includes('Tipo de contribuyente'));
+    const esJuridica = tipoContribuyenteObj && tipoContribuyenteObj.value?.toLowerCase().includes('jurídica');
+
+    console.log(esJuridica ? "🏢 Procesando como Persona Jurídica" : "👤 Procesando como Persona Natural");
+
+    this.camposDinamicos = [];
+    const controlesReactivos: { [key: string]: any } = {};
+
+    // 🟢 3. INYECTAR LOS DATOS DEL PDF (API 1) - Incluyendo el DV y todos los demás
+    fieldsExtraidos.forEach((itemRut: any) => {
+      // Solo tomamos los que la IA logró leer con éxito
+      if (itemRut.value !== null && itemRut.value !== undefined && String(itemRut.value).trim() !== '') {
+        const safeKey = itemRut.field.replace(/[^a-zA-Z0-9]/g, '_');
+
+        controlesReactivos[safeKey] = [itemRut.value];
+        this.camposDinamicos.push({
+          key: safeKey,
+          label: itemRut.field, // Mostrará "6. DV", "Razón social", etc.
+          type: 'text',
+          options: [],
+          isLong: false,
+          autocompletado: true
+        });
+      }
+    });
+
+    // 🟢 4. INYECTAR LA PLANTILLA (API 2) FILTRADA
+    if (this.formularioEstructuraDestino) {
+      // Cruzamos los datos extraídos con la plantilla
+      this.formularioEstructuraDestino = this.pdfMapService.fillFormWithPdfData(statusRes, this.formularioEstructuraDestino);
+
+      const dataRead = this.formularioEstructuraDestino.allowedToRead?.data || [];
+      const dataWrite = this.formularioEstructuraDestino.isAllowedToWrite?.data || [];
+      const seccionesPlantilla = [...dataRead, ...dataWrite];
+
+      seccionesPlantilla.forEach((itemPlantilla: any) => {
+        if (itemPlantilla.fields && itemPlantilla.fields.labelId) {
+         const key = itemPlantilla.fields.labelId;
+          const valorExtraido = itemPlantilla.valueField;
+          const fueExtraidoPorIA = valorExtraido !== null && valorExtraido !== undefined && String(valorExtraido).trim() !== '';
+          let esCampoParaEsteUsuario = true;
+          const camposSoloNatural = ['firstLastName', 'secondLastName', 'identification', 'identificationNumber'];
+          const camposSoloJuridica = ['nitId', 'representativeName', 'nationalIdentityCard', 'riskControlSystem', 'which risk'];
+
+          // *** AQUÍ ESTÁ LA MAGIA DEL FILTRO ***
+          // Debemos decidir si este campo de la API 2 se muestra o no.
+          // Por ejemplo, si la variable 'esJuridica' es true, mostramos los campos de empresa.
+          // (Nota: Ajusta la lógica de este 'if' dependiendo de cómo tu API 2 nombra los campos de Natural vs Jurídica)
+          // <-- Reemplazar 'true' con tu condición real si la API 2 los diferencia por nombre o sección.
+
+          if (esJuridica) {
+            this.esEmpresaJuridica = true;
+            if (camposSoloNatural.includes(key)) esCampoParaEsteUsuario = false;
+          } else {
+            this.esEmpresaJuridica = false;
+            if (camposSoloJuridica.includes(key) || key.startsWith('finalBeneficiary')) esCampoParaEsteUsuario = false;
+          }
+
+          // 2. Lógica de Grupos para Beneficiarios
+          let esVisible = true;
+          let grupoBeneficiario = 0;
+
+          if (esJuridica && key.startsWith('finalBeneficiary')) {
+            // Extraemos el número al final de la llave (ej: finalBeneficiaryName10 -> 10)
+            const match = key.match(/\d+$/);
+            if (match) {
+              grupoBeneficiario = parseInt(match[0], 10);
+              esVisible = false; // Los ocultamos todos por defecto
+            }
+          }
+
+          // Si el campo pasó la prueba, lo guardamos con su estado de visibilidad
+          if (!controlesReactivos[key] && esCampoParaEsteUsuario) {
+            controlesReactivos[key] = [fueExtraidoPorIA ? valorExtraido : ''];
+            this.camposDinamicos.push({
+              key: key,
+              label: itemPlantilla.fields.labelName,
+              type: itemPlantilla.fields.labelType || 'text',
+              options: itemPlantilla.fields.options || [],
+              isLong: String(itemPlantilla.fields.labelName).length > 50,
+              autocompletado: fueExtraidoPorIA,
+              visible: esVisible,               // 🟢 Nueva propiedad
+              grupoBeneficiario: grupoBeneficiario // 🟢 Nueva propiedad
+            });
+          }
+        }
+      });
+    }
+
+    // 🟢 5. CREAR EL FORMULARIO REACTIVO Y CAMBIAR DE PASO
+    this.form.setControl('formDinamico', this.fb.group(controlesReactivos));
+
     this.overlayTitle = '¡Análisis completado!';
     setTimeout(() => {
-      this.overlayOpen = false;
-      this.currentStep = 2; // Asegúrate que este sea el paso de tu HTML para "formDinamico"
-      this.cdr.detectChanges(); // Forzar detección de cambios para actualizar la UI
-
+      this.overlayOpen = false; // Apaga el loader
+      this.currentStep = 2;     // Pasa a la grilla
+      this.cdr.detectChanges();
     }, 1500);
   }
+
+
+  // ESTA ES LA FUNCIÓN CLAVE CORREGIDA
+
+  validarVigenciaRut(textoFecha: string): boolean {
+    if (!textoFecha) return false;
+
+    // Busca un patrón de fecha DD-MM-YYYY en el texto
+    const match = textoFecha.match(/(\d{2})-(\d{2})-(\d{4})/);
+    if (!match) return false;
+
+    const dia = parseInt(match[1], 10);
+    const mes = parseInt(match[2], 10) - 1; // En JavaScript los meses van de 0 a 11
+    const anio = parseInt(match[3], 10);
+
+    const fechaRUT = new Date(anio, mes, dia);
+    const fechaHoy = new Date();
+
+    // Calculamos la diferencia en días
+    const diferenciaMilisegundos = fechaHoy.getTime() - fechaRUT.getTime();
+    const diasPasados = Math.floor(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
+
+    console.log(`📅 El RUT fue generado hace ${diasPasados} días.`);
+
+    return diasPasados <= 30; // Retorna true si es válido, false si está vencido
+  }
+
+
 
   // (Este método se usaba antes del rediseño, parece que iniciarPolling ya hace esto. Considera borrarlo si no lo usas en otro lado)
   verificarEstado(jobId: string) { /* ... */ }
