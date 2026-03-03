@@ -469,7 +469,7 @@ DOCUMENT ITEMS (PASO 1)
   padding: 18px;
   gap: 14px;
 
-  background: rgb(125 120 120 / 60%);
+  background: rgba(255,255,255,.6);
 
   backdrop-filter: blur(6px);
   border: 1px solid var(--border);
