@@ -333,6 +333,28 @@ export class ProviderComponent implements OnInit {
 
   this.cdr.detectChanges();
 }
+  async procesarYSiguiente() {
+  // Buscamos el documento cargado (usando 'rut' como ejemplo de key)
+  const docKey = 'rut';
+  const file = this.form.get(`step2_docs.${docKey}`)?.value;
+
+  if (file instanceof File) {
+    // Si hay archivo, iniciamos procesamiento con Loader de Swal
+    Swal.fire({
+      title: 'Extrayendo Documento...',
+      text: 'Estamos analizando los datos con IA, un momento.',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    this.procesarPdf(docKey);
+  } else {
+    // Si no hay archivo (aunque el botón esté disabled), avanzamos normal
+    this.currentStep = 2;
+  }
+}
+
   procesarPdf(docKey: string) {
     const file = this.form.get(`step2_docs.${docKey}`)?.value;
     if (!(file instanceof File)) return;
@@ -350,15 +372,23 @@ export class ProviderComponent implements OnInit {
         if (jobId) {
           this.iniciarPolling(jobId);
         } else {
-          this.overlayTitle = 'Error: No se recibió Ticket de AWS';
-          setTimeout(() => this.overlayOpen = false, 3000);
-        }
-      },
-      error: (err) => {
-        console.error("❌ Error enviando PDF:", err);
-        this.overlayTitle = 'Error de conexión con AWS';
-        setTimeout(() => this.overlayOpen = false, 3000);
+          Swal.fire({
+          icon: 'error',
+          title: 'Error de Ticket',
+          text: 'No se recibió Ticket de AWS. Intenta de nuevo.',
+          confirmButtonColor: 'var(--accent)'
+        });
       }
+    },
+    error: (err) => {
+      console.error("❌ Error enviando PDF:", err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de conexión',
+        text: 'Error de conexión con AWS.',
+        confirmButtonColor: 'var(--accent)'
+      });
+    }
     });
   }
 
@@ -413,137 +443,148 @@ agregarDocumento() {
   this.cdr.detectChanges();
 }
 
- extraerDatosDelJSON(statusRes: any) {
-    console.log("🚀 Iniciando extracción inteligente de RUT y Plantilla...");
+async extraerDatosDelJSON(statusRes: any) {
+  console.log("🚀 Iniciando extracción inteligente de RUT y Plantilla...");
 
-    const fieldsExtraidos = statusRes.result?.resultsByPage?.[0]?.fields || [];
+  const fieldsExtraidos = statusRes.result?.resultsByPage?.[0]?.fields || [];
 
-    // 🟢 1. REGLA DE NEGOCIO: VALIDAR VIGENCIA DEL RUT (Máximo 30 días)
-    const campoFecha = fieldsExtraidos.find((f: any) => f.field === 'Fecha generación documento');
-    if (campoFecha && campoFecha.value) {
-      const esValido = this.validarVigenciaRut(campoFecha.value);
-      if (!esValido) {
-        alert("❌ El documento tiene más de 30 días de antigüedad. Por favor, adjunta uno reciente.");
-        this.removeFile(); // Limpiamos el adjunto en caso de error o documento equivocado
-        return; // Detenemos el proceso aquí para que no avance al paso 2
-      }
-    }
+  // 🟢 1. REGLA DE NEGOCIO: VALIDAR VIGENCIA DEL RUT (Máximo 30 días)
+  const campoFecha = fieldsExtraidos.find((f: any) => f.field === 'Fecha generación documento');
 
-    // 🟢 2. REGLA DE NEGOCIO: DETECTAR EL TIPO DE CONTRIBUYENTE
-    const tipoContribuyenteObj = fieldsExtraidos.find((f: any) => f.field.includes('Tipo de contribuyente'));
-    const esJuridica = tipoContribuyenteObj && tipoContribuyenteObj.value?.toLowerCase().includes('jurídica');
+  if (campoFecha && campoFecha.value) {
+    const esValido = this.validarVigenciaRut(campoFecha.value);
 
-    // Actualizamos la variable global para que el HTML sepa si mostrar el botón de Beneficiarios
-    this.esEmpresaJuridica = !!esJuridica;
-    console.log(this.esEmpresaJuridica ? "🏢 Procesando como Persona Jurídica" : "👤 Procesando como Persona Natural");
-
-    this.camposDinamicos = [];
-    const controlesReactivos: { [key: string]: any } = {};
-
-    // 🟢 3. INYECTAR LOS DATOS EXTRAÍDOS DEL PDF (API 1)
-    fieldsExtraidos.forEach((itemRut: any) => {
-      if (itemRut.value !== null && itemRut.value !== undefined && String(itemRut.value).trim() !== '') {
-        const safeKey = itemRut.field.replace(/[^a-zA-Z0-9]/g, '_');
-
-        controlesReactivos[safeKey] = [itemRut.value];
-        this.camposDinamicos.push({
-          key: safeKey,
-          label: itemRut.field,
-          type: 'text',
-          options: [],
-          isLong: false,
-          autocompletado: true,
-          visible: true,        // Los extraídos por la IA siempre se muestran
-          grupoBeneficiario: 0,
-          grupoDocumento: 0
-        });
-      }
-    });
-
-    // 🟢 4. INYECTAR LA PLANTILLA (API 2) CON FILTROS Y REVELACIÓN PROGRESIVA
-    if (this.formularioEstructuraDestino) {
-      this.formularioEstructuraDestino = this.pdfMapService.fillFormWithPdfData(statusRes, this.formularioEstructuraDestino);
-
-      const dataRead = this.formularioEstructuraDestino.allowedToRead?.data || [];
-      const dataWrite = this.formularioEstructuraDestino.isAllowedToWrite?.data || [];
-      const seccionesPlantilla = [...dataRead, ...dataWrite];
-
-      seccionesPlantilla.forEach((itemPlantilla: any) => {
-        if (itemPlantilla.fields && itemPlantilla.fields.labelId) {
-          const key = itemPlantilla.fields.labelId;
-          const valorExtraido = itemPlantilla.valueField;
-          const fueExtraidoPorIA = valorExtraido !== null && valorExtraido !== undefined && String(valorExtraido).trim() !== '';
-
-          // *** MAGIA DEL FILTRO ***
-          let esCampoParaEsteUsuario = true;
-
-          // A) Ocultar según tipo de persona (Listas de exclusión)
-          const camposSoloNatural = ['firstLastName', 'secondLastName', 'identification', 'identificationNumber'];
-          const camposSoloJuridica = ['nitId', 'representativeName', 'nationalIdentityCard', 'riskControlSystem', 'which risk'];
-
-          if (this.esEmpresaJuridica) {
-            // Ocultamos apellidos y datos personales a la empresa
-            if (camposSoloNatural.includes(key)) esCampoParaEsteUsuario = false;
-          } else {
-            // Ocultamos datos de empresa y sección de beneficiarios a la persona natural
-            if (camposSoloJuridica.includes(key) || key.startsWith('finalBeneficiary')) esCampoParaEsteUsuario = false;
-          }
-
-          // B) Lógica de Grupos para Revelación Progresiva
-          let esVisible = true;
-          let grupoBeneficiario = 0;
-          let grupoDocumento = 0;
-
-          // - Lógica de Beneficiarios (Solo Jurídica)
-          if (this.esEmpresaJuridica && key.startsWith('finalBeneficiary')) {
-            const match = key.match(/\d+$/); // Saca el número del final del ID
-            if (match) {
-              grupoBeneficiario = parseInt(match[0], 10);
-              esVisible = false; // Todos los beneficiarios arrancan ocultos
-            }
-          }
-
-          // - Lógica de Documentos (Aplica para ambos)
-          if (key.startsWith('document')) {
-            const match = key.match(/\d+$/); // Saca el número del final del ID
-            if (match) {
-              grupoDocumento = parseInt(match[0], 10);
-              // Si el número del documento es mayor a los activos (por defecto 1), lo ocultamos
-              if (grupoDocumento > this.documentosActivos) {
-                esVisible = false;
-              }
-            }
-          }
-
-          // C) Si el campo superó los filtros, lo guardamos en la grilla dinámica
-          if (!controlesReactivos[key] && esCampoParaEsteUsuario) {
-            controlesReactivos[key] = [fueExtraidoPorIA ? valorExtraido : ''];
-            this.camposDinamicos.push({
-              key: key,
-              label: itemPlantilla.fields.labelName,
-              type: itemPlantilla.fields.labelType || 'text',
-              options: itemPlantilla.fields.options || [],
-              isLong: String(itemPlantilla.fields.labelName).length > 50,
-              autocompletado: fueExtraidoPorIA,
-              visible: esVisible,               // Controla si se dibuja o no
-              grupoBeneficiario: grupoBeneficiario, // Rastreador para el botón de beneficiarios
-              grupoDocumento: grupoDocumento        // Rastreador para el botón de documentos
-            });
-          }
+    if (!esValido) {
+      // 🔴 CAMBIO: SweetAlert2 en lugar de alert nativo
+      await Swal.fire({
+        title: 'Documento Vencido',
+        text: 'El documento tiene más de 30 días de antigüedad. Por favor, adjunta uno reciente.',
+        icon: 'error',
+        confirmButtonColor: 'var(--accent)', // Usa tu variable de color naranja
+        background: 'var(--surface)',
+        color: 'var(--text)',
+        customClass: {
+          popup: 'provider-card' // Reutiliza tu clase de glassmorphism
         }
       });
+
+      this.removeFile(); // Limpiamos según tu requerimiento de borrar adjuntos
+      return;
     }
-
-    // 🟢 5. CREAR EL FORMULARIO REACTIVO Y CAMBIAR A LA VISTA 2
-    this.form.setControl('formDinamico', this.fb.group(controlesReactivos));
-
-    this.overlayTitle = '¡Análisis completado!';
-    setTimeout(() => {
-      this.overlayOpen = false;
-      this.currentStep = 2;
-      this.cdr.detectChanges();
-    }, 1500);
   }
+
+  // Muestra un loader de Swal para que el usuario no sienta la demora del procesamiento
+  Swal.fire({
+    title: 'Procesando datos...',
+    text: 'Estamos organizando la información en el formulario.',
+    allowOutsideClick: false,
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
+
+  // 🟢 2. DETECTAR TIPO DE CONTRIBUYENTE
+  const tipoContribuyenteObj = fieldsExtraidos.find((f: any) => f.field.includes('Tipo de contribuyente'));
+  const esJuridica = tipoContribuyenteObj && tipoContribuyenteObj.value?.toLowerCase().includes('jurídica');
+  this.esEmpresaJuridica = !!esJuridica;
+
+  this.camposDinamicos = [];
+  const controlesReactivos: { [key: string]: any } = {};
+
+  // 🟢 3. INYECTAR DATOS DEL PDF (API 1)
+  fieldsExtraidos.forEach((itemRut: any) => {
+    if (itemRut.value !== null && itemRut.value !== undefined && String(itemRut.value).trim() !== '') {
+      const safeKey = itemRut.field.replace(/[^a-zA-Z0-9]/g, '_');
+      controlesReactivos[safeKey] = [itemRut.value];
+      this.camposDinamicos.push({
+        key: safeKey,
+        label: itemRut.field,
+        type: 'text',
+        options: [],
+        isLong: false,
+        autocompletado: true,
+        visible: true,
+        grupoBeneficiario: 0,
+        grupoDocumento: 0
+      });
+    }
+  });
+
+  // 🟢 4. INYECTAR PLANTILLA (API 2) - Lógica de 4 columnas y filtros
+  if (this.formularioEstructuraDestino) {
+    this.formularioEstructuraDestino = this.pdfMapService.fillFormWithPdfData(statusRes, this.formularioEstructuraDestino);
+    const dataRead = this.formularioEstructuraDestino.allowedToRead?.data || [];
+    const dataWrite = this.formularioEstructuraDestino.isAllowedToWrite?.data || [];
+    const seccionesPlantilla = [...dataRead, ...dataWrite];
+
+    seccionesPlantilla.forEach((itemPlantilla: any) => {
+      if (itemPlantilla.fields && itemPlantilla.fields.labelId) {
+        const key = itemPlantilla.fields.labelId;
+        const valorExtraido = itemPlantilla.valueField;
+        const fueExtraidoPorIA = valorExtraido !== null && valorExtraido !== undefined && String(valorExtraido).trim() !== '';
+
+        let esCampoParaEsteUsuario = true;
+        const camposSoloNatural = ['firstLastName', 'secondLastName', 'identification', 'identificationNumber'];
+        const camposSoloJuridica = ['nitId', 'representativeName', 'nationalIdentityCard', 'riskControlSystem', 'which risk'];
+
+        if (this.esEmpresaJuridica) {
+          if (camposSoloNatural.includes(key)) esCampoParaEsteUsuario = false;
+        } else {
+          if (camposSoloJuridica.includes(key) || key.startsWith('finalBeneficiary')) esCampoParaEsteUsuario = false;
+        }
+
+        let esVisible = true;
+        let grupoBeneficiario = 0;
+        let grupoDocumento = 0;
+
+        if (this.esEmpresaJuridica && key.startsWith('finalBeneficiary')) {
+          const match = key.match(/\d+$/);
+          if (match) {
+            grupoBeneficiario = parseInt(match[0], 10);
+            esVisible = false;
+          }
+        }
+
+        if (key.startsWith('document')) {
+          const match = key.match(/\d+$/);
+          if (match) {
+            grupoDocumento = parseInt(match[0], 10);
+            if (grupoDocumento > this.documentosActivos) esVisible = false;
+          }
+        }
+
+        if (!controlesReactivos[key] && esCampoParaEsteUsuario) {
+          controlesReactivos[key] = [fueExtraidoPorIA ? valorExtraido : ''];
+          this.camposDinamicos.push({
+            key: key,
+            label: itemPlantilla.fields.labelName,
+            type: itemPlantilla.fields.labelType || 'text',
+            options: itemPlantilla.fields.options || [],
+            isLong: String(itemPlantilla.fields.labelName).length > 50,
+            autocompletado: fueExtraidoPorIA,
+            visible: esVisible,
+            grupoBeneficiario: grupoBeneficiario,
+            grupoDocumento: grupoDocumento
+          });
+        }
+      }
+    });
+  }
+
+  // 🟢 5. FINALIZAR Y CERRAR MODALES
+  this.form.setControl('formDinamico', this.fb.group(controlesReactivos));
+
+  // Cerramos el loader de Swal antes de cambiar de paso
+  Swal.close();
+
+  this.overlayTitle = '¡Análisis completado!';
+  setTimeout(() => {
+    this.overlayOpen = false;
+    Swal.close();
+    this.currentStep = 2;
+    this.cdr.detectChanges();
+  }, 1000); // Reducido a 1s para mejorar la percepción de velocidad
+}
 
 
   // ESTA ES LA FUNCIÓN CLAVE CORREGIDA

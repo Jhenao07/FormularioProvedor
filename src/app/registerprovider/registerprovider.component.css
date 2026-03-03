@@ -28,7 +28,7 @@
 
 .provider-wrapper {
   width: 100%;
-  max-width: 480px; /* Ancho perfecto para un login */
+  max-width: 1200px; /* Ancho perfecto para un login */
   display: flex;
   flex-direction: column;
   align-items: center;
