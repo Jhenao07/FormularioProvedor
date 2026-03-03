@@ -651,3 +651,71 @@ select.dynamic-input {
     transform: translateY(0);
   }
 }
+/* Contenedor principal */
+.input-action-container {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  min-height: 45px; /* Evita que se colapse verticalmente */
+}
+
+/* Envoltorio del input: El "flex: 1" es clave */
+.input-wrapper {
+  flex: 1 1 auto;
+  min-width: 150px; /* 🟢 SEGURO: Evita que el campo desaparezca si los botones son grandes */
+  position: relative;
+  display: block;
+}
+
+/* Forzamos al componente hijo a ser visible */
+.input-wrapper app-dynamic-field {
+  display: block !important;
+  width: 100% !important;
+}
+
+/* Contenedor de botones */
+.actions-wrapper {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0; /* 🟢 SEGURO: Evita que los botones se achiquen */
+  align-items: center;
+}
+
+/* Botones de acción */
+.btn-action {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  border: 1px solid #d1d5db;
+  background: #fff;
+}
+
+.btn-attach {
+  background-color: #f8fafc;
+  color: #334155;
+}
+
+.btn-delete {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.btn-add-row {
+  border: 1px dashed #4f46e5;
+  color: #4f46e5;
+  background-color: #f5f3ff;
+}
+
+.hidden-input {
+  display: none !important;
+}

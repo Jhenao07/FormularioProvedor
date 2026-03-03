@@ -55,10 +55,11 @@
                     </button>
                   </ng-container>
 
-                  <input [id]="'file-' + doc.key"
+                  <input #fileInput
+                         [id]="'file-' + doc.key"
                          type="file"
                          class="input-file-hidden"
-                         (change)="onFileSelected($event, doc.key)" />
+                         (change)="onFileSelected($event, doc.key, fileInput)" />
                 </div>
              <div class="archivo-adjunto-box" *ngIf="archivoSeleccionado">
               <span>📄 {{ archivoSeleccionado.name }}</span>
@@ -79,9 +80,7 @@
         </div>
       </div>
 
-
 <div *ngIf="currentStep === 2" [formGroup]="form" class="step-content">
-
   <div formGroupName="formDinamico">
     <h2 class="title">Información del Documento</h2>
 
@@ -92,39 +91,48 @@
     <div class="form-grid">
       <div class="form-group"
            *ngFor="let campo of camposDinamicos"
+           [hidden]="campo.visible === false"
            [class.full]="campo.isLong">
 
         <label class="label">{{ campo.label }} <span class="req">*</span></label>
 
-        <div class="input-with-badge">
-          <app-dynamic-field
-            [config]="campo"
-            [formControlName]="campo.key">
-          </app-dynamic-field>
-
-          <span class="badge-auto" *ngIf="campo.autocompletado">Autocompletado</span>
-        </div>
-
-        <ng-container *ngIf="campo.key === 'finalBeneficiary'">
-
-          <button type="button" class="btn-secondary-sm btn-full" style="margin-top: 12px;"
-                  (click)="mostrarCamposBeneficiario = !mostrarCamposBeneficiario">
-            {{ mostrarCamposBeneficiario ? '- Cancelar' : '+ Agregar Beneficiario Extra' }}
-          </button>
-
-          <div *ngIf="mostrarCamposBeneficiario" class="beneficiario-box">
-            <input type="text" placeholder="Nombre completo" class="dynamic-input" />
-            <input type="text" placeholder="Número de Documento" class="dynamic-input" />
-            <input type="number" placeholder="Participación (%)" class="dynamic-input" />
+        <div class="input-action-container">
+          <div class="input-wrapper">
+            <app-dynamic-field
+              [config]="campo"
+              [formControlName]="campo.key">
+            </app-dynamic-field>
+            <span class="badge-auto" *ngIf="campo.autocompletado">Autocompletado</span>
           </div>
 
-        </ng-container>
-        <div class="form-group full" *ngIf="esEmpresaJuridica && beneficiariosActivos < 10">
-        <button type="button" class="btn-secondary-sm btn-full" style="margin-top: 16px; border: 1px dashed var(--accent-600);"
-                (click)="agregarBeneficiario()">
+          <div class="actions-wrapper" *ngIf="campo.key.startsWith('document')">
+            
+            <input #fileInput type="file" class="hidden-input" (change)="onFileSelected($event, campo.key, fileInput)" />
+
+            <button type="button" class="btn-action btn-attach" (click)="fileInput.click()">
+              📎 Adjuntar
+            </button>
+
+            <button type="button" class="btn-action btn-delete"
+                    *ngIf="form.get('formDinamico')?.get(campo.key)?.value"
+                    (click)="eliminarDocumentoAdjunto(campo.key, fileInput)">
+              🗑️
+            </button>
+
+            <button *ngIf="campo.grupoDocumento === documentosActivos && documentosActivos < 10"
+                    type="button"
+                    class="btn-action btn-add-row"
+                    (click)="agregarDocumento()">
+              + Añadir fila
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group full" *ngIf="esEmpresaJuridica && beneficiariosActivos < 10">
+        <button type="button" class="btn-secondary-sm btn-full btn-dashed" (click)="agregarBeneficiario()">
           + Agregar un Beneficiario Final
         </button>
-      </div>
       </div>
     </div>
 
@@ -137,11 +145,8 @@
         Confirmar y Continuar
       </button>
     </div>
-
   </div>
-
 </div>
-
      <div *ngIf="currentStep === 3" class="step-content">
         <h2>Revisión y envío</h2>
         <p style="color: var(--muted); margin-bottom: 24px; font-size: 14px;">

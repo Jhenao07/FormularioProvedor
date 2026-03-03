@@ -83,10 +83,12 @@ export class ProviderComponent implements OnInit {
   formularioEstructuraDestino: any = null; // Guardará el JSON de tu API
   loadingFormConfig = true;
   archivoSeleccionado: File | null = null;
+  documentosActivos: number = 1;
   // --- Overlay UI ---
   overlayOpen = false;
   overlayTitle = '';
   overlaySubtitle: string | null = null;
+ fileInput: HTMLInputElement | undefined;
 
   constructor( private cdr: ChangeDetectorRef) {
     // Inicializamos TODO el formulario desde el principio de forma segura
@@ -257,31 +259,80 @@ export class ProviderComponent implements OnInit {
     }
   }
 
-  onFileSelected(event: Event, docKey: string) {
+  onFileSelected(event: Event, docKey: string, fileInput: HTMLInputElement) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
+      const control = this.form.get('formDinamico')?.get(docKey);
       this.form.get(`step2_docs.${docKey}`)?.setValue(file);
       this.form.get('step2_docs')?.updateValueAndValidity();
+      this.form.get('formDinamico')?.get(docKey)?.setValue(file.name);
+      this.cdr.detectChanges();
+
+      if (control) {
+      // 2. Seteamos el valor (el nombre del archivo)
+      control.setValue(file.name);
+
+      // 3. Marcamos como sucio y tocado para que la UI reaccione
+      control.markAsDirty();
+      control.markAsTouched();
+
+      // 4. Actualizamos validez (esto dispara el renderizado en componentes dinámicos)
+      control.updateValueAndValidity();
+
+      console.log(`✅ Valor inyectado en ${docKey}:`, control.value);
     }
-  }
 
-  removeFile(docKey: string = '') {
-    this.form.get(`step2_docs.${docKey}`)?.setValue(null);
-    this.form.get('step2_docs')?.updateValueAndValidity();
-    this.camposDinamicos = [];
-    this.form.setControl('formDinamico', this.fb.group({})); // Resetea el grupo pero no lo borra
-
-
-    this.overlayOpen = false;
-    this.currentStep = 1;
-    alert("Archivo eliminado. Por favor, adjunta un documento válido.");
+    // 5. Forzamos la detección de cambios global del componente
     this.cdr.detectChanges();
 
-    const fileInput = document.getElementById('file-' + docKey) as HTMLInputElement;
-    if (fileInput) fileInput.value = '';
+    }
+
   }
 
+  eliminarDocumentoAdjunto(controlName: string, fileInput: HTMLInputElement) {
+    // 1. Vaciamos el texto del input visual
+    this.form.get('formDinamico')?.get(controlName)?.setValue('');
+
+    // 2. Reseteamos el input oculto para que permita volver a seleccionar el mismo archivo si es necesario
+    fileInput.value = '';
+
+    // 3. (Opcional) Eliminarlo de tu arreglo de archivos a enviar al backend
+    // delete this.archivosFisicos[controlName];
+  }
+
+ removeFile(docKey: string = '', fileInput?: HTMLInputElement) {
+  // 1. Limpieza para el Paso 1 (Documentos iniciales)
+  if (this.currentStep === 1) {
+    this.form.get(`step2_docs.${docKey}`)?.setValue(null);
+    this.form.get('step2_docs')?.updateValueAndValidity();
+  }
+
+  // 2. Limpieza para el Paso 2 (Formulario dinámico de la imagen)
+  if (this.currentStep === 2) {
+    // 🟢 Esto es lo que limpia el input rojo que se ve en tu imagen
+    this.form.get('formDinamico')?.get(docKey)?.setValue('');
+  }
+
+  // 3. Resetear el input físico (para permitir correcciones)
+  if (fileInput) {
+    fileInput.value = '';
+  } else {
+    const el = document.getElementById('file-' + docKey) as HTMLInputElement;
+    if (el) el.value = '';
+  }
+
+  // 4. Si es un error crítico que requiere volver al inicio, mantenemos tu lógica
+  // Pero si solo es borrar un documento extra, no deberíamos resetear todo el formulario
+  if (this.currentStep === 1) {
+    this.camposDinamicos = [];
+    this.form.setControl('formDinamico', this.fb.group({}));
+    this.overlayOpen = false;
+    alert("Archivo eliminado. Por favor, adjunta un documento válido.");
+  }
+
+  this.cdr.detectChanges();
+}
   procesarPdf(docKey: string) {
     const file = this.form.get(`step2_docs.${docKey}`)?.value;
     if (!(file instanceof File)) return;
@@ -332,7 +383,7 @@ export class ProviderComponent implements OnInit {
       }
     });
   }
-agregarBeneficiario() {
+  agregarBeneficiario() {
     if (this.beneficiariosActivos < 10) {
       this.beneficiariosActivos++;
 
@@ -346,8 +397,24 @@ agregarBeneficiario() {
       alert("Has alcanzado el límite máximo de 10 beneficiarios.");
     }
   }
+agregarDocumento() {
+  if (this.documentosActivos < 10) {
+    this.documentosActivos++;
+
+    this.camposDinamicos.forEach(campo => {
+
+      if (campo.grupoDocumento === this.documentosActivos) {
+        campo.visible = true;
+      }
+    });
+  } else {
+    alert("Límite de 10 documentos alcanzado.");
+  }
+  this.cdr.detectChanges();
+}
+
  extraerDatosDelJSON(statusRes: any) {
-    console.log("🚀 Iniciando extracción inteligente...");
+    console.log("🚀 Iniciando extracción inteligente de RUT y Plantilla...");
 
     const fieldsExtraidos = statusRes.result?.resultsByPage?.[0]?.fields || [];
 
@@ -357,8 +424,8 @@ agregarBeneficiario() {
       const esValido = this.validarVigenciaRut(campoFecha.value);
       if (!esValido) {
         alert("❌ El documento tiene más de 30 días de antigüedad. Por favor, adjunta uno reciente.");
-        this.removeFile(); // Limpiamos el archivo para que suba el correcto
-        return; // Detenemos el proceso aquí
+        this.removeFile(); // Limpiamos el adjunto en caso de error o documento equivocado
+        return; // Detenemos el proceso aquí para que no avance al paso 2
       }
     }
 
@@ -366,32 +433,35 @@ agregarBeneficiario() {
     const tipoContribuyenteObj = fieldsExtraidos.find((f: any) => f.field.includes('Tipo de contribuyente'));
     const esJuridica = tipoContribuyenteObj && tipoContribuyenteObj.value?.toLowerCase().includes('jurídica');
 
-    console.log(esJuridica ? "🏢 Procesando como Persona Jurídica" : "👤 Procesando como Persona Natural");
+    // Actualizamos la variable global para que el HTML sepa si mostrar el botón de Beneficiarios
+    this.esEmpresaJuridica = !!esJuridica;
+    console.log(this.esEmpresaJuridica ? "🏢 Procesando como Persona Jurídica" : "👤 Procesando como Persona Natural");
 
     this.camposDinamicos = [];
     const controlesReactivos: { [key: string]: any } = {};
 
-    // 🟢 3. INYECTAR LOS DATOS DEL PDF (API 1) - Incluyendo el DV y todos los demás
+    // 🟢 3. INYECTAR LOS DATOS EXTRAÍDOS DEL PDF (API 1)
     fieldsExtraidos.forEach((itemRut: any) => {
-      // Solo tomamos los que la IA logró leer con éxito
       if (itemRut.value !== null && itemRut.value !== undefined && String(itemRut.value).trim() !== '') {
         const safeKey = itemRut.field.replace(/[^a-zA-Z0-9]/g, '_');
 
         controlesReactivos[safeKey] = [itemRut.value];
         this.camposDinamicos.push({
           key: safeKey,
-          label: itemRut.field, // Mostrará "6. DV", "Razón social", etc.
+          label: itemRut.field,
           type: 'text',
           options: [],
           isLong: false,
-          autocompletado: true
+          autocompletado: true,
+          visible: true,        // Los extraídos por la IA siempre se muestran
+          grupoBeneficiario: 0,
+          grupoDocumento: 0
         });
       }
     });
 
-    // 🟢 4. INYECTAR LA PLANTILLA (API 2) FILTRADA
+    // 🟢 4. INYECTAR LA PLANTILLA (API 2) CON FILTROS Y REVELACIÓN PROGRESIVA
     if (this.formularioEstructuraDestino) {
-      // Cruzamos los datos extraídos con la plantilla
       this.formularioEstructuraDestino = this.pdfMapService.fillFormWithPdfData(statusRes, this.formularioEstructuraDestino);
 
       const dataRead = this.formularioEstructuraDestino.allowedToRead?.data || [];
@@ -400,41 +470,52 @@ agregarBeneficiario() {
 
       seccionesPlantilla.forEach((itemPlantilla: any) => {
         if (itemPlantilla.fields && itemPlantilla.fields.labelId) {
-         const key = itemPlantilla.fields.labelId;
+          const key = itemPlantilla.fields.labelId;
           const valorExtraido = itemPlantilla.valueField;
           const fueExtraidoPorIA = valorExtraido !== null && valorExtraido !== undefined && String(valorExtraido).trim() !== '';
+
+          // *** MAGIA DEL FILTRO ***
           let esCampoParaEsteUsuario = true;
+
+          // A) Ocultar según tipo de persona (Listas de exclusión)
           const camposSoloNatural = ['firstLastName', 'secondLastName', 'identification', 'identificationNumber'];
           const camposSoloJuridica = ['nitId', 'representativeName', 'nationalIdentityCard', 'riskControlSystem', 'which risk'];
 
-          // *** AQUÍ ESTÁ LA MAGIA DEL FILTRO ***
-          // Debemos decidir si este campo de la API 2 se muestra o no.
-          // Por ejemplo, si la variable 'esJuridica' es true, mostramos los campos de empresa.
-          // (Nota: Ajusta la lógica de este 'if' dependiendo de cómo tu API 2 nombra los campos de Natural vs Jurídica)
-          // <-- Reemplazar 'true' con tu condición real si la API 2 los diferencia por nombre o sección.
-
-          if (esJuridica) {
-            this.esEmpresaJuridica = true;
+          if (this.esEmpresaJuridica) {
+            // Ocultamos apellidos y datos personales a la empresa
             if (camposSoloNatural.includes(key)) esCampoParaEsteUsuario = false;
           } else {
-            this.esEmpresaJuridica = false;
+            // Ocultamos datos de empresa y sección de beneficiarios a la persona natural
             if (camposSoloJuridica.includes(key) || key.startsWith('finalBeneficiary')) esCampoParaEsteUsuario = false;
           }
 
-          // 2. Lógica de Grupos para Beneficiarios
+          // B) Lógica de Grupos para Revelación Progresiva
           let esVisible = true;
           let grupoBeneficiario = 0;
+          let grupoDocumento = 0;
 
-          if (esJuridica && key.startsWith('finalBeneficiary')) {
-            // Extraemos el número al final de la llave (ej: finalBeneficiaryName10 -> 10)
-            const match = key.match(/\d+$/);
+          // - Lógica de Beneficiarios (Solo Jurídica)
+          if (this.esEmpresaJuridica && key.startsWith('finalBeneficiary')) {
+            const match = key.match(/\d+$/); // Saca el número del final del ID
             if (match) {
               grupoBeneficiario = parseInt(match[0], 10);
-              esVisible = false; // Los ocultamos todos por defecto
+              esVisible = false; // Todos los beneficiarios arrancan ocultos
             }
           }
 
-          // Si el campo pasó la prueba, lo guardamos con su estado de visibilidad
+          // - Lógica de Documentos (Aplica para ambos)
+          if (key.startsWith('document')) {
+            const match = key.match(/\d+$/); // Saca el número del final del ID
+            if (match) {
+              grupoDocumento = parseInt(match[0], 10);
+              // Si el número del documento es mayor a los activos (por defecto 1), lo ocultamos
+              if (grupoDocumento > this.documentosActivos) {
+                esVisible = false;
+              }
+            }
+          }
+
+          // C) Si el campo superó los filtros, lo guardamos en la grilla dinámica
           if (!controlesReactivos[key] && esCampoParaEsteUsuario) {
             controlesReactivos[key] = [fueExtraidoPorIA ? valorExtraido : ''];
             this.camposDinamicos.push({
@@ -444,21 +525,22 @@ agregarBeneficiario() {
               options: itemPlantilla.fields.options || [],
               isLong: String(itemPlantilla.fields.labelName).length > 50,
               autocompletado: fueExtraidoPorIA,
-              visible: esVisible,               // 🟢 Nueva propiedad
-              grupoBeneficiario: grupoBeneficiario // 🟢 Nueva propiedad
+              visible: esVisible,               // Controla si se dibuja o no
+              grupoBeneficiario: grupoBeneficiario, // Rastreador para el botón de beneficiarios
+              grupoDocumento: grupoDocumento        // Rastreador para el botón de documentos
             });
           }
         }
       });
     }
 
-    // 🟢 5. CREAR EL FORMULARIO REACTIVO Y CAMBIAR DE PASO
+    // 🟢 5. CREAR EL FORMULARIO REACTIVO Y CAMBIAR A LA VISTA 2
     this.form.setControl('formDinamico', this.fb.group(controlesReactivos));
 
     this.overlayTitle = '¡Análisis completado!';
     setTimeout(() => {
-      this.overlayOpen = false; // Apaga el loader
-      this.currentStep = 2;     // Pasa a la grilla
+      this.overlayOpen = false;
+      this.currentStep = 2;
       this.cdr.detectChanges();
     }, 1500);
   }
