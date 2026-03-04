@@ -159,8 +159,7 @@ export class ProviderComponent implements OnInit {
     const apiUrl = `https://ccwhqcbjae.execute-api.us-east-1.amazonaws.com/api/ntp/commercialOperation/v1/serviceOrder/getFieldsByServiceOrder/${numeroOrden}`;
 
     // 1. Ponemos el token directamente como variable (igual que en tu service)
-    const apiToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExM2UyNDNjLTczZjctNGM4NC05MDE1LWU3NWRkZGFiZDI3MSIsImRhdGEiOiIyN2VmOWRiOTg0OTNhYzBiYjFkMmQ1YjJhYjVhZWFjMWViZjY1NDFhYjE4NGVmNTdmYzU3MGFkZmJhM2M1ODY3ODNmMjBhZjg0ZmQ5Y2ZmYWU3NzljYTY5NmRjMDRlZDFjODRiMzRiZjQyNWU4MTJjMDI3MmZmYjdlNTA1Yjg1YjgxNDFmMzc5NGIzNmEyNTEwYjBmODE4Njg0MzhmZGQ0YWUxYmJiMzJiZjIzMDg3OWRmZWQwMDIwYTJjYzdjOTQ0YjhhNGYxYzM0NDA1ZTRhNWRiY2I0NzA4NTc1NzFhZTYxMWZlMWQyYjYzM2YzNWNkMmExZjMyODI5OTljN2FjZjI4MjNiZjJmOTA1N2JiNDZjZjFlMzExNzg2MDQ0ZWZlOGNkYjA5YmM2YzliMjdlNmEyZDYyYjBhNzFjZjcyNGRhY2I2NGJmNzI4MTZkNmQ0ZTJjYTA1NzRmZjJiYjljODc3ZWJkMjhkNzZhZDMzMDA1NzlmMGZmYTlhMTliYWU2M2UwZWJiN2VmZGFhYTlhNjI4NDEzMGJlMzU5MmY3M2Q3ODIwYzQ0MTg2ZGEzMmNlMzBiNzJhYTc2MDIyYWMzZWVlYjI5MDRlNWNlZWU1YTI5OGQxYTIwNzAwZTM3NWFiMWRkMWEzMzcyMjU3NjFjOGIzMTRlOTE0MzM4MzgzMWVkNDJkZmFkNWQwOGMwOTRkZDg1ZDY4YTU4NTAwYmYzZTY5YWEzMmYyN2IyNjU0ZTBiOWI3MzUyMmU5Njc3MzRlZWNiZTUxMTIwMWJmOTFjY2RkOTJlMGQxMjE5YjFjNTFhZGRhODk0Y2U0ZjQ3ODhjODg5YjkwZTllYmY2YmM1OTlhZDkwZDdhNWY2YWQ4YjJkM2ViYzRmN2ZhMWMzZmEwNDJhMWRlOTAwNjhjN2U2YjEyNjhjZTlkNjdmZGUyYWQwMWNmMjg1N2Q2OWNiNDQ2NTIxNThjYzlkZmQ3YWI5MDNkM2Q5YTZmYmQ5N2Q4MDVhYzc4MDI5NTlhY2ZjZDZjMmQwMThlZTdmYzJjMDRkOGNmNzFjNDRlZTlhNGZhNjY1MDM4YjQyZjcwZTQ4NTAwZGNkMTliYTA5MzM0MzZlOWFkYWYxYzlmOWJlYzM0ZjQ2NDY1NmI0YzJhZjg4YTYyNWI5ZTZmNzcyZTNhYTFkMTZhNDU3YzdjZWFhOWU0ZTQ5N2ZhY2Y0YmRkNmVmZWI2NDMzYTNkZDNmY2FiNDBkZmM4NTViOThkMTI2ZmY5ZmIyMWJiZDBmMTcwNzgyYjEyZjQ0ODk5OGQwZGQ1NDk1YjMzODU3ODViMjU1MmU1YmZhMTUyMDhmNGNiNzhjMTc4ZmNhNDkxYjhhZTc5ZDliOTI5ZmE2NWJlZWZlZmQzMTg4NmUzZGVjOGViNzUzMzkiLCJ0eXBlIjoidXNlciIsImlhdCI6MTc3MTkzOTQxOSwiZXhwIjoxNzcyNTQ0MjE5fQ.Nse9hpTraxfPyP6EH_6FxFRl8d0ImkvnGD9FrHaA938';
-
+    const apiToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExM2UyNDNjLTczZjctNGM4NC05MDE1LWU3NWRkZGFiZDI3MSIsImRhdGEiOiIyN2VmOWRiOTg0OTNhYzBiYjFkMmQ1YjJhYjVhZWFjMWViZjY1NDFhYjE4NGVmNTdmYzU3MGFkZmJhM2M1ODY3ODNmMjBhZjg0ZmQ5Y2ZmYWU3NzljYTY5NmRjMDRlZDFjODRiMzRiZjQyNWU4MTJjMDI3MmZmYjdlNTA1Yjg1YjgxNDFmMzc5NGIzNmEyNTEwYjBmODE4Njg0MzhmZGQ0YWUxYmJiMzJiZjIzMDg3OWRmZWQwMDIwYTJjYzdjOTQ0YjhhNGYxYzM0NDA1ZTRhNWRiY2I0NzA4NTc1NzFhZTYxMWZlMWQyYjYzM2YzNWNkMmExZjMyODI5OTljN2FjZjI4MjNiZjJmOTA1N2JiNDZjZjFlMzExNzg2MDQ0ZWZlOGNkYjA5YmM2YzliMjdlNmEyZDYyYjBhNzFjZjcyNGRhY2I2NGJmNzI4MTZkNmQ0ZTJjYTA1NzRmZjJiYjljODc3ZWJkMjhkNzZhZDMzMDA1NzlmMGZmYTlhMTliYWU2M2UwZWJiN2VmZGFhYTlhNjI4NDEzMGJlMzU5MmY3M2Q3ODIwYzQ0MTg2ZGEzMmNlMzBiNzJhYTc2MDIyYWMzZWVlYjI5MDRlNWNlZWU1YTI5OGQxYTIwNzAwZTM3NWFiMWRkMWEzMzcyMjU3NjFjOGIzMTRlOTE0MzM4MzgzMWVkNDJkZmFkNWQwOGMwOTRkZDg1ZDY4YTU4NTAwYmYzZTY5YWEzMmYyN2IyNjU0ZTBiOWI3MzUyMmU5Njc3MzRlZWNiZTUxMTIwMWJmOTFjY2RkOTJlMGQxMjE5YjFjNTFhZGRhODk0Y2U0ZjQ3ODhjODg5YjkwZTllYmY2YmM1OTlhZDkwZDdhNWY2YWQ4YjJkM2ViYzRmN2ZhMWMzZmEwNDJhMWRlOTAwNjhjN2U2YjEyNjhjZTlkNjdmZGUyYWQwMWNmMjg1N2Q2OWNiNDQ2NTIxNThjYzlkZmQ3YWI5MDNkM2Q5YTZmYmQ5N2Q4MDVhYzc4MDI5NTlhY2ZjZDZjMmQwMThlZTdmYzJjMDRkOGNmNzFjNDRlZTlhNGZhNjY1MDM4YjQyZjcwZTQ4NTAwZGNkMTliYTA5MzM0MzZlOWFkYWYxYzlmOWJlYzM0ZjQ2NDY1NmI0YzJhZjg4YTYyNWI5ZTZmNzcyZTNhYTFkMTZhNDU3YzdjZWFhOWU0ZTQ5N2ZhY2Y0YmRkNmVmZWI2NDMzYTNkZDNmY2FiNDBkZmM4NTViOThkMTI2ZmY5ZmIyMWJiZDBmMTcwNzgyYjEyZjQ0ODk5OGQwZGQ1NDk1YjMzODU3ODViMjU1MmU1YmZhMTUyMDhmNGNiNzhjMTc4ZmNhNDkxYjhhZTc5ZDliOTI5ZmE2NWJlZWZlZmQzMTg4NmUzZGVjOGViNzUzMzkiLCJ0eXBlIjoidXNlciIsImlhdCI6MTc3MjU2MDA4MiwiZXhwIjoxNzczMTY0ODgyfQ.X43wvS7zWwNkhEn6HlVlv7IQK1hNb9xMVJKDBGC-aFI';
     // 2. Armamos los headers
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${apiToken}`
@@ -423,10 +422,102 @@ export class ProviderComponent implements OnInit {
           campo.visible = true;
         }
       });
+      this.cdr.detectChanges();
     } else {
-      alert("Has alcanzado el límite máximo de 10 beneficiarios.");
+        Swal.fire({
+          icon: 'warning',
+          title: 'Límite alcanzado',
+          text: 'Has alcanzado el límite máximo permitido de 10 beneficiarios finales.',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: 'var(--accent)',
+          background: 'var(--surface)',
+          color: 'var(--text)',
+          customClass: {
+          popup: 'provider-card'
+        }
+      });
     }
   }
+ mostrarBotonBeneficiario(index: number): boolean {
+  // 1. Si no es empresa o ya llegó a 10, no hay botón
+  if (!this.esEmpresaJuridica || this.beneficiariosActivos >= 10) return false;
+
+  const campoActual = this.camposDinamicos[index];
+
+  // Regla de oro: El botón nunca se pinta debajo de un campo oculto
+  if (campoActual.visible === false) return false;
+
+  // 2. Si hay 0 beneficiarios activos (Aún no se ha dado clic al botón)
+  if (this.beneficiariosActivos === 0) {
+    // Buscamos el primer campo de beneficiario (que está oculto)
+    const primerOculto = this.camposDinamicos.findIndex(c => c.grupoBeneficiario > 0);
+    // Pintamos el botón exactamente debajo del campo normal que está justo antes
+    if (primerOculto > 0) {
+      return index === primerOculto - 1;
+    }
+    return false;
+  }
+
+  // 3. Si YA HAY beneficiarios activos (1, 2, 3, 4...)
+  else {
+    // Buscamos de atrás hacia adelante cuál es el ÚLTIMO campo de beneficiario que está VISIBLE
+    let ultimoIndiceVisible = -1;
+
+    for (let i = this.camposDinamicos.length - 1; i >= 0; i--) {
+      const c = this.camposDinamicos[i];
+      // Si el campo es de un beneficiario y actualmente es visible en pantalla
+      if (c.grupoBeneficiario > 0 && c.visible !== false) {
+        ultimoIndiceVisible = i;
+        break; // Encontramos el último, paramos de buscar
+      }
+    }
+
+    // El botón se pinta única y exclusivamente debajo de ese último campo
+    return index === ultimoIndiceVisible;
+  }
+}
+eliminarUltimoBeneficiario() {
+  if (this.beneficiariosActivos > 0) {
+
+    // 1. Confirmación de seguridad con Swal
+    Swal.fire({
+      title: '¿Quitar beneficiario?',
+      text: 'Se borrarán los datos que hayas ingresado para este beneficiario.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: 'var(--error)', // Rojo para acciones destructivas
+      cancelButtonColor: 'var(--surface-3)',
+      confirmButtonText: 'Sí, quitar',
+      cancelButtonText: 'Cancelar',
+      background: 'var(--surface)',
+      color: 'var(--text)',
+      customClass: {
+        popup: 'provider-card', // Mantiene el efecto Glassmorphism
+        cancelButton: 'btn-secondary' // Usa tus clases nativas para el botón cancelar
+      }
+    }).then((result) => {
+
+      if (result.isConfirmed) {
+        // 2. Ocultar los campos del último grupo agregado y limpiar sus valores
+        this.camposDinamicos.forEach(campo => {
+          if (campo.grupoBeneficiario === this.beneficiariosActivos) {
+            campo.visible = false; // Lo ocultamos de la pantalla
+
+            // MUY IMPORTANTE: Limpiamos el valor en el formulario reactivo
+            // para que no viaje al backend un dato oculto
+            this.form.get('formDinamico')?.get(campo.key)?.setValue('');
+          }
+        });
+
+        // 3. Restamos el contador
+        this.beneficiariosActivos--;
+
+        // 4. Forzamos la actualización de la grilla de 3 columnas
+        this.cdr.detectChanges();
+      }
+    });
+  }
+}
 agregarDocumento() {
   if (this.documentosActivos < 10) {
     this.documentosActivos++;

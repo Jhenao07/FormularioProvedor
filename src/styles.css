@@ -1,1200 +1,527 @@
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(800px 400px at 20% 10%, rgba(255,102,71,.12), transparent 60%),
-    radial-gradient(800px 400px at 80% 20%, rgba(79,70,229,.10), transparent 60%);
-  pointer-events: none;
-  z-index: 0;
-}
-
+/* =========================================
+   VARIABLES: ESTILO MINIMALISTA Y LIMPIO
+   ========================================= */
 :root {
-  --accent: #ff6647;
- --radius: 18px;
-  --accent-600: #ff5a3a;
+  /* Color de acento: Un índigo/azul muy suave y formal */
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-100: #e0e7ff;
+  --accent-text: #3730a3;
 
-  --accent-100: rgba(255, 102, 71, 0.12);
-
-  --accent-060: rgba(255, 102, 71, 0.06);
-
-  --bg: #f5f7fb;
-
+  /* Fondos blancos y grises muy tenues */
+  --bg: #f8fafc;
   --surface: #ffffff;
+  --surface-2: #f1f5f9;
+  --surface-3: #e2e8f0;
 
-  --surface-2: #f3f4f6;
+  /* Bordes delicados */
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
 
-  --surface-3: #eef0f4;
+  /* Textos sobrios */
+  --text: #0f172a;
+  --text-2: #475569;
+  --muted: #64748b;
 
-  --border: rgba(17, 24, 39, 0.1);
-
-  --border-strong: rgba(17, 24, 39, 0.14);
-
-  --text: #111827;
-
-  --text-2: #374151;
-
-  --muted: #6b7280;
-
+  /* Estados */
   --error: #ef4444;
-
   --success: #10b981;
 
-  --shadow-sm: 0 6px 16px rgba(0, 0, 0, 0.06);
+  /* Sombras ultra suaves (apenas perceptibles) */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.02);
 
-  --shadow-md: 0 18px 40px rgba(0, 0, 0, 0.08);
+  --focus: 0 0 0 3px rgba(79, 70, 229, 0.15); /* Anillo de foco suave */
 
-  --shadow-accent: 0 12px 24px rgba(255, 102, 71, 0.25);
+  /* Bordes redondeados más discretos */
+  --r-xl: 16px;
+  --r-lg: 12px;
+  --r-md: 8px;
+  --r-sm: 6px;
 
-  --r-xl: 18px;
-
-  --r-lg: 14px;
-
-  --r-md: 12px;
-
-  --r-sm: 10px;
-
-  --pad-card: 42px;
-
-  --focus: 0 0 0 3px rgba(255, 102, 71, 0.25);
-
-  --font: "Segoe UI", system-ui, sans-serif;
+  --pad-card: 40px;
+  --font: "Inter", "Segoe UI", system-ui, sans-serif;
 }
 
-/* DARK MODE SUPPORT */
-
+/* DARK MODE SUPPORT (Simplificado y elegante) */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0b1220;
-
-    --surface: rgba(255, 255, 255, 0.06);
-
-    --surface-2: rgba(255, 255, 255, 0.08);
-
-    --surface-3: rgba(255, 255, 255, 0.1);
-
-    --border: rgba(255, 255, 255, 0.12);
-
-    --border-strong: rgba(255, 255, 255, 0.18);
-
-    --text: rgba(255, 255, 255, 0.92);
-
-    --text-2: rgba(255, 255, 255, 0.82);
-
-    --muted: rgba(255, 255, 255, 0.6);
-
-    --shadow-sm: 0 10px 22px rgba(0, 0, 0, 0.25);
-
-    --shadow-md: 0 26px 60px rgba(0, 0, 0, 0.35);
-    background: rgba(255,255,255,.05);
-    border: 1px solid rgba(255,255,255,.1);
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface-2: #334155;
+    --surface-3: #475569;
+    --border: #334155;
+    --border-strong: #475569;
+    --text: #f8fafc;
+    --text-2: #cbd5e1;
+    --muted: #94a3b8;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
   }
 }
 
 /* =========================================
-
-LAYOUT PRINCIPAL
-
-========================================= */
-
+   LAYOUT PRINCIPAL
+   ========================================= */
 * {
   box-sizing: border-box;
-
   margin: 0;
-
   padding: 0;
-
   font-family: var(--font);
 }
 
 body {
-  font-family: var(--font);
-
-  background:
-    radial-gradient(
-      1200px 600px at 10% 0%,
-      rgba(255, 102, 71, 0.1),
-      transparent 40%
-    ),
-    radial-gradient(
-      1200px 600px at 90% 10%,
-      rgba(79, 70, 229, 0.08),
-      transparent 40%
-    ),
-    var(--bg);
-
+  background-color: var(--bg);
   color: var(--text);
-
   min-height: 100vh;
-
   -webkit-font-smoothing: antialiased;
 }
 
 .provider-page {
   display: flex;
-  position: relative;
-  z-index: 1;
   justify-content: center;
   padding: 40px 24px;
 }
 
 .provider-wrapper {
   width: 100%;
-
-  max-width: 800px; /* Ancho perfecto para formulario de 2 columnas */
+  max-width: 1100px; /* Mantiene el ancho para 3 columnas */
+  margin: 0 auto;
 }
 
 .provider-header {
   text-align: center;
-
   margin-bottom: 30px;
 }
 
-.provider-header img {
-  height: 60px;
+.logo-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
-  object-fit: contain;
+  /* Fondo oscuro sólido para contraste garantizado */
+  background-color: #111827;
+
+  /* Espaciado para que el logo respire */
+  padding: 14px 28px;
+
+  /* Bordes redondeados sutiles, estilo cápsula */
+  border-radius: 99px;
+
+  /* Sombra muy suave para dar profundidad */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+  /* Separación con el resto del contenido */
+  margin-bottom: 20px;
+
+  /* Asegura que nada tape el contenido */
+  position: relative;
+  z-index: 10;
 }
 
+.provider-header img {
+  /* Altura controlada para que encaje perfecto */
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+
+  /* Asegura que la imagen sea visible */
+  display: block;
+  position: relative;
+  z-index: 11;
+}
+
+.logo-container:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.15);
+}
 /* =========================================
-
-STEPS NAVIGATION (Indicador de pasos)
-
-========================================= */
-
+   STEPS NAVIGATION (Sencillo y sin gradientes)
+   ========================================= */
 .steps {
   display: flex;
   position: relative;
-
   justify-content: center;
-
   gap: 12px;
-
   margin-bottom: 30px;
 }
 
 .step {
-  padding: 10px 18px;
-
+  padding: 10px 20px;
   border-radius: 999px;
-
-  background: var(--surface-3);
-
+  background-color: var(--surface);
   border: 1px solid var(--border);
-
   font-size: 13px;
-
-  font-weight: 700;
-
+  font-weight: 600;
   color: var(--muted);
-
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
+  transition: all 0.2s ease;
   white-space: nowrap;
-
-  letter-spacing: .3px;
-  backdrop-filter: blur(4px);
-}
-.steps::after {
-  content: "";
-  position: absolute;
-  bottom: -10px;
-  left: 0;
-  height: 3px;
-  width: 100%;
-  background: var(--surface-3);
-  border-radius: 4px;
 }
 
 .step.active {
-  background: linear-gradient(180deg, var(--accent), var(--accent-600));
-
-  color: #fff;
-
-  border-color: transparent;
-
-  box-shadow: var(--shadow-accent);
-  position: relative;
-
-  transform: translateY(-2px) scale(1.04);
+  background-color: var(--accent-100);
+  color: var(--accent-text);
+  border-color: var(--accent-100);
+  font-weight: 700;
 }
 
-.step.active::after {
-  content: "";
-  position: absolute;
-  bottom: -13px;
-  left: 0;
-  height: 3px;
-  width: 100%;
-  background: var(--accent);
-  border-radius: 4px;
-}
 /* =========================================
-
-CONTAINER CARD (El mismo Glassmorphism del Login)
-
-========================================= */
-
+   CONTAINER CARD (Blanco puro, sin glassmorphism)
+   ========================================= */
 .provider-card {
-  background: var(--surface);
-
+  background-color: var(--surface);
   border-radius: var(--r-xl);
-
   padding: var(--pad-card);
-
-  background: rgb(59 56 56 / 75%);
-
-  backdrop-filter: blur(18px);
-  border: 1px solid rgba(255,255,255,.4);
-
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
   min-height: 450px;
-}
-.provider-card:hover {
-  transform: translateY(-2px);
 }
 
 .step-content {
-  animation: stepSlide .35s cubic-bezier(.16,1,.3,1) both;
+  animation: fadeIn 0.3s ease both;
 }
 
-
-
-@keyframes stepSlide {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 h2 {
   font-size: 22px;
-
-  font-weight: 800;
-
+  font-weight: 700;
   margin-bottom: 8px;
-
-  letter-spacing: -0.5px;
-
   color: var(--text);
 }
 
+.step-description {
+  color: var(--muted);
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
 /* =========================================
-
-INPUTS ESTILO LOGIN (El mismo diseño)
-
-========================================= */
-
+   GRID Y FORMULARIO (Mantiene las 3 columnas)
+   ========================================= */
 .form-grid {
   display: grid;
-
-  grid-template-columns: 1fr 1fr;
-
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 
-.form-group.full {
-  grid-column: 1 / -1;
-}
+.form-group.full { grid-column: 1 / -1; }
+.form-group.span-2 { grid-column: span 2; }
+.form-group.span-3 { grid-column: span 3; }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .form-group label.label {
   display: block;
-
   font-size: 13px;
-
-  font-weight: 700;
-
-  margin-bottom: 8px;
-
+  font-weight: 600;
+  margin-bottom: 6px;
   color: var(--text-2);
 }
 
 .req {
-  color: var(--accent);
+  color: var(--error);
 }
 
 .input-with-badge {
   position: relative;
-
   width: 100%;
 }
 
 .badge-auto {
   position: absolute;
-
   right: 12px;
-
   top: 50%;
-
   transform: translateY(-50%);
-
-  background: var(--accent-100);
-
-  color: var(--accent-600);
-
+  background-color: var(--accent-100);
+  color: var(--accent-text);
   font-size: 11px;
-
-  font-weight: 800;
-
+  font-weight: 700;
   padding: 4px 8px;
-
   border-radius: 99px;
-
   pointer-events: none;
 }
 
-/* Misma estética de los cuadritos OTP del Register */
-
-/* Busca este bloque en tu CSS y asegúrate de que el padding sea así: */
-
+/* INPUTS LIMPIOS */
+.dynamic-input,
 .form-group input[type="text"],
 .form-group input[type="email"],
 .form-group input[type="number"],
 .form-group select {
   width: 100%;
-
-  height: 52px;
-
-  background-color: var(--surface-2);
-
+  height: 48px; /* Un poco más estilizados */
+  background-color: var(--surface);
   border: 1px solid var(--border-strong);
-
   border-radius: var(--r-md);
-
   color: var(--text);
-
-  /* 👇 FIX: Padding derecho grande para que el texto nunca choque con el badge */
-
-  padding: 0 110px 0 16px;
-
+  padding: 0 110px 0 14px;
   font-size: 14px;
-
-  font-weight: 600;
-
+  font-weight: 500;
   outline: none;
-
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-
-  box-sizing: border-box;
-
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  appearance: none;
 }
 
+.dynamic-input:focus,
 .form-group input:focus,
 .form-group select:focus {
   border-color: var(--accent);
-
-  background-color: var(--surface);
-
-  box-shadow: var(--focus), var(--shadow-sm); /* Misma sombra al enfocar */
-
-  transform: translateY(-1px);
+  box-shadow: var(--focus);
 }
 
+.dynamic-input::placeholder,
 .form-group input::placeholder {
   color: var(--muted);
-
   font-weight: 400;
-
-  opacity: 0.6;
-}
-
-/* Radios */
-
-.radio-row {
-  display: flex;
-
-  gap: 24px;
-
-  margin-top: 12px;
-
-  padding: 10px 0;
-}
-
-.radio-label {
-  display: flex;
-
-  align-items: center;
-
-  gap: 10px;
-
-  cursor: pointer;
-
-  color: var(--text-2);
-
-  font-weight: 600;
-
-  font-size: 14px;
-}
-
-.radio-label input[type="radio"] {
-  width: 18px;
-
-  height: 18px;
-
-  accent-color: var(--accent);
-
-  cursor: pointer;
 }
 
 /* =========================================
-
-DOCUMENT ITEMS (PASO 1)
-
-========================================= */
-
+   DOCUMENT ITEMS (PASO 1)
+   ========================================= */
 .option-list {
   display: flex;
   flex-direction: column;
- gap: 12px;
+  gap: 12px;
 }
 
 .doc-item {
   display: flex;
-  border: 1px solid var(--border-light);
-  flex-direction: column;
-
   justify-content: space-between;
-
   align-items: center;
-
-  padding: 18px;
-  gap: 14px;
-
-  background: rgba(255,255,255,.6);
-
-  backdrop-filter: blur(6px);
+  padding: 16px;
+  background-color: var(--surface);
   border: 1px solid var(--border);
-
   border-radius: var(--r-lg);
-
-  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
 }
+
 .doc-info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-
-.doc-item:hover {
-  border-color: var(--accent-100);
-
-  background: var(--surface);
-
-  box-shadow: 0 10px 24px rgba(0,0,0,.06);
-
-  transform: translateY(-1px);
+  gap: 4px;
 }
 
 .doc-item strong {
   font-size: 14px;
-
   color: var(--text);
+  font-weight: 600;
 }
 
 .doc-actions {
   display: flex;
-  flex-wrap: wrap;
-
   align-items: center;
-
-  gap: 10px;
+  gap: 8px;
 }
 
 .file-status-text {
   font-size: 12px;
-
   color: var(--success);
-
-  font-weight: 700;
-
-  display: block;
-
-  margin-top: 6px;
-
-  animation: scalePop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  font-weight: 600;
 }
 
 .doc-item.has-file {
   border-color: var(--success);
-  animation: premiumSuccess .35s ease;
-
-  background: color-mix(in srgb, var(--surface), var(--success) 4%);
-}
-@keyframes premiumSuccess {
-  0% { transform: scale(.98); }
-  100% { transform: scale(1); }
-}
-
-.doc-item.has-file strong {
-  color: #059669;
-}
-
-@keyframes scalePop {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  background-color: color-mix(in srgb, var(--surface), var(--success) 2%);
 }
 
 .input-file-hidden {
   display: none;
 }
 
-/* Botones dentro de los documentos */
-
+/* =========================================
+   BOTONES
+   ========================================= */
+.btn-primary,
+.btn-secondary,
 .btn-secondary-sm,
-.btn-ai-sm,
-.btn-remove {
-  height: 36px;
-
-  padding: 0 16px;
-
-  border-radius: var(--r-md);
-
-  font-size: 13px;
-
-  font-weight: 700;
-
+.btn-action {
   display: inline-flex;
-
   align-items: center;
-
   justify-content: center;
-
-  cursor: pointer;
-
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  border: none;
-}
-
-.btn-secondary-sm {
-  background: var(--surface-3);
-
-  color: var(--text-2);
-
-  border: 1px solid var(--border);
-}
-
-.btn-secondary-sm:hover {
-  background: var(--border-strong);
-}
-
-.btn-ai-sm {
-  background: linear-gradient(135deg, #4f46e5, #6366f1); /* Color mágico IA */
-
-  color: white;
-
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
-}
-
-.btn-ai-sm:hover {
-  transform: translateY(-2px);
-
-  filter: brightness(1.1);
-
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
-}
-
-.btn-remove {
-  background: rgba(239, 68, 68, 0.1);
-
-  color: var(--error);
-
-  padding: 0 10px;
-}
-
-.btn-remove:hover {
-  background: rgba(239, 68, 68, 0.2);
-
-  transform: translateY(-2px);
-}
-
-/* =========================================
-
-TABS (Paso 2)
-
-========================================= */
-
-.tabs {
-  display: flex;
-
-  background: var(--surface-2);
-
-  padding: 6px;
-
   border-radius: var(--r-md);
-
-  gap: 6px;
-
-  margin-bottom: 24px;
-}
-
-.tab {
-  flex: 1;
-
-  padding: 12px;
-
-  border: none;
-
-  background: transparent;
-
-  color: var(--muted);
-
-  font-weight: 700;
-
-  font-size: 13px;
-
+  font-weight: 600;
   cursor: pointer;
-
-  border-radius: var(--r-sm);
-
   transition: all 0.2s ease;
-}
-
-.tab.active {
-  background: var(--surface);
-
-  color: var(--accent);
-
-  box-shadow: var(--shadow-sm);
-}
-
-/* =========================================
-
-REVISIÓN (PASO 3)
-
-========================================= */
-
-.review-card {
-  background: var(--surface-2);
-
-  padding: 24px;
-
-  border-radius: var(--r-lg);
-
-  border: 1px solid var(--border);
-  backdrop-filter: blur(6px);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.5);
-}
-
-.review-card p {
-  margin-bottom: 12px;
-
-  color: var(--text-2);
-
+  border: none;
   font-size: 14px;
 }
-
-.review-card strong {
-  color: var(--text);
-
-  font-weight: 700;
-}
-
-/* =========================================
-
-BOTONES PRINCIPALES (Los mismos del Register)
-
-========================================= */
 
 .actions {
   display: flex;
-
   gap: 16px;
-
   margin-top: 32px;
-}
-
-.btn-primary,
-.btn-secondary {
-  padding: 14px 24px;
-
-  border-radius: var(--r-md);
-
-  font-weight: 700;
-
-  font-size: 14px;
-
-  cursor: pointer;
-
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  border: none;
 }
 
 .btn-primary {
   flex: 2;
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(180deg, var(--accent), var(--accent-600));
-
+  padding: 12px 24px;
+  background-color: var(--accent);
   color: white;
-
-  box-shadow: var(--shadow-accent);
-}
-.btn-primary::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    120deg,
-    rgba(255,255,255,.25),
-    transparent 40%
-  );
-  transform: translateX(-100%);
-  transition: transform .6s ease;
+  box-shadow: var(--shadow-sm);
 }
 
-.btn-primary:hover::before {
-  transform: translateX(100%);
-}
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  letter-spacing: .3px;
-  filter: brightness(1.05);
-    box-shadow:
-    0 16px 30px rgba(255,102,71,.35);
+  background-color: var(--accent-hover);
 }
 
 .btn-primary:disabled {
-  background: var(--surface-3);
-
-  box-shadow: none;
-
+  background-color: var(--surface-3);
   color: var(--muted);
-
   cursor: not-allowed;
-
-  transform: none;
+  box-shadow: none;
 }
 
 .btn-secondary {
   flex: 1;
-
- background: linear-gradient(
-    180deg,
-    var(--surface-2),
-    var(--surface-3)
-  );
-
+  padding: 12px 24px;
+  background-color: var(--surface);
   color: var(--text-2);
-
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
 }
 
 .btn-secondary:hover {
-  background: var(--border-strong);
+  background-color: var(--surface-2);
+}
+
+.btn-secondary-sm {
+  height: 36px;
+  padding: 0 16px;
+  background-color: var(--surface);
+  color: var(--text-2);
+  border: 1px solid var(--border-strong);
+  font-size: 13px;
+}
+
+.btn-secondary-sm:hover {
+  background-color: var(--surface-2);
+}
+
+.btn-remove {
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--r-md);
+  background-color: transparent;
+  color: var(--error);
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-remove:hover {
+  background-color: rgba(239, 68, 68, 0.1);
 }
 
 /* =========================================
+   ACCIONES EN INPUTS (Clips, Borrar fila)
+   ========================================= */
+.input-action-container {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
 
-TOAST NOTIFICATION
+.input-wrapper {
+  flex: 1 1 auto;
+  min-width: 150px;
+  position: relative;
+}
 
-========================================= */
+.input-wrapper app-dynamic-field {
+  display: block !important;
+  width: 100% !important;
+}
 
-.toast-notification {
-  position: fixed;
+.actions-wrapper {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
 
-  bottom: 30px;
+.btn-action {
+  height: 48px; /* Igual que el input */
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  background-color: var(--surface);
+  color: var(--text-2);
+}
 
-  left: 50%;
+.btn-action:hover {
+  background-color: var(--surface-2);
+}
 
-  transform: translateX(-50%);
+.btn-delete {
+  color: var(--error);
+  border-color: rgba(239, 68, 68, 0.3);
+}
 
-  backdrop-filter: blur(10px);
-  background: linear-gradient(
-    180deg,
-    rgba(17,24,39,.95),
-    rgba(17,24,39,.85)
-  );
-  color: var(--surface);
+/* =========================================
+   REVISIÓN (PASO 3)
+   ========================================= */
+.review-card {
+  background-color: var(--surface);
+  padding: 24px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
 
-  padding: 14px 24px;
-
-  border-radius: 99px;
-
-  font-weight: 600;
-
+.review-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
   font-size: 14px;
-
-  box-shadow: var(--shadow-md);
-
-  z-index: 1000;
 }
 
-.fade-in-up {
-  animation: toastPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+.review-item label {
+  color: var(--text-2);
+  font-weight: 500;
 }
 
-@keyframes toastPop {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 20px) scale(0.9);
-  }
-
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0) scale(1);
-  }
+.review-item span {
+  color: var(--text);
+  font-weight: 600;
 }
 
 /* =========================================
-
-RESPONSIVE
-
-========================================= */
+   RESPONSIVE
+   ========================================= */
+@media (max-width: 1024px) {
+  .form-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 
 @media (max-width: 640px) {
   .form-grid {
     grid-template-columns: 1fr;
   }
-
   .steps {
     flex-wrap: wrap;
   }
-
   .step {
     flex: 1 1 40%;
-
     text-align: center;
   }
-
   .actions {
     flex-direction: column-reverse;
-
-    display: flex;
-
-    gap: 16px;
-
-    margin-top: 32px;
   }
-
   .doc-item {
     flex-direction: column;
-
     align-items: flex-start;
-
-    gap: 16px;
   }
-
-  .actions button {
-    padding: 14px 24px;
-
-    border-radius: var(--r-md);
-
-    font-weight: 700;
-
-    font-size: 14px;
-
-    cursor: pointer;
-
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    border: none;
-  }
-
   .doc-actions {
     width: 100%;
-
     justify-content: flex-end;
   }
-}
-
-.step-description {
-  color: var(--muted);
-
-  margin-bottom: 24px;
-
-  font-size: 14px;
-}
-
-input[type="number"].dynamic-input::-webkit-inner-spin-button,
-input[type="number"].dynamic-input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-
-  margin: 0;
-}
-
-input[type="number"].dynamic-input {
-  -moz-appearance: textfield; /* Para Firefox */
-}
-
-select.dynamic-input option {
-  background-color: #1f2937; /* Gris oscuro elegante */
-
-  color: #ffffff;
-
-  font-weight: 500;
-
-  padding: 10px;
-}
-
-select.dynamic-input {
-  cursor: pointer;
-
-  /* Dibujamos nuestra propia flecha SVG y la ponemos a la izquierda del badge */
-
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-
-  background-repeat: no-repeat;
-
-  background-position: calc(100% - 105px) center; /* A 105px del borde derecho */
-}
-
-.dynamic-input {
-  width: 100%;
-
-  height: 52px;
-
-  background-color: var(--surface-2);
-
-  border: 1px solid var(--border-strong);
-
-  border-radius: var(--r-md);
-
-  color: var(--text);
-
-  /* MUCHO padding a la derecha para que el texto NO pise el badge */
-
-  padding: 0 120px 0 16px;
-
-  font-size: 14px;
-
-  font-weight: 600;
-
-  outline: none;
-
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-
-  box-sizing: border-box;
-
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
-
-  /* Matamos el estilo feo nativo del sistema operativo */
-
-  appearance: none;
-
-  -webkit-appearance: none;
-
-  -moz-appearance: none;
-}
-
-.dynamic-input:focus {
-  border-color: var(--accent);
-
-  background-color: var(--surface);
-
-  transform: translateY(-1px);
-  box-shadow:0 4px 12px rgba(0,0,0,.04), var(--focus);
-}
-
-.dynamic-input::placeholder {
-  color: var(--muted);
-
-  font-weight: 400;
-
-  opacity: 0.6;
-}
-.dynamic-input:hover {
-  background: var(--surface);
-  transform: translateY(-1px);
-}
-
-.btn-full {
-  width: 100%;
-
-  height: 52px; /* Exactamente la misma altura que tus inputs */
-
-  font-size: 14px;
-
-  font-weight: 700;
-
-  border-radius: var(--r-md);
-
-  margin-top: 4px;
-}
-
-/* La tarjeta punteada que agrupa los 3 inputs */
-
-.beneficiario-box {
-   background:
-    linear-gradient(
-      180deg,
-      rgba(255,102,71,.04),
-      rgba(255,102,71,.02)
-    );
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
-  padding: 16px;
-
-  border-radius: var(--r-md);
-
-  border: 1px dashed var(--accent-600); /* Borde punteado naranja elegante */
-
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 12px; /* Espacio perfecto entre los inputs */
-
-  margin-top: 12px;
-
-  /* Magia: animación fluida al abrirse */
-
-  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Animación para que baje suavemente en lugar de aparecer de golpe */
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-
-    transform: translateY(-10px);
-  }
-
-  to {
-    opacity: 1;
-
-    transform: translateY(0);
-  }
-}
-
-/* Contenedor principal */
-
-.input-action-container {
-  display: flex !important;
-
-  flex-direction: row !important;
-
-  gap: 12px;
-
-  align-items: center;
-
-  width: 100%;
-
-  min-height: 45px; /* Evita que se colapse verticalmente */
-}
-
-/* Envoltorio del input: El "flex: 1" es clave */
-
-.input-wrapper {
-  flex: 1 1 auto;
-
-  min-width: 150px; /* 🟢 SEGURO: Evita que el campo desaparezca si los botones son grandes */
-
-  position: relative;
-
-  display: block;
-}
-
-/* Forzamos al componente hijo a ser visible */
-
-.input-wrapper app-dynamic-field {
-  display: block !important;
-
-  width: 100% !important;
-}
-
-/* Contenedor de botones */
-
-.actions-wrapper {
-  display: flex;
-
-  gap: 8px;
-
-  flex-shrink: 0; /* 🟢 SEGURO: Evita que los botones se achiquen */
-
-  align-items: center;
-}
-
-/* Botones de acción */
-
-.btn-action {
-  height: 40px;
-
-  padding: 0 14px;
-
-  border-radius: 6px;
-
-  font-size: 13px;
-
-  font-weight: 500;
-
-  cursor: pointer;
-
-  white-space: nowrap;
-
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  transition: all 0.2s;
-
-  border: 1px solid #d1d5db;
-
-  background: #fff;
-}
-
-.btn-attach {
-  background-color: #f8fafc;
-
-  color: #334155;
-}
-
-.btn-delete {
-  color: #dc2626;
-
-  border-color: #fecaca;
-}
-
-.btn-add-row {
-  border: 1px dashed #4f46e5;
-
-  color: #4f46e5;
-
-  background-color: #f5f3ff;
-}
-
-.hidden-input {
-  display: none !important;
-}
-.dynamic-input,
-.form-group input[type="text"],
-.form-group input[type="email"],
-.form-group input[type="number"],
-.form-group select {
-
-  border: 1px solid transparent;
-  background:
-    linear-gradient(var(--surface-2), var(--surface-2)) padding-box,
-    linear-gradient(to right, rgba(255,102,71,.25), rgba(79,70,229,.15)) border-box;
 }

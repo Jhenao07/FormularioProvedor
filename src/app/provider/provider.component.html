@@ -1,9 +1,12 @@
 <div class="provider-page">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <div class="provider-wrapper">
+
+  <div class="provider-wrapper" style="max-width: 100%;">
 
     <header class="provider-header">
+      <div class="logo-container">
       <img src="assets/nuvant.png" alt="Nuvant" />
+      </div>
     </header>
 
     <nav class="steps">
@@ -19,172 +22,174 @@
     </nav>
 
     <section class="provider-card" [formGroup]="form">
-<div *ngIf="currentStep === 1 && countrySelected !== 'Otro'" [formGroup]="form" class="step-content">
-  <div formGroupName="step2_docs">
-    <h2>Documentos para {{ countrySelected }}</h2>
-    <p class="step-description">
-      Sube los archivos necesarios para validar tu cuenta.
-    </p>
 
-    <div class="option-list">
-      @for(doc of arrayItems(); track doc.key) {
-        <div class="doc-item" [class.has-file]="form.get('step2_docs.' + doc.key)?.value">
-          <div class="doc-info">
-            <strong>{{ doc.title }}</strong>
-            <span *ngIf="form.get('step2_docs.' + doc.key)?.value" class="file-status-text">
-              ✅ {{ form.get('step2_docs.' + doc.key)?.value.name }}
-            </span>
+      <div *ngIf="currentStep === 1 && countrySelected !== 'Otro'" [formGroup]="form" class="step-content">
+        <div formGroupName="step2_docs">
+          <h2>Documentos para {{ countrySelected }}</h2>
+          <p class="step-description">
+            Sube los archivos necesarios para validar tu cuenta.
+          </p>
+
+          <div class="option-list">
+            @for(doc of arrayItems(); track doc.key) {
+              <div class="doc-item" [class.has-file]="form.get('step2_docs.' + doc.key)?.value">
+                <div class="doc-info">
+                  <strong>{{ doc.title }}</strong>
+                  <span *ngIf="form.get('step2_docs.' + doc.key)?.value" class="file-status-text">
+                    ✅ {{ form.get('step2_docs.' + doc.key)?.value.name }}
+                  </span>
+                </div>
+
+                <div class="doc-actions">
+                  <input #fileInput
+                         [id]="'file-' + doc.key"
+                         type="file"
+                         class="input-file-hidden"
+                         style="display: none;"
+                         (change)="onFileSelected($event, doc.key, fileInput)" />
+
+                  <button type="button"
+                          *ngIf="!form.get('step2_docs.' + doc.key)?.value"
+                          class="btn-secondary-sm"
+                          (click)="fileInput.click()">
+                    Adjuntar
+                  </button>
+
+                  <ng-container *ngIf="form.get('step2_docs.' + doc.key)?.value">
+                    <button type="button"
+                            class="btn-remove"
+                            (click)="removeFile(doc.key, fileInput)"
+                            title="Eliminar">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    </button>
+                  </ng-container>
+                </div>
+              </div>
+            }
           </div>
 
-          <div class="doc-actions">
-            <input #fileInput
-                   [id]="'file-' + doc.key"
-                   type="file"
-                   class="input-file-hidden"
-                   style="display: none;"
-                   (change)="onFileSelected($event, doc.key, fileInput)" />
-
+          <div class="actions" style="justify-content: flex-end;">
             <button type="button"
-                    *ngIf="!form.get('step2_docs.' + doc.key)?.value"
-                    class="btn-secondary-sm"
-                    (click)="fileInput.click()">
-              Adjuntar
+                    class="btn-primary"
+                    [disabled]="form.get('step2_docs')?.invalid"
+                    (click)="procesarYSiguiente()">
+              Siguiente
             </button>
-
-            <ng-container *ngIf="form.get('step2_docs.' + doc.key)?.value">
-              <button type="button"
-                      class="btn-remove"
-                      (click)="removeFile(doc.key, fileInput)"
-                      title="Eliminar">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            </ng-container>
           </div>
         </div>
-      }
-    </div>
-
-    <div class="actions" style="justify-content: flex-end;">
-      <button type="button"
-              class="btn-primary"
-              [disabled]="form.get('step2_docs')?.invalid"
-              (click)="procesarYSiguiente()">
-        Siguiente
-      </button>
-    </div>
-  </div>
-</div>
-
-
-<div *ngIf="currentStep === 2" [formGroup]="form" class="step-content">
-  <div formGroupName="formDinamico">
-
-    <h2 class="title">Información del Documento</h2>
-
-    <p class="step-description">
-      Verifica los datos extraídos automáticamente de tu archivo.
-    </p>
-
-    <div class="form-grid">
-
-      <!-- CAMPOS DINÁMICOS -->
-      <ng-container *ngFor="let campo of camposDinamicos">
-
-        <div class="form-group"
-             [hidden]="campo.visible === false"
-             [class.full]="campo.isLong"
-             [class.span-2]="campo.columnSpan === 2"
-             [class.span-3]="campo.columnSpan === 3">
-
-          <label class="label">
-            {{ campo.label }}
-            <span class="req">*</span>
-          </label>
-
-          <div class="input-action-container">
-
-            <div class="input-wrapper">
-              <app-dynamic-field
-                [config]="campo"
-                [formControlName]="campo.key">
-              </app-dynamic-field>
-
-              <span class="badge-auto" *ngIf="campo.autocompletado">
-                Autocompletado
-              </span>
-            </div>
-
-            <!-- BOTONES SOLO PARA DOCUMENTOS -->
-            <div class="actions-wrapper"
-                 *ngIf="campo.key.startsWith('document')">
-
-              <input #fileInput
-                     type="file"
-                     class="hidden-input"
-                     (change)="onFileSelected($event, campo.key, fileInput)" />
-
-              <button type="button"
-                      class="btn-action btn-attach"
-                      (click)="fileInput.click()">
-                📎
-              </button>
-
-              <button type="button"
-                      class="btn-action btn-delete"
-                      *ngIf="form.get('formDinamico')?.get(campo.key)?.value"
-                      (click)="eliminarDocumentoAdjunto(campo.key, fileInput)">
-                🗑️
-              </button>
-
-              <button *ngIf="campo.grupoDocumento === documentosActivos && documentosActivos < 10"
-                      type="button"
-                      class="btn-action btn-add-row"
-                      (click)="agregarDocumento()">
-                +
-              </button>
-
-            </div>
-          </div>
-
-        </div>
-
-      </ng-container>
-
-      <!-- BOTÓN BENEFICIARIO -->
-      <div class="form-group full"
-           *ngIf="esEmpresaJuridica && beneficiariosActivos < 10">
-
-        <button type="button"
-                class="btn-secondary-sm btn-full btn-dashed"
-                (click)="agregarBeneficiario()">
-
-          + Agregar Beneficiario Final
-        </button>
       </div>
 
-    </div>
+      <div *ngIf="currentStep === 2" [formGroup]="form" class="step-content">
+        <div formGroupName="formDinamico">
 
-    <!-- BOTONES NAVEGACIÓN -->
-    <div class="actions">
-      <button type="button"
-              class="btn-secondary"
-              (click)="currentStep = 1">
-        Volver
-      </button>
+          <h2 class="title">Información del Documento</h2>
 
-      <button type="button"
-              class="btn-primary"
-              (click)="currentStep = 3"
-              [disabled]="form.get('formDinamico')?.invalid">
-        Confirmar y Continuar
-      </button>
-    </div>
+          <p class="step-description">
+            Verifica los datos extraídos automáticamente de tu archivo.
+          </p>
 
-  </div>
-</div>
-     <div *ngIf="currentStep === 3" class="step-content">
+          <div class="form-grid">
+            <ng-container *ngFor="let campo of camposDinamicos; let i = index">
+
+              <div class="form-group"
+                   [hidden]="campo.visible === false"
+                   [class.full]="campo.isLong"
+                   [class.span-2]="campo.columnSpan === 2"
+                   [class.span-3]="campo.columnSpan === 3">
+
+                <label class="label">
+                  {{ campo.label }}
+                  <span class="req">*</span>
+                </label>
+
+                <div class="input-action-container">
+
+                  <div class="input-wrapper">
+                    <app-dynamic-field
+                      [config]="campo"
+                      [formControlName]="campo.key">
+                    </app-dynamic-field>
+
+                    <span class="badge-auto" *ngIf="campo.autocompletado">
+                      Autocompletado
+                    </span>
+                  </div>
+
+                  <div class="actions-wrapper" *ngIf="campo.key.startsWith('document')">
+
+                    <input #fileInput
+                           type="file"
+                           class="hidden-input"
+                           (change)="onFileSelected($event, campo.key, fileInput)" />
+
+                    <button type="button"
+                            class="btn-action btn-attach"
+                            (click)="fileInput.click()">
+                      📎
+                    </button>
+
+                    <button type="button"
+                            class="btn-action btn-delete"
+                            *ngIf="form.get('formDinamico')?.get(campo.key)?.value"
+                            (click)="eliminarDocumentoAdjunto(campo.key, fileInput)">
+                      🗑️
+                    </button>
+
+                  <div class="form-group full" *ngIf="mostrarBotonBeneficiario(i)">
+                     <button type="button"
+                              class="btn-secondary-sm btn-full btn-dashed"
+                              (click)="agregarBeneficiario()">
+                        + Agregar Beneficiario Final
+                      </button>
+
+                     <button type="button"
+                            *ngIf="beneficiariosActivos > 0"
+                            class="btn-secondary-sm btn-dashed"
+                            style="flex: 0 0 auto; padding: 0 24px; height: 52px; font-size: 14px; color: var(--error); border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05);"
+                            (click)="eliminarUltimoBeneficiario()"
+                            title="Quitar último beneficiario">
+                      🗑️ Quitar
+                    </button>
+                  </div>
+
+                  </div>
+                </div>
+
+              </div>
+
+              <div class="form-group full" *ngIf="mostrarBotonBeneficiario(i)">
+                <button type="button"
+                        class="btn-secondary-sm btn-full btn-dashed"
+                        (click)="agregarBeneficiario()">
+                  + Agregar Beneficiario Final
+                </button>
+              </div>
+
+            </ng-container>
+
+          </div>
+
+          <div class="actions">
+            <button type="button"
+                    class="btn-secondary"
+                    (click)="currentStep = 1">
+              Volver
+            </button>
+
+            <button type="button"
+                    class="btn-primary"
+                    (click)="currentStep = 3"
+                    [disabled]="form.get('formDinamico')?.invalid">
+              Confirmar y Continuar
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <div *ngIf="currentStep === 3" class="step-content">
         <h2>Revisión y envío</h2>
         <p style="color: var(--muted); margin-bottom: 24px; font-size: 14px;">
           Verifica que la información extraída sea correcta antes de finalizar.
