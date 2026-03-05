@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, inject, signal, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validators, ValidatorFn } from '@angular/forms';
+import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validators, ValidatorFn, FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule, HttpHeaders } from '@angular/common/http';
 import { ProgressOverlayComponent } from '../components/progress-overlay/progressOverlay.component';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -48,7 +48,7 @@ const COUNTRY_CONFIG: Record<string, DocConfig[]> = {
   selector: 'app-provider',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, ProgressOverlayComponent, HttpClientModule, DynamicFieldComponent],
+  imports: [CommonModule, ReactiveFormsModule, ProgressOverlayComponent, HttpClientModule, DynamicFieldComponent, FormsModule],
   templateUrl: './provider.component.html',
   styleUrl: './provider.component.css',
 
@@ -74,6 +74,11 @@ export class ProviderComponent implements OnInit {
   toastMessage = signal<string | null>(null);
   arrayItems = signal<DocConfig[]>([]);
   form: FormGroup;
+
+  modalDireccionAbierto = false;
+  campoDireccionActivo = '';
+  direccionesTokens: { kind: string, text: string }[] = [];
+
 
   // --- Datos Dinámicos ---
   camposDinamicos: any[] = [];
@@ -258,37 +263,81 @@ export class ProviderComponent implements OnInit {
     }
   }
 
-  onFileSelected(event: Event, docKey: string, fileInput: HTMLInputElement) {
+onFileSelected(event: Event, docKey: string, fileInput: HTMLInputElement) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
       const file = input.files[0];
       const control = this.form.get('formDinamico')?.get(docKey);
+
+      // 🟢 1. NUEVA LÓGICA: Calcular el nombre a mostrar (Renombramiento inteligente)
+      let nombreParaMostrar = file.name; // Nombre original por defecto
+
+      // Extraemos la extensión (ej. pdf, png)
+      const partesNombre = file.name.split('.');
+      const extension = partesNombre.length > 1 ? partesNombre.pop() : '';
+
+      // -------------------------------------------------------------------------
+      // 🟢 INTEGRACIÓN PARA LA SÚPER CAJA: Averiguar qué número de documento estamos subiendo
+      const matchNum = docKey.match(/\d+/);
+      const numDoc = matchNum ? matchNum[0] : '1';
+
+      let campoSistemaGestion: any = null;
+
+      if (numDoc === '1') {
+        // Si es el documento 1, buscamos el Select original que está "suelto" en la grilla
+        campoSistemaGestion = this.camposDinamicos.find(c =>
+          (c.label.toLowerCase().includes('tipo de sistema de gestión') ||
+           c.label.toLowerCase().includes('tipo de sistema')) &&
+          !c.key.includes('_clon') &&
+          c.type !== 'documento-agrupado'
+        );
+      } else {
+        // Si es documento 2 en adelante, buscamos su Súper Caja y sacamos el Select de adentro
+        const cajaAgrupada = this.camposDinamicos.find(c =>
+          c.type === 'documento-agrupado' &&
+          c.key === `agrupado_${numDoc}`
+        );
+
+        if (cajaAgrupada && cajaAgrupada.selectConfig) {
+          campoSistemaGestion = cajaAgrupada.selectConfig;
+        }
+      }
+      // -------------------------------------------------------------------------
+
+      // Si encontramos el Select y tiene un valor seleccionado, armamos el nuevo nombre
+      if (campoSistemaGestion) {
+        const valorSelect = this.form.get('formDinamico')?.get(campoSistemaGestion.key)?.value;
+        if (valorSelect && String(valorSelect).trim() !== '') {
+          nombreParaMostrar = `${valorSelect}.${extension}`;
+        }
+      }
+
+      // Guardamos el archivo físico en el paso 2
       this.form.get(`step2_docs.${docKey}`)?.setValue(file);
       this.form.get('step2_docs')?.updateValueAndValidity();
-      this.form.get('formDinamico')?.get(docKey)?.setValue(file.name);
+
+      // Aquí reemplazamos 'file.name' por 'nombreParaMostrar'
+      this.form.get('formDinamico')?.get(docKey)?.setValue(nombreParaMostrar);
       this.cdr.detectChanges();
 
       if (control) {
-      // 2. Seteamos el valor (el nombre del archivo)
-      control.setValue(file.name);
+        // 2. Seteamos el valor (el nuevo nombre del archivo)
+        control.setValue(nombreParaMostrar);
 
-      // 3. Marcamos como sucio y tocado para que la UI reaccione
-      control.markAsDirty();
-      control.markAsTouched();
+        // 3. Marcamos como sucio y tocado para que la UI reaccione
+        control.markAsDirty();
+        control.markAsTouched();
 
-      // 4. Actualizamos validez (esto dispara el renderizado en componentes dinámicos)
-      control.updateValueAndValidity();
+        // 4. Actualizamos validez (esto dispara el renderizado en componentes dinámicos)
+        control.updateValueAndValidity();
 
-      console.log(`✅ Valor inyectado en ${docKey}:`, control.value);
+        console.log(`✅ Archivo renombrado inyectado en ${docKey}:`, control.value);
+      }
+
+      // 5. Forzamos la detección de cambios global del componente
+      this.cdr.detectChanges();
     }
-
-    // 5. Forzamos la detección de cambios global del componente
-    this.cdr.detectChanges();
-
-    }
-
   }
-
   eliminarDocumentoAdjunto(controlName: string, fileInput: HTMLInputElement) {
     // 1. Vaciamos el texto del input visual
     this.form.get('formDinamico')?.get(controlName)?.setValue('');
@@ -332,24 +381,21 @@ export class ProviderComponent implements OnInit {
 
   this.cdr.detectChanges();
 }
-  async procesarYSiguiente() {
-  // Buscamos el documento cargado (usando 'rut' como ejemplo de key)
+procesarYSiguiente() {
   const docKey = 'rut';
   const file = this.form.get(`step2_docs.${docKey}`)?.value;
 
   if (file instanceof File) {
-    // Si hay archivo, iniciamos procesamiento con Loader de Swal
-    Swal.fire({
-      title: 'Extrayendo Documento...',
-      text: 'Estamos analizando los datos con IA, un momento.',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
+    // 🟢 Aseguramos estado inicial limpio
+    this.overlayOpen = true;
+    this.overlayTitle = 'Extrayendo Documento...';
+    this.overlaySubtitle = 'Analizando datos con IA';
+
+    // Forzamos a Angular a que pinte el overlay YA
+    this.cdr.detectChanges();
+
     this.procesarPdf(docKey);
   } else {
-    // Si no hay archivo (aunque el botón esté disabled), avanzamos normal
     this.currentStep = 2;
   }
 }
@@ -390,28 +436,70 @@ export class ProviderComponent implements OnInit {
     }
     });
   }
-
-  iniciarPolling(jobId: string) {
-    this.services.checkStatus(jobId).subscribe({
-      next: (res: any) => {
-        const estado = res.status ? res.status.toLowerCase() : '';
-        const progreso = res.progress || 0;
-        this.overlayTitle = `Analizando documento (${progreso}%)...`;
-
-        if (estado === 'completed' || progreso === 100) {
-          this.extraerDatosDelJSON(res);
-        } else if (estado === 'failed' || estado === 'error') {
-          this.overlayTitle = 'Error leyendo el documento en AWS';
-          setTimeout(() => this.overlayOpen = false, 3000);
-        } else {
-          setTimeout(() => { this.iniciarPolling(jobId); }, 5000);
-        }
-      },
-      error: (err: any) => {
-        setTimeout(() => { this.iniciarPolling(jobId); }, 5000);
-      }
+iniciarPolling(jobId: string, intentos: number = 0) {
+  // 1. SEGURO DE VIDA: Si intenta más de 20 veces (aprox 1.5 minutos), lo detenemos.
+  if (intentos > 20) {
+    this.overlayOpen = false;
+    this.cdr.detectChanges();
+    Swal.fire({
+      icon: 'warning',
+      title: 'Tiempo agotado',
+      text: 'El procesamiento está tardando demasiado. Por favor, borra el archivo e intenta subirlo de nuevo.',
+      confirmButtonColor: 'var(--accent)'
     });
+    return; // Rompemos el ciclo
   }
+
+  this.services.checkStatus(jobId).subscribe({
+    next: (res: any) => {
+      const estado = res.status ? res.status.toLowerCase() : '';
+      const progreso = res.progress || 0;
+
+      // Actualizamos el texto y forzamos a Angular a pintarlo en pantalla
+      this.overlayTitle = `Analizando documento (${progreso}%)...`;
+      this.cdr.detectChanges();
+
+      if (estado === 'completed' || progreso === 100) {
+        // ¡Éxito! Pasamos a la extracción (Asegúrate de que extraerDatosDelJSON cierre el overlay)
+        this.extraerDatosDelJSON(res);
+
+      } else if (estado === 'failed' || estado === 'error') {
+        // Error de AWS
+        this.overlayTitle = 'Error leyendo el documento en AWS';
+        this.cdr.detectChanges();
+
+        setTimeout(() => {
+          this.overlayOpen = false;
+          this.cdr.detectChanges(); // Forzamos el cierre visual
+          Swal.fire('Error', 'AWS no pudo procesar este archivo. Intenta con uno más claro.', 'error');
+        }, 1500);
+
+      } else {
+        // Sigue procesando: Volvemos a llamar a la función, pero sumando 1 al contador
+        setTimeout(() => {
+          this.iniciarPolling(jobId, intentos + 1);
+        }, 5000);
+      }
+    },
+    error: (err: any) => {
+      console.error("Error de red en el polling:", err);
+
+      // 2. FIX DEL BUCLE INFINITO: Si hay error de red, solo reintentamos 3 veces máximo
+      if (intentos < 3) {
+        setTimeout(() => { this.iniciarPolling(jobId, intentos + 1); }, 5000);
+      } else {
+        this.overlayOpen = false;
+        this.cdr.detectChanges();
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de conexión',
+          text: 'Perdimos conexión con el servidor. Borra el archivo y vuelve a intentar.',
+          confirmButtonColor: 'var(--error)'
+        });
+      }
+    }
+  });
+}
   agregarBeneficiario() {
     if (this.beneficiariosActivos < 10) {
       this.beneficiariosActivos++;
@@ -438,6 +526,23 @@ export class ProviderComponent implements OnInit {
       });
     }
   }
+  esInicioDeBeneficiario(index: number): boolean {
+  const campo = this.camposDinamicos[index];
+
+  // Si no es un beneficiario o está oculto, ignoramos
+  if (campo.grupoBeneficiario === 0 || campo.visible === false) return false;
+
+  // Buscamos el campo VISIBLE inmediatamente anterior
+  for (let i = index - 1; i >= 0; i--) {
+    const campoAnterior = this.camposDinamicos[i];
+    if (campoAnterior.visible !== false) {
+      // Si el campo anterior pertenece a un grupo distinto (ej. el formulario normal o el beneficiario 1)
+      // entonces significa que ESTE es el primer campo del nuevo beneficiario.
+      return campoAnterior.grupoBeneficiario !== campo.grupoBeneficiario;
+    }
+  }
+  return true;
+}
  mostrarBotonBeneficiario(index: number): boolean {
   // 1. Si no es empresa o ya llegó a 10, no hay botón
   if (!this.esEmpresaJuridica || this.beneficiariosActivos >= 10) return false;
@@ -476,6 +581,24 @@ export class ProviderComponent implements OnInit {
     return index === ultimoIndiceVisible;
   }
 }
+esInicioDeSeccion(index: number): boolean {
+    const campoActual = this.camposDinamicos[index];
+
+    // Si el campo está oculto, no inicia ninguna sección visual
+    if (campoActual.visible === false) return false;
+
+    // Buscamos hacia atrás cuál fue el ÚLTIMO campo visible
+    for (let i = index - 1; i >= 0; i--) {
+      const campoAnterior = this.camposDinamicos[i];
+      if (campoAnterior.visible !== false) {
+        // Si la sección del campo anterior es diferente a la actual, hay un quiebre
+        return campoAnterior.seccion !== campoActual.seccion;
+      }
+    }
+
+    // Si no encontró campos visibles antes que él, es el primerísimo campo
+    return true;
+  }
 eliminarUltimoBeneficiario() {
   if (this.beneficiariosActivos > 0) {
 
@@ -519,165 +642,231 @@ eliminarUltimoBeneficiario() {
   }
 }
 agregarDocumento() {
-  if (this.documentosActivos < 10) {
-    this.documentosActivos++;
+    if (this.documentosActivos < 10) {
+      this.documentosActivos++;
 
-    this.camposDinamicos.forEach(campo => {
+      // 1. Extraemos y eliminamos el documento oculto de su posición aleatoria
+      const docIndex = this.camposDinamicos.findIndex(c => c.key === `document${this.documentosActivos}`);
+      if (docIndex === -1) return;
 
-      if (campo.grupoDocumento === this.documentosActivos) {
-        campo.visible = true;
+      const docOriginal = { ...this.camposDinamicos[docIndex] };
+      this.camposDinamicos.splice(docIndex, 1); // Lo quitamos temporalmente
+
+      // 2. Buscamos el select original para clonarlo
+      const selectOriginal = this.camposDinamicos.find(c =>
+        (c.label.toLowerCase().includes('tipo de sistema de gestión') ||
+         c.label.toLowerCase().includes('tipo de sistema')) &&
+        !c.key.includes('_clon') && c.type !== 'documento-agrupado'
+      );
+
+      if (selectOriginal) {
+        const nuevaLlaveSelect = `${selectOriginal.key}_clon${this.documentosActivos}`;
+
+        const clonSelect = {
+          ...selectOriginal,
+          key: nuevaLlaveSelect,
+          label: `${selectOriginal.label} ${this.documentosActivos}`,
+          grupoDocumento: this.documentosActivos,
+          visible: true
+        };
+
+        const formDinamico = this.form.get('formDinamico') as any;
+        if (formDinamico && typeof formDinamico.addControl === 'function') {
+           formDinamico.addControl(nuevaLlaveSelect, this.fb.control(''));
+        }
+
+        // 🟢 3. BUSCAMOS EL DOCUMENTO ANTERIOR PARA PONERNOS DEBAJO
+        // Si vamos a crear el doc 2, buscamos el 1. Si vamos a crear el 3, buscamos la caja del 2.
+        const llaveAnterior = this.documentosActivos === 2 ? 'document1' : `agrupado_${this.documentosActivos - 1}`;
+        const indexAnterior = this.camposDinamicos.findIndex(c => c.key === llaveAnterior);
+
+        // Heredamos la sección para no romper el diseño principal del formulario
+        const seccionHeredada = indexAnterior !== -1 ? this.camposDinamicos[indexAnterior].seccion : 'Información del Proveedor';
+
+        docOriginal.visible = true;
+        docOriginal.label = `Documento ${this.documentosActivos}`;
+        docOriginal.grupoDocumento = this.documentosActivos;
+
+        // Armamos la Súper Caja
+        const campoAgrupado = {
+          type: 'documento-agrupado',
+          key: `agrupado_${this.documentosActivos}`,
+          visible: true,
+          isLong: true,
+          seccion: seccionHeredada, // Mantiene la sección unificada
+          tituloInterno: `📁 Documento Adicional ${this.documentosActivos - 1}`, // Nuevo título interno
+          selectConfig: clonSelect,
+          fileConfig: docOriginal
+        };
+
+        // 🟢 4. LO INSERTAMOS EN FILA, JUSTO DEBAJO DEL ANTERIOR
+        const insertIndex = indexAnterior !== -1 ? indexAnterior + 1 : this.camposDinamicos.length;
+        this.camposDinamicos.splice(insertIndex, 0, campoAgrupado);
       }
-    });
-  } else {
-    alert("Límite de 10 documentos alcanzado.");
+
+      this.cdr.detectChanges();
+    }
   }
-  this.cdr.detectChanges();
-}
 
 async extraerDatosDelJSON(statusRes: any) {
-  console.log("🚀 Iniciando extracción inteligente de RUT y Plantilla...");
+  try {
+    console.log("🚀 Iniciando extracción inteligente de RUT y Plantilla...");
 
-  const fieldsExtraidos = statusRes.result?.resultsByPage?.[0]?.fields || [];
+    const fieldsExtraidos = statusRes.result?.resultsByPage?.[0]?.fields || [];
 
-  // 🟢 1. REGLA DE NEGOCIO: VALIDAR VIGENCIA DEL RUT (Máximo 30 días)
-  const campoFecha = fieldsExtraidos.find((f: any) => f.field === 'Fecha generación documento');
+    // 🟢 1. REGLA DE NEGOCIO: VALIDAR VIGENCIA DEL RUT (Máximo 30 días)
+    const campoFecha = fieldsExtraidos.find((f: any) => f.field === 'Fecha generación documento');
 
-  if (campoFecha && campoFecha.value) {
-    const esValido = this.validarVigenciaRut(campoFecha.value);
+    if (campoFecha && campoFecha.value) {
+      const esValido = this.validarVigenciaRut(campoFecha.value);
 
-    if (!esValido) {
-      // 🔴 CAMBIO: SweetAlert2 en lugar de alert nativo
-      await Swal.fire({
-        title: 'Documento Vencido',
-        text: 'El documento tiene más de 30 días de antigüedad. Por favor, adjunta uno reciente.',
-        icon: 'error',
-        confirmButtonColor: 'var(--accent)', // Usa tu variable de color naranja
-        background: 'var(--surface)',
-        color: 'var(--text)',
-        customClass: {
-          popup: 'provider-card' // Reutiliza tu clase de glassmorphism
-        }
-      });
+      if (!esValido) {
+        this.overlayOpen = false;
+        this.cdr.detectChanges();
 
-      this.removeFile(); // Limpiamos según tu requerimiento de borrar adjuntos
-      return;
-    }
-  }
+        await Swal.fire({
+          title: 'Documento Vencido',
+          text: 'El documento tiene más de 30 días de antigüedad. Por favor, adjunta uno reciente.',
+          icon: 'error',
+          confirmButtonColor: 'var(--accent)',
+          background: 'var(--surface)',
+          color: 'var(--text)'
+        });
 
-  // Muestra un loader de Swal para que el usuario no sienta la demora del procesamiento
-  Swal.fire({
-    title: 'Procesando datos...',
-    text: 'Estamos organizando la información en el formulario.',
-    allowOutsideClick: false,
-    didOpen: () => {
-      Swal.showLoading();
-    }
-  });
-
-  // 🟢 2. DETECTAR TIPO DE CONTRIBUYENTE
-  const tipoContribuyenteObj = fieldsExtraidos.find((f: any) => f.field.includes('Tipo de contribuyente'));
-  const esJuridica = tipoContribuyenteObj && tipoContribuyenteObj.value?.toLowerCase().includes('jurídica');
-  this.esEmpresaJuridica = !!esJuridica;
-
-  this.camposDinamicos = [];
-  const controlesReactivos: { [key: string]: any } = {};
-
-  // 🟢 3. INYECTAR DATOS DEL PDF (API 1)
-  fieldsExtraidos.forEach((itemRut: any) => {
-    if (itemRut.value !== null && itemRut.value !== undefined && String(itemRut.value).trim() !== '') {
-      const safeKey = itemRut.field.replace(/[^a-zA-Z0-9]/g, '_');
-      controlesReactivos[safeKey] = [itemRut.value];
-      this.camposDinamicos.push({
-        key: safeKey,
-        label: itemRut.field,
-        type: 'text',
-        options: [],
-        isLong: false,
-        autocompletado: true,
-        visible: true,
-        grupoBeneficiario: 0,
-        grupoDocumento: 0
-      });
-    }
-  });
-
-  // 🟢 4. INYECTAR PLANTILLA (API 2) - Lógica de 4 columnas y filtros
-  if (this.formularioEstructuraDestino) {
-    this.formularioEstructuraDestino = this.pdfMapService.fillFormWithPdfData(statusRes, this.formularioEstructuraDestino);
-    const dataRead = this.formularioEstructuraDestino.allowedToRead?.data || [];
-    const dataWrite = this.formularioEstructuraDestino.isAllowedToWrite?.data || [];
-    const seccionesPlantilla = [...dataRead, ...dataWrite];
-
-    seccionesPlantilla.forEach((itemPlantilla: any) => {
-      if (itemPlantilla.fields && itemPlantilla.fields.labelId) {
-        const key = itemPlantilla.fields.labelId;
-        const valorExtraido = itemPlantilla.valueField;
-        const fueExtraidoPorIA = valorExtraido !== null && valorExtraido !== undefined && String(valorExtraido).trim() !== '';
-
-        let esCampoParaEsteUsuario = true;
-        const camposSoloNatural = ['firstLastName', 'secondLastName', 'identification', 'identificationNumber'];
-        const camposSoloJuridica = ['nitId', 'representativeName', 'nationalIdentityCard', 'riskControlSystem', 'which risk'];
-
-        if (this.esEmpresaJuridica) {
-          if (camposSoloNatural.includes(key)) esCampoParaEsteUsuario = false;
-        } else {
-          if (camposSoloJuridica.includes(key) || key.startsWith('finalBeneficiary')) esCampoParaEsteUsuario = false;
-        }
-
-        let esVisible = true;
-        let grupoBeneficiario = 0;
-        let grupoDocumento = 0;
-
-        if (this.esEmpresaJuridica && key.startsWith('finalBeneficiary')) {
-          const match = key.match(/\d+$/);
-          if (match) {
-            grupoBeneficiario = parseInt(match[0], 10);
-            esVisible = false;
-          }
-        }
-
-        if (key.startsWith('document')) {
-          const match = key.match(/\d+$/);
-          if (match) {
-            grupoDocumento = parseInt(match[0], 10);
-            if (grupoDocumento > this.documentosActivos) esVisible = false;
-          }
-        }
-
-        if (!controlesReactivos[key] && esCampoParaEsteUsuario) {
-          controlesReactivos[key] = [fueExtraidoPorIA ? valorExtraido : ''];
-          this.camposDinamicos.push({
-            key: key,
-            label: itemPlantilla.fields.labelName,
-            type: itemPlantilla.fields.labelType || 'text',
-            options: itemPlantilla.fields.options || [],
-            isLong: String(itemPlantilla.fields.labelName).length > 50,
-            autocompletado: fueExtraidoPorIA,
-            visible: esVisible,
-            grupoBeneficiario: grupoBeneficiario,
-            grupoDocumento: grupoDocumento
-          });
-        }
+        this.removeFile();
+        this.cdr.detectChanges();
+        return;
       }
+    }
+
+    // 🟢 2. ACTUALIZAR EL OVERLAY
+    this.overlayTitle = 'Organizando la información...';
+    this.overlaySubtitle = 'Casi listo';
+    this.cdr.detectChanges();
+
+    // 🟢 3. DETECTAR TIPO DE CONTRIBUYENTE
+    const tipoContribuyenteObj = fieldsExtraidos.find((f: any) => f.field.includes('Tipo de contribuyente'));
+    const esJuridica = tipoContribuyenteObj && tipoContribuyenteObj.value?.toLowerCase().includes('jurídica');
+    this.esEmpresaJuridica = !!esJuridica;
+
+    this.camposDinamicos = [];
+    const controlesReactivos: { [key: string]: any } = {};
+
+    // ⚠️ NOTA: Eliminamos el "Paso 4" (Inyectar datos crudos del PDF)
+    // porque tu plantilla del Paso 5 ya trae esta información mapeada.
+    // Así evitamos que la Razón Social y el NIT salgan repetidos arriba y abajo.
+
+    // 🟢 4. INYECTAR PLANTILLA (API 2) - Lógica de columnas, filtros y SECCIONES
+    if (this.formularioEstructuraDestino) {
+      this.formularioEstructuraDestino = this.pdfMapService.fillFormWithPdfData(statusRes, this.formularioEstructuraDestino);
+
+      const dataRead = this.formularioEstructuraDestino.allowedToRead?.data || [];
+      const dataWrite = this.formularioEstructuraDestino.isAllowedToWrite?.data || [];
+      const seccionesPlantilla = [...dataRead, ...dataWrite];
+
+      seccionesPlantilla.forEach((itemPlantilla: any) => {
+        if (itemPlantilla.fields && itemPlantilla.fields.labelId) {
+          const key = itemPlantilla.fields.labelId;
+          const valorExtraido = itemPlantilla.valueField;
+          const fueExtraidoPorIA = valorExtraido !== null && valorExtraido !== undefined && String(valorExtraido).trim() !== '';
+
+          let esCampoParaEsteUsuario = true;
+          const camposSoloNatural = ['firstLastName', 'secondLastName', 'identification', 'identificationNumber'];
+          const camposSoloJuridica = ['nitId', 'representativeName', 'nationalIdentityCard', 'riskControlSystem', 'which risk'];
+
+          if (this.esEmpresaJuridica) {
+            if (camposSoloNatural.includes(key)) esCampoParaEsteUsuario = false;
+          } else {
+            if (camposSoloJuridica.includes(key) || key.startsWith('finalBeneficiary')) esCampoParaEsteUsuario = false;
+          }
+
+          let esVisible = true;
+          let grupoBeneficiario = 0;
+          let grupoDocumento = 0;
+
+          // 🛠️ FIX CLAVE 1: Quitamos el símbolo '$' del Regex.
+          // Ahora detectará el número en "finalBeneficiary1_name" sin fallar.
+          if (this.esEmpresaJuridica && key.startsWith('finalBeneficiary')) {
+            const match = key.match(/\d+/);
+            if (match) {
+              grupoBeneficiario = parseInt(match[0], 10);
+              esVisible = false; // Se ocultan hasta que el usuario le de clic al botón
+            }
+          }
+
+          if (key.startsWith('document')) {
+            const match = key.match(/\d+/);
+            if (match) {
+              grupoDocumento = parseInt(match[0], 10);
+              if (grupoDocumento > this.documentosActivos) esVisible = false;
+            }
+          }
+
+          if (!controlesReactivos[key] && esCampoParaEsteUsuario) {
+            controlesReactivos[key] = [fueExtraidoPorIA ? valorExtraido : ''];
+
+            // Extraemos el nombre de la sección de la plantilla
+            let nombreSeccion = itemPlantilla.fields.section || itemPlantilla.section || 'Información del Proveedor';
+
+            if (grupoBeneficiario > 0) {
+              nombreSeccion = `Beneficiario Final ${grupoBeneficiario}`;
+            }
+
+            this.camposDinamicos.push({
+              key: key,
+              label: itemPlantilla.fields.labelName,
+              type: itemPlantilla.fields.labelType || 'text',
+              options: itemPlantilla.fields.options || [],
+              isLong: String(itemPlantilla.fields.labelName).length > 50,
+              autocompletado: fueExtraidoPorIA,
+              visible: esVisible,
+              grupoBeneficiario: grupoBeneficiario,
+              grupoDocumento: grupoDocumento,
+              seccion: nombreSeccion
+            });
+          }
+        }
+      });
+    }
+
+    // 🟢 5. ORDENAR Y AGRUPAR (El fin del desorden visual)
+    const camposNormales = this.camposDinamicos.filter(c => c.grupoBeneficiario === 0);
+    const camposBeneficiarios = this.camposDinamicos.filter(c => c.grupoBeneficiario > 0);
+
+    // 🛠️ FIX CLAVE 2: Agrupamos los campos normales por su Sección para evitar títulos duplicados
+    const ordenSecciones = [...new Set(camposNormales.map(c => c.seccion))];
+    camposNormales.sort((a, b) => ordenSecciones.indexOf(a.seccion) - ordenSecciones.indexOf(b.seccion));
+
+    // Ordenamos los beneficiarios
+    camposBeneficiarios.sort((a, b) => a.grupoBeneficiario - b.grupoBeneficiario);
+
+    // Unimos todo limpio
+    this.camposDinamicos = [...camposNormales, ...camposBeneficiarios];
+
+    // 🟢 6. FINALIZAR Y CERRAR OVERLAY DE FORMA SEGURA
+    this.form.setControl('formDinamico', this.fb.group(controlesReactivos));
+
+    setTimeout(() => {
+      this.overlayOpen = false;
+      this.currentStep = 2;
+      this.cdr.detectChanges();
+    }, 500);
+
+  } catch (error) {
+    console.error("Error crítico mapeando el JSON:", error);
+    this.overlayOpen = false;
+    this.cdr.detectChanges();
+
+    Swal.fire({
+      title: 'Error de Lectura',
+      text: 'Ocurrió un problema al organizar los datos del documento. Intenta subirlo nuevamente.',
+      icon: 'warning',
+      confirmButtonColor: 'var(--accent)',
+      background: 'var(--surface)',
+      color: 'var(--text)'
     });
   }
-
-  // 🟢 5. FINALIZAR Y CERRAR MODALES
-  this.form.setControl('formDinamico', this.fb.group(controlesReactivos));
-
-  // Cerramos el loader de Swal antes de cambiar de paso
-  Swal.close();
-
-  this.overlayTitle = '¡Análisis completado!';
-  setTimeout(() => {
-    this.overlayOpen = false;
-    Swal.close();
-    this.currentStep = 2;
-    this.cdr.detectChanges();
-  }, 1000); // Reducido a 1s para mejorar la percepción de velocidad
 }
-
-
   // ESTA ES LA FUNCIÓN CLAVE CORREGIDA
 
   validarVigenciaRut(textoFecha: string): boolean {
@@ -740,4 +929,156 @@ async extraerDatosDelJSON(statusRes: any) {
       Swal.fire({ title: '¡Registro Exitoso!', text: 'Melooo!', icon: 'success' });
     }, 2000);
   }
+
+ dianData = {
+    viaInicial: 'CL', numInicial: '', nombreViaInicial: '', letraInicial: '', bisInicial: '', cuadInicial: '',
+    placa1: '', placaLetra: '', placaBis: '', placaCuad: '', placa2: '',
+    finalTipo: 'AP', finalValor: '', complemento: ''
+  };
+
+  esCampoDireccion(label: string): boolean {
+    const lbl = String(label).toLowerCase();
+    return lbl.includes('dirección') || lbl.includes('direccion');
+  }
+
+  abrirModalDireccion(key: string) {
+    this.campoDireccionActivo = key;
+    this.direccionesTokens = [];
+    this.modalDireccionAbierto = true;
+    this.cdr.detectChanges();
+  }
+
+  cerrarModalDireccion() {
+    this.modalDireccionAbierto = false;
+    this.campoDireccionActivo = '';
+    this.cdr.detectChanges();
+  }
+
+  obtenerDireccionActual(): string {
+    return this.direccionesTokens.map(t => t.text).join(" ").replace(/\s+/g, " ").trim();
+  }
+
+  confirmarDireccion() {
+    const direccionFinal = this.obtenerDireccionActual();
+
+    const control = this.form.get('formDinamico')?.get(this.campoDireccionActivo);
+    if (control) {
+      control.setValue(direccionFinal);
+      control.markAsDirty();
+      control.markAsTouched();
+      control.updateValueAndValidity();
+    }
+
+    this.cerrarModalDireccion();
+  }
+
+  limpiarTokens() {
+    this.direccionesTokens = [];
+    this.cdr.detectChanges(); // 🟢 FORZAR RENDERIZADO
+  }
+
+  eliminarToken(index: number) {
+    this.direccionesTokens.splice(index, 1);
+    this.cdr.detectChanges(); // 🟢 FORZAR RENDERIZADO
+  }
+
+  private sanitizeDIAN(raw: string, mode: 'strict' | 'token' | 'numeric' = 'strict'): string {
+    const up = (raw || "").toUpperCase().trim();
+    const noAcc = up.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (mode === "numeric") return noAcc.replace(/[^0-9]+/g, "").trim();
+    const disallowed = mode === "token" ? /[^A-Z0-9Ñ #\-]+/g : /[^A-Z0-9Ñ ]+/g;
+    return noAcc.replace(disallowed, " ").replace(/\s+/g, " ").trim();
+  }
+
+  // --- Botones de Agregar ---
+  addDianInicial() {
+    const num = this.sanitizeDIAN(this.dianData.numInicial, "numeric");
+    const nombre = this.sanitizeDIAN(this.dianData.nombreViaInicial, "strict");
+
+    if ((num && nombre) || (!num && !nombre)) {
+      Swal.fire({
+          icon: 'warning',
+          title: 'Faltan datos',
+          text: 'Debes diligenciar SOLO uno: "Número" o "Nombre de la vía" (no ambos).',
+          confirmButtonColor: 'var(--accent)',
+          background: 'var(--surface)',
+          color: 'var(--text)'
+      });
+      return;
+    }
+
+    const core = num ? num : nombre;
+    const parts = num
+      ? [this.dianData.viaInicial, core, this.dianData.letraInicial, this.dianData.bisInicial, this.dianData.cuadInicial]
+      : [this.dianData.viaInicial, core, this.dianData.bisInicial, this.dianData.cuadInicial];
+
+    const cleanParts = parts.map(p => this.sanitizeDIAN(p, "strict")).filter(Boolean);
+
+    if (cleanParts.length) {
+      // 🟢 FIX MAGICO: Creamos un nuevo arreglo en lugar de usar .push()
+      this.direccionesTokens = [...this.direccionesTokens, { kind: "INI", text: cleanParts.join(" ") }];
+    }
+
+    this.dianData.numInicial = ''; this.dianData.nombreViaInicial = ''; this.dianData.letraInicial = '';
+    this.dianData.bisInicial = ''; this.dianData.cuadInicial = '';
+
+    this.cdr.detectChanges();
+  }
+
+  addDianPlaca() {
+    if (!this.dianData.placa1 || !this.dianData.placa2) {
+      Swal.fire({
+          icon: 'warning',
+          title: 'Faltan datos',
+          text: 'Ingresa Parte 1 y Parte 2 de la placa.',
+          confirmButtonColor: 'var(--accent)',
+          background: 'var(--surface)',
+          color: 'var(--text)'
+      });
+      return;
+    }
+    const parts = [this.dianData.placa1, this.dianData.placaLetra, this.dianData.placaBis, this.dianData.placaCuad, this.dianData.placa2];
+    const cleanParts = parts.map(p => this.sanitizeDIAN(p, "strict")).filter(Boolean);
+
+    if (cleanParts.length) {
+      // 🟢 FIX MAGICO
+      this.direccionesTokens = [...this.direccionesTokens, { kind: "PLACA", text: cleanParts.join(" ") }];
+    }
+
+    this.dianData.placa1 = ''; this.dianData.placa2 = ''; this.dianData.placaLetra = '';
+    this.dianData.placaBis = ''; this.dianData.placaCuad = '';
+
+    this.cdr.detectChanges();
+  }
+
+  addDianFinal() {
+    if (!this.dianData.finalValor) return;
+    const cleanParts = [this.dianData.finalTipo, this.dianData.finalValor].map(p => this.sanitizeDIAN(p, "strict")).filter(Boolean);
+
+    if (cleanParts.length) {
+      // 🟢 FIX MAGICO
+      this.direccionesTokens = [...this.direccionesTokens, { kind: "FIN", text: cleanParts.join(" ") }];
+    }
+    this.dianData.finalValor = '';
+
+    this.cdr.detectChanges();
+  }
+
+  addDianToken(token: string) {
+    // 🟢 FIX MAGICO
+    this.direccionesTokens = [...this.direccionesTokens, { kind: "TOK", text: token }];
+    this.cdr.detectChanges();
+  }
+
+  addDianComplemento() {
+    const c = this.sanitizeDIAN(this.dianData.complemento, "strict");
+    if (c) {
+      // 🟢 FIX MAGICO
+      this.direccionesTokens = [...this.direccionesTokens, { kind: "COMP", text: c }];
+    }
+    this.dianData.complemento = '';
+
+    this.cdr.detectChanges();
+  }
+
 }

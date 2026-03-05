@@ -81,114 +81,196 @@
         </div>
       </div>
 
-      <div *ngIf="currentStep === 2" [formGroup]="form" class="step-content">
-        <div formGroupName="formDinamico">
+<div *ngIf="currentStep === 2" [formGroup]="form" class="step-content">
+  <div formGroupName="formDinamico">
 
-          <h2 class="title">Información del Documento</h2>
+    <h2 class="title">Información del Documento</h2>
+    <p class="step-description">
+      Verifica los datos extraídos automáticamente de tu archivo.
+    </p>
 
-          <p class="step-description">
-            Verifica los datos extraídos automáticamente de tu archivo.
-          </p>
+<div class="form-grid">
+      <ng-container *ngFor="let campo of camposDinamicos; let i = index">
 
-          <div class="form-grid">
-            <ng-container *ngFor="let campo of camposDinamicos; let i = index">
+        <div class="form-group full section-header" *ngIf="esInicioDeSeccion(i)">
+          <div class="section-divider"></div>
+          <h3 class="section-title">{{ campo.seccion }}</h3>
+        </div>
 
-              <div class="form-group"
-                   [hidden]="campo.visible === false"
-                   [class.full]="campo.isLong"
-                   [class.span-2]="campo.columnSpan === 2"
-                   [class.span-3]="campo.columnSpan === 3">
+        <div class="form-group"
+             *ngIf="campo.visible !== false && campo.type !== 'documento-agrupado'"
+             [class.full]="campo.isLong"
+             [class.span-2]="campo.columnSpan === 2"
+             [class.span-3]="campo.columnSpan === 3">
 
-                <label class="label">
-                  {{ campo.label }}
-                  <span class="req">*</span>
-                </label>
+          <label class="label">
+            {{ campo.label }}
+            <span class="req">*</span>
+          </label>
 
-                <div class="input-action-container">
+          <div class="input-action-container">
+            <div class="input-wrapper">
+              <app-dynamic-field [config]="campo" [formControlName]="campo.key"></app-dynamic-field>
+              <span class="badge-auto" *ngIf="campo.autocompletado">Autocompletado</span>
+            </div>
 
-                  <div class="input-wrapper">
-                    <app-dynamic-field
-                      [config]="campo"
-                      [formControlName]="campo.key">
-                    </app-dynamic-field>
+            <div class="actions-wrapper" *ngIf="campo.key.startsWith('document')">
+              <input #fileInput type="file" class="hidden-input" (change)="onFileSelected($event, campo.key, fileInput)" />
 
-                    <span class="badge-auto" *ngIf="campo.autocompletado">
-                      Autocompletado
-                    </span>
-                  </div>
+              <button type="button" class="btn-action btn-attach" *ngIf="!form.get('formDinamico')?.get(campo.key)?.value" (click)="fileInput.click()" title="Adjuntar documento">📎</button>
+              <button type="button" class="btn-action btn-delete" *ngIf="form.get('formDinamico')?.get(campo.key)?.value" (click)="eliminarDocumentoAdjunto(campo.key, fileInput)" title="Quitar archivo">🗑️</button>
+              <button type="button" class="btn-action btn-add" *ngIf="campo.grupoDocumento === documentosActivos && documentosActivos < 10" (click)="agregarDocumento()" title="Agregar otro documento">+</button>
+            </div>
 
-                  <div class="actions-wrapper" *ngIf="campo.key.startsWith('document')">
+            <div class="actions-wrapper" *ngIf="esCampoDireccion(campo.label)">
+              <button type="button" class="btn-action btn-location" (click)="abrirModalDireccion(campo.key)" title="Generador de Dirección DIAN">📍</button>
+            </div>
 
-                    <input #fileInput
-                           type="file"
-                           class="hidden-input"
-                           (change)="onFileSelected($event, campo.key, fileInput)" />
+          </div>
+        </div>
 
-                    <button type="button"
-                            class="btn-action btn-attach"
-                            (click)="fileInput.click()">
-                      📎
-                    </button>
+        <div class="form-group full document-clone-box" *ngIf="campo.type === 'documento-agrupado' && campo.visible !== false">
 
-                    <button type="button"
-                            class="btn-action btn-delete"
-                            *ngIf="form.get('formDinamico')?.get(campo.key)?.value"
-                            (click)="eliminarDocumentoAdjunto(campo.key, fileInput)">
-                      🗑️
-                    </button>
+          <h4 class="clone-box-title">{{ campo.tituloInterno }}</h4>
 
-                  <div class="form-group full" *ngIf="mostrarBotonBeneficiario(i)">
-                     <button type="button"
-                              class="btn-secondary-sm btn-full btn-dashed"
-                              (click)="agregarBeneficiario()">
-                        + Agregar Beneficiario Final
-                      </button>
+          <div class="duo-grid">
 
-                     <button type="button"
-                            *ngIf="beneficiariosActivos > 0"
-                            class="btn-secondary-sm btn-dashed"
-                            style="flex: 0 0 auto; padding: 0 24px; height: 52px; font-size: 14px; color: var(--error); border-color: rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.05);"
-                            (click)="eliminarUltimoBeneficiario()"
-                            title="Quitar último beneficiario">
-                      🗑️ Quitar
-                    </button>
-                  </div>
-
-                  </div>
+             <div class="duo-item">
+                <label class="label">{{ campo.selectConfig.label }} <span class="req">*</span></label>
+                <div class="input-wrapper">
+                   <app-dynamic-field [config]="campo.selectConfig" [formControlName]="campo.selectConfig.key"></app-dynamic-field>
                 </div>
+             </div>
 
-              </div>
-
-              <div class="form-group full" *ngIf="mostrarBotonBeneficiario(i)">
-                <button type="button"
-                        class="btn-secondary-sm btn-full btn-dashed"
-                        (click)="agregarBeneficiario()">
-                  + Agregar Beneficiario Final
-                </button>
-              </div>
-
-            </ng-container>
+             <div class="duo-item">
+                <label class="label">{{ campo.fileConfig.label }} <span class="req">*</span></label>
+                <div class="input-action-container">
+                   <div class="input-wrapper">
+                     <app-dynamic-field [config]="campo.fileConfig" [formControlName]="campo.fileConfig.key"></app-dynamic-field>
+                   </div>
+                   <div class="actions-wrapper">
+                     <input #fileInputClone type="file" class="hidden-input" (change)="onFileSelected($event, campo.fileConfig.key, fileInputClone)" />
+                     <button type="button" class="btn-action btn-attach" *ngIf="!form.get('formDinamico')?.get(campo.fileConfig.key)?.value" (click)="fileInputClone.click()">📎</button>
+                     <button type="button" class="btn-action btn-delete" *ngIf="form.get('formDinamico')?.get(campo.fileConfig.key)?.value" (click)="eliminarDocumentoAdjunto(campo.fileConfig.key, fileInputClone)">🗑️</button>
+                     <button type="button" class="btn-action btn-add" *ngIf="campo.fileConfig.grupoDocumento === documentosActivos && documentosActivos < 10" (click)="agregarDocumento()">+</button>
+                   </div>
+                </div>
+             </div>
 
           </div>
+        </div>
 
-          <div class="actions">
-            <button type="button"
-                    class="btn-secondary"
-                    (click)="currentStep = 1">
-              Volver
+        <div class="form-group full" *ngIf="mostrarBotonBeneficiario(i)">
+          <div class="action-row-separator">
+            <button type="button" class="btn-secondary-sm btn-dashed" (click)="agregarBeneficiario()">
+              + Agregar Beneficiario Final
             </button>
-
-            <button type="button"
-                    class="btn-primary"
-                    (click)="currentStep = 3"
-                    [disabled]="form.get('formDinamico')?.invalid">
-              Confirmar y Continuar
+            <button type="button" *ngIf="beneficiariosActivos > 0" class="btn-secondary-sm btn-dashed btn-quitar-beneficiario" (click)="eliminarUltimoBeneficiario()" title="Quitar último beneficiario">
+              🗑️ Quitar
             </button>
           </div>
+        </div>
 
+      </ng-container>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn-secondary" (click)="currentStep = 1">
+        Volver
+      </button>
+
+      <button type="button" class="btn-primary" (click)="currentStep = 3" [disabled]="form.get('formDinamico')?.invalid">
+        Confirmar y Continuar
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<div class="dian-modal-overlay" *ngIf="modalDireccionAbierto">
+  <div class="dian-modal-card">
+
+    <div class="dian-header">
+      <h2>Generador de Dirección DIAN</h2>
+      <button type="button" class="btn-close" (click)="cerrarModalDireccion()">✕</button>
+    </div>
+
+    <div class="dian-body">
+      <div class="dian-section">
+        <label class="dian-label">1) Nomenclatura inicial (vía principal)</label>
+        <div class="dian-row">
+          <select name="vIni" [(ngModel)]="dianData.viaInicial" [ngModelOptions]="{standalone: true}" class="dian-input">
+            <option value="CL">CL</option><option value="CR">CR</option><option value="AV">AV</option><option value="AC">AC</option><option value="AK">AK</option><option value="DG">DG</option><option value="TR">TR</option><option value="KM">KM</option><option value="AUT">AUT</option>
+          </select>
+          <input name="nIni" type="text" [(ngModel)]="dianData.numInicial" [ngModelOptions]="{standalone: true}" placeholder="Número (ej: 45)" class="dian-input">
+          <span class="dian-or-divider">O</span>
+          <input name="nomIni" type="text" [(ngModel)]="dianData.nombreViaInicial" [ngModelOptions]="{standalone: true}" placeholder="Nombre Vía (opcional)" class="dian-input">
+          <select name="lIni" [(ngModel)]="dianData.letraInicial" [ngModelOptions]="{standalone: true}" class="dian-input">
+            <option value="">Letra</option><option>A</option><option>B</option><option>C</option>
+          </select>
+          <select name="bIni" [(ngModel)]="dianData.bisInicial" [ngModelOptions]="{standalone: true}" class="dian-input">
+            <option value="">Bis</option><option value="BIS">BIS</option>
+          </select>
+          <select name="cIni" [(ngModel)]="dianData.cuadInicial" [ngModelOptions]="{standalone: true}" class="dian-input">
+            <option value="">Cuadrante</option><option value="NORTE">NORTE</option><option value="SUR">SUR</option><option value="ESTE">ESTE</option><option value="OESTE">OESTE</option>
+          </select>
+          <button type="button" class="dian-btn-add" (click)="addDianInicial()">Añadir</button>
         </div>
       </div>
 
+      <div class="dian-section">
+        <label class="dian-label">2) Placa / número complementario</label>
+        <div class="dian-row">
+          <input name="p1" type="text" [(ngModel)]="dianData.placa1" [ngModelOptions]="{standalone: true}" placeholder="Parte 1 (ej: 12)" class="dian-input">
+          <select name="pL" [(ngModel)]="dianData.placaLetra" [ngModelOptions]="{standalone: true}" class="dian-input">
+            <option value="">Letra</option><option>A</option><option>B</option><option>C</option>
+          </select>
+          <select name="pB" [(ngModel)]="dianData.placaBis" [ngModelOptions]="{standalone: true}" class="dian-input">
+            <option value="">Bis</option><option value="BIS">BIS</option>
+          </select>
+          <select name="pC" [(ngModel)]="dianData.placaCuad" [ngModelOptions]="{standalone: true}" class="dian-input">
+            <option value="">Cuad.</option><option value="NORTE">NORTE</option><option value="SUR">SUR</option>
+          </select>
+          <input name="p2" type="text" [(ngModel)]="dianData.placa2" [ngModelOptions]="{standalone: true}" placeholder="Parte 2 (ej: 34)" class="dian-input">
+          <button type="button" class="dian-btn-add" (click)="addDianPlaca()">Añadir</button>
+        </div>
+      </div>
+
+      <div class="dian-section">
+        <label class="dian-label">3) Interior y Complementos</label>
+        <div class="dian-row">
+          <select name="fT" [(ngModel)]="dianData.finalTipo" [ngModelOptions]="{standalone: true}" class="dian-input">
+            <option value="AP">AP</option><option value="OF">OF</option><option value="LC">LC</option><option value="CS">CS</option><option value="TO">TO</option>
+          </select>
+          <input name="fV" type="text" [(ngModel)]="dianData.finalValor" [ngModelOptions]="{standalone: true}" placeholder="Valor (ej: 301)" class="dian-input">
+          <button type="button" class="dian-btn-add" (click)="addDianFinal()">Añadir</button>
+        </div>
+
+        <div class="dian-row" style="margin-top: 10px;">
+          <input name="comp" type="text" [(ngModel)]="dianData.complemento" [ngModelOptions]="{standalone: true}" placeholder="Texto libre (ej: Conjunto Sol)" style="flex: 1;" class="dian-input">
+          <button type="button" class="dian-btn-add" (click)="addDianComplemento()">Añadir Texto</button>
+          <button type="button" class="dian-btn-add" (click)="addDianToken('#')">#</button>
+          <button type="button" class="dian-btn-add" (click)="addDianToken('-')">-</button>
+        </div>
+      </div>
+
+      <div class="dian-result-box">
+        <span class="dian-token" *ngFor="let t of direccionesTokens; let idx = index">
+          <small>{{ t.kind }}</small> {{ t.text }}
+          <button type="button" (click)="eliminarToken(idx)">✕</button>
+        </span>
+      </div>
+      <div class="dian-preview"><strong>Dirección Formateada:</strong> {{ obtenerDireccionActual() || '(vacío)' }}</div>
+
+    </div>
+
+    <div class="dian-footer">
+      <button type="button" class="btn-secondary" (click)="limpiarTokens()">Limpiar</button>
+      <button type="button" class="btn-primary" (click)="confirmarDireccion()" [disabled]="direccionesTokens.length === 0">Confirmar y Usar</button>
+    </div>
+
+  </div>
+</div>
       <div *ngIf="currentStep === 3" class="step-content">
         <h2>Revisión y envío</h2>
         <p style="color: var(--muted); margin-bottom: 24px; font-size: 14px;">
