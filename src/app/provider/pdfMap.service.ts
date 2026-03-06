@@ -8,6 +8,7 @@ export class PdfMapService {
  private readonly EQUIVALENCIAS: Record<string, string> = {
     'nitId': '5. Número de Identificación Tributaria (NIT)',
     'identificationNumber': '5. Número de Identificación Tributaria (NIT)',
+    'dv': '6. DV',
     'companyname': '35. Razón social',
     'department': '39. Departamento',
     'City': '40. Ciudad/Municipio',

@@ -4,7 +4,7 @@ import { Routes } from '@angular/router';
 import {  InvitedComponent } from '../invited/invited.component';
 import { FormComponent } from './form/form.component';
 import { RegisterproviderComponent } from './registerprovider/registerprovider.component';
-import { ProviderdatesComponent } from './registerprovider/providerdates/providerdates.component';
+// import { ProviderdatesComponent } from './registerprovider/providerdates/providerdates.component';
 import { ProviderComponent } from './provider/provider.component';
 
 
