@@ -20,12 +20,10 @@
               "zone.js"
             ],
             "tsConfig": "tsconfig.app.json",
-
             "assets": [
               "src/favicon.ico",
               "src/assets"
             ],
-
             "styles": [
               "src/styles.css"
             ],
@@ -62,7 +60,8 @@
               "buildTarget": "forms:build:production"
             },
             "development": {
-              "buildTarget": "forms:build:development"
+              "buildTarget": "forms:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

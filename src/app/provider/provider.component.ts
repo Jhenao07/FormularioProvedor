@@ -1,8 +1,24 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, inject, signal, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  inject,
+  signal,
+  computed,
+  OnInit,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, Validators, ValidatorFn, FormsModule } from '@angular/forms';
-import { HttpClient, HttpClientModule, HttpHeaders } from '@angular/common/http';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+  ValidatorFn,
+  FormsModule,
+} from '@angular/forms';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ProgressOverlayComponent } from '../components/progress-overlay/progressOverlay.component';
 import { ActivatedRoute, Router } from '@angular/router';
 import { services } from '../services';
@@ -10,93 +26,217 @@ import Swal from 'sweetalert2';
 import { PdfMapService } from './pdfMap.service';
 import { DynamicFieldComponent } from '../components/dynamic-field/dynamic-field.component';
 
+
+// ─────────────────────────────────────────────
+// Interfaces & Constantes
+// ─────────────────────────────────────────────
+
 interface DocConfig {
   title: string;
   key: string;
 }
 
+interface DireccionToken {
+  kind: string;
+  text: string;
+}
+
+interface CampoDinamico {
+  key: string;
+  label: string;
+  type: string;
+  options: any[];
+  isLong: boolean;
+  columnSpan: number;
+  autocompletado: boolean;
+  visible: boolean;
+  grupoBeneficiario: number;
+  grupoDocumento: number;
+  seccion: string;
+  orderToGetValue: number;
+  ordenFijo?: number;
+  selectConfig?: any;
+  fileConfig?: any;
+  tituloInterno?: string;
+  required?: boolean;
+}
+
 const COUNTRY_CONFIG: Record<string, DocConfig[]> = {
-  'Colombia': [
+  Colombia: [
     { title: 'RUT Actualizado', key: 'rut' },
     { title: 'Cámara de Comercio', key: 'camara' },
-    { title: 'Certificación Bancaria', key: 'bancaria' }
+    { title: 'Certificación Bancaria', key: 'bancaria' },
   ],
   'Estados Unidos': [
     { title: 'Form W-9', key: 'w9' },
     { title: 'ID/Passport', key: 'identity_us' },
-    { title: 'Bank Verification', key: 'bank_us' }
+    { title: 'Bank Verification', key: 'bank_us' },
   ],
-  'México': [
+  México: [
     { title: 'CSF', key: 'csf' },
     { title: 'Domicilio', key: 'domicilio_mx' },
-    { title: 'INE', key: 'ine' }
+    { title: 'INE', key: 'ine' },
   ],
-  'España': [
+  España: [
     { title: 'NIF', key: 'nif' },
     { title: 'AEAT', key: 'aeat' },
-    { title: 'IBAN', key: 'iban_es' }
+    { title: 'IBAN', key: 'iban_es' },
   ],
-  'Alemania': [
+  Alemania: [
     { title: 'Steuernummer', key: 'tax_de' },
     { title: 'Handelsregisterauszug', key: 'hraz' },
-    { title: 'Bankbestätigung', key: 'bank_de' }
-  ]
+    { title: 'Bankbestätigung', key: 'bank_de' },
+  ],
 };
+
+const COUNTRY_MAP: Record<string, string> = {
+  CO: 'Colombia',
+  US: 'Estados Unidos',
+  MX: 'México',
+  ES: 'España',
+  DE: 'Alemania',
+};
+
+const CAMPOS_SOLO_NATURAL = ['firstLastName', 'secondLastName', 'identification', 'identificationNumber', 'names'];
+const CAMPOS_SOLO_JURIDICA = ['companyname', 'nitId', 'dv', 'representativeName', 'nationalIdentityCard', 'riskControlSystem', 'which risk'];
+
+// ─────────────────────────────────────────────
+// Componente
+// ─────────────────────────────────────────────
 
 @Component({
   selector: 'app-provider',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, ProgressOverlayComponent, HttpClientModule, DynamicFieldComponent, FormsModule],
+  // 🟢 MEJORA: HttpClientModule eliminado — se provee globalmente en app.config.ts con provideHttpClient()
+  imports: [CommonModule, ReactiveFormsModule, ProgressOverlayComponent, DynamicFieldComponent, FormsModule],
   templateUrl: './provider.component.html',
   styleUrl: './provider.component.css',
 })
 export class ProviderComponent implements OnInit {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private fb = inject(FormBuilder);
-  private http = inject(HttpClient);
-  private destroyRef = inject(DestroyRef);
-  private services = inject(services);
-  private pdfMapService = inject(PdfMapService);
 
-  // --- Estado ---
-  ocParam: string = '';
-  osParam: string = '';
-  snParam: string = '';
-  numSoParam: string = '';
-  currentStep = 1;
-  esJuridica: boolean = false;
-  countrySelected: string | undefined = '';
-  isManualMode = false;
-  providerType: 'juridica' | 'natural' = 'juridica';
+  // ─── Configuración API ───────────────────────
+  private readonly API_BASE_URL = 'https://ccwhqcbjae.execute-api.us-east-1.amazonaws.com/api/ntp/commercialOperation/v1';
+  private readonly API_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExM2UyNDNjLTczZjctNGM4NC05MDE1LWU3NWRkZGFiZDI3MSIsImRhdGEiOiIyN2VmOWRiOTg0OTNhYzBiYjFkMmQ1YjJhYjVhZWFjMWViZjY1NDFhYjE4NGVmNTdmYzU3MGFkZmJhM2M1ODY3ODNmMjBhZjg0ZmQ5Y2ZmYWU3NzljYTY5NmRjMDRlZDFjODRiMzRiZjQyNWU4MTJjMDI3MmZmYjdlNTA1Yjg1YjgxNDFmMzc5NGIzNmEyNTEwYjBmODE4Njg0MzhmZGQ0YWUxYmJiMzJiZjIzMDg3OWRmZWQwMDIwYTJjYzdjOTQ0YjhhNGYxYzM0NDA1ZTRhNWRiY2I0NzA4NTc1NzFhZTYxMWZlMWQyYjYzM2YzNWNkMmExZjMyODI5OTljN2FjZjI4MjNiZjJmOTA1N2JiNDZjZjFlMzExNzg2MDQ0ZWZlOGNkYjA5YmM2YzliMjdlNmEyZDYyYjBhNzFjZjcyNGRhY2I2NGJmNzI4MTZkNmQ0ZTJjYTA1NzRmZjJiYjljODc3ZWJkMjhkNzZhZDMzMDA1NzlmMGZmYTlhMTliYWU2M2UwZWJiN2VmZGFhYTlhNjI4NDEzMGJlMzU5MmY3M2Q3ODIwYzQ0MTg2ZGEzMmNlMzBiNzJhYTc2MDIyYWMzZWVlYjI5MDRlNWNlZWU1YTI5OGQxYTIwNzAwZTM3NWFiMWRkMWEzMzcyMjU3NjFjOGIzMTRlOTE0MzM4MzgzMWVkNDJkZmFkNWQwOGMwOTRkZDg1ZDY4YTU4NTAwYmYzZTY5YWEzMmYyN2IyNjU0ZTBiOWI3MzUyMmU5Njc3MzRlZWNiZTUxMTIwMWJmOTFjY2RkOTJlMGQxMjE5YjFjNTFhZGRhODk0Y2U0ZjQ3ODhjODg5YjkwZTllYmY2YmM1OTlhZDkwZDdhNWY2YWQ4YjJkM2ViYzRmN2ZhMWMzZmEwNDJhMWRlOTAwNjhjN2U2YjEyNjhjZTlkNjdmZGUyYWQwMWNmMjg1N2Q2OWNiNDQ2NTIxNThjYzlkZmQ3YWI5MDNkM2Q5YTZmYmQ5N2Q4MDVhYzc4MDI5NTlhY2ZjZDZjMmQwMThlZTdmYzJjMDRkOGNmNzFjNDRlZTlhNGZhNjY1MDM4YjQyZjcwZTQ4NTAwZGNkMTliYTA5MzM0MzZlOWFkYWYxYzlmOWJlYzM0ZjQ2NDY1NmI0YzJhZjg4YTYyNWI5ZTZmNzcyZTNhYTFkMTZhNDU3YzdjZWFhOWU0ZTQ5N2ZhY2Y0YmRkNmVmZWI2NDMzYTNkZDNmY2FiNDBkZmM4NTViOThkMTI2ZmY5ZmIyMWJiZDBmMTcwNzgyYjEyZjQ0ODk5OGQwZGQ1NDk1YjMzODU3ODViMjU1MmU1YmZhMTUyMDhmNGNiNzhjMTc4ZmNhNDkxYjhhZTc5ZDliOTI5ZmE2NWJlZWZlZmQzMTg4NmUzZGVjOGViNzUzMzkiLCJ0eXBlIjoidXNlciIsImlhdCI6MTc3MjcyMzE3NywiZXhwIjoxNzczMzI3OTc3fQ.ycNXyvh9CU262mCfD8enzr4YiUK8i8VKoGDI8mqw__k';
+
+  // ─── Servicios ───────────────────────────────
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly fb = inject(FormBuilder);
+  private readonly http = inject(HttpClient);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly services = inject(services);
+  private readonly pdfMapService = inject(PdfMapService);
+  // 🟢 MEJORA: ChangeDetectorRef eliminado — Signals + computed() manejan la detección automáticamente
+
+  // ─── Estado con Signals ───────────────────────
+  // 🟢 MEJORA: Variables mutables migradas a signals para detección automática de cambios
+  ocParam = signal('');
+  osParam = signal('');
+  snParam = signal('');
+  numSoParam = signal('');
+  currentStep = signal(1);
+  isManualMode = signal(false);
+  esJuridica = signal(false);
+  esEmpresaJuridica = signal(false);
+  countrySelected = signal<string | undefined>(undefined);
   toastMessage = signal<string | null>(null);
   arrayItems = signal<DocConfig[]>([]);
+  loadingFormConfig = signal(true);
+  overlayOpen = signal(false);
+  overlayTitle = signal('');
+  overlaySubtitle = signal<string | null>(null);
+  contactosActivos = signal(1);
+  beneficiariosActivos = signal(0);
+  documentosActivos = signal(1);
+  modalDireccionAbierto = signal(false);
+  campoDireccionActivo = signal('');
+  direccionesTokens = signal<DireccionToken[]>([]);
+  camposDinamicos = signal<CampoDinamico[]>([]);
+  seccionesDisponibles = signal<string[]>([]);
+  seccionActualIndex = signal(0);
+  mostrarCamposBeneficiario = signal(false);
+  formularioEstructuraDestino = signal<any>(null);
+  esUsuarioInterno = signal(true);
+
+  // ─── Computed Signals ─────────────────────────
+  // 🟢 MEJORA: Lógica derivada como computed() — se recalcula automáticamente al cambiar dependencias
+
+  /** País y config de documentos derivados del signal countrySelected */
+  docsConfig = computed(() => COUNTRY_CONFIG[this.countrySelected() ?? ''] ?? []);
+
+  /** Indica si se puede agregar más beneficiarios */
+  puedeAgregarBeneficiario = computed(
+    () => this.esEmpresaJuridica() && this.beneficiariosActivos() < 10
+  );
+
+  /** Indica si se puede agregar más contactos */
+  puedeAgregarContacto = computed(() => this.contactosActivos() < 5);
+
+  /** Indica si se puede agregar más documentos */
+  puedeAgregarDocumento = computed(() => this.documentosActivos() < 10);
+
+  /** Dirección formada a partir de los tokens */
+  direccionActual = computed(() =>
+    this.direccionesTokens()
+      .map((t) => t.text)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
+
+  /** Sección actualmente visible */
+  seccionActual = computed(() =>
+    this.seccionesDisponibles()[this.seccionActualIndex()]
+  );
+
+  /** Campos visibles de la sección actual */
+  camposSeccionActual = computed(() =>
+    this.camposDinamicos().filter(
+      (c) => c.seccion === this.seccionActual() && c.visible !== false
+    )
+  );
+
+  /** ¿Es la última sección? */
+  esUltimaSeccion = computed(
+    () => this.seccionActualIndex() === this.seccionesDisponibles().length - 1
+  );
+
+  /**
+   * Campos de la sección actual agrupados por número de contacto.
+   * grupo === 0 → campos normales sin contacto
+   * grupo === 1 → Contacto #1, grupo === 2 → Contacto #2, etc.
+   */
+  camposAgrupados = computed(() => {
+    const seccion = this.seccionActual();
+    const campos = this.camposDinamicos().filter(
+      (c) => c.seccion === seccion && c.visible !== false
+    );
+
+    const grupos = new Map<number, CampoDinamico[]>();
+
+    campos.forEach((campo) => {
+      const grupo = this.getGrupoContacto(campo.key);
+      if (!grupos.has(grupo)) grupos.set(grupo, []);
+      grupos.get(grupo)!.push(campo);
+    });
+
+    return Array.from(grupos.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([grupo, campos]) => ({ grupo, campos }));
+  });
+
+  // ─── Formulario ───────────────────────────────
   form: FormGroup;
-  contactosActivos: number = 1; // El contacto 1 siempre es visible
-  modalDireccionAbierto = false;
-  campoDireccionActivo = '';
-  direccionesTokens: { kind: string, text: string }[] = [];
+  providerType: 'juridica' | 'natural' = 'juridica';
 
-  // --- Datos Dinámicos ---
-  camposDinamicos: any[] = [];
-  mostrarCamposBeneficiario: boolean = false;
-  beneficiariosActivos: number = 0;
-  esEmpresaJuridica: boolean = false;
-  formularioEstructuraDestino: any = null;
-  loadingFormConfig = true;
-  archivoSeleccionado: File | null = null;
-  documentosActivos: number = 1;
-  esUsuarioInterno: boolean = true;
-  seccionesDisponibles: string[] = [];
-  seccionActualIndex: number = 0;
-  // --- Overlay UI ---
-  overlayOpen = false;
-  overlayTitle = '';
-  overlaySubtitle: string | null = null;
-  fileInput: HTMLInputElement | undefined;
+  dianData = {
+    viaInicial: 'CL', numInicial: '', nombreViaInicial: '', letraInicial: '', bisInicial: '', cuadInicial: '',
+    placa1: '', placaLetra: '', placaBis: '', placaCuad: '', placa2: '',
+    finalTipo: 'AP', finalValor: '', complemento: '',
+  };
 
-  constructor( private cdr: ChangeDetectorRef) {
+  constructor() {
     this.form = this.fb.group({
       step2_docs: this.fb.group({}),
       step3_data: this.fb.group({
@@ -104,386 +244,535 @@ export class ProviderComponent implements OnInit {
         nit: ['', Validators.required],
         legalRepName: ['', Validators.required],
         riskOption: ['NA', Validators.required],
-        riskWhich: ['']
+        riskWhich: [''],
       }),
-      formDinamico: this.fb.group({})
+      formDinamico: this.fb.group({}),
     });
   }
 
-  ngOnInit() {
+  // ─────────────────────────────────────────────
+  // Lifecycle
+  // ─────────────────────────────────────────────
+
+  ngOnInit(): void {
+    // 🟢 MEJORA: takeUntilDestroyed() sin necesidad de pasar destroyRef explícito cuando está en el constructor
     this.route.queryParams
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(params => {
-        this.ocParam = params['oc'] || '';
-        this.osParam = params['os'] || '';
-        this.numSoParam = params['numSo'] || '';
-        this.currentStep = Number(params['step']) || 1;
-        this.isManualMode = params['mode'] === 'manual';
+      .subscribe((params) => {
+        this.ocParam.set(params['oc'] ?? '');
+        this.osParam.set(params['os'] ?? '');
+        this.numSoParam.set(params['numSo'] ?? '');
+        this.currentStep.set(Number(params['step']) || 1);
+        this.isManualMode.set(params['mode'] === 'manual');
 
         const snParam = params['sn']?.toUpperCase();
+        const pais = COUNTRY_MAP[snParam] ?? 'Otro';
+        this.countrySelected.set(pais === 'Otro' ? undefined : pais);
 
-         if (this.numSoParam) {
-          this.cargarEstructuraFormulario(this.numSoParam);
+        if (this.numSoParam()) {
+          this.cargarEstructuraFormulario(this.numSoParam());
         } else {
           console.warn("No se encontró el parámetro 'numSo' en la URL.");
-          this.loadingFormConfig = false;
+          this.loadingFormConfig.set(false);
         }
 
-        const diccionariPaises: Record<string, string> = {
-          'CO': 'Colombia',
-          'US': 'Estados Unidos',
-          'MX': 'México',
-          'ES': 'España',
-          'DE': 'Alemania'
-        };
-
-        if (snParam && diccionariPaises[snParam]) {
-          this.countrySelected = diccionariPaises[snParam];
-        } else {
-          this.countrySelected = 'Otro';
-        }
-
-        if (!this.countrySelected || this.countrySelected === 'Otro') {
+        if (!this.countrySelected()) {
           this.arrayItems.set([]);
+          return;
         }
 
-        if (this.currentStep === 1 && this.countrySelected && this.countrySelected !== 'Otro') {
-          const config = COUNTRY_CONFIG[this.countrySelected] || [];
+        if (this.currentStep() === 1) {
+          const config = this.docsConfig();
           this.arrayItems.set(config);
           this.rebuildStep2Docs(config);
         }
       });
   }
 
-  cargarEstructuraFormulario(numeroOrden: string) {
-    this.loadingFormConfig = true;
-    const apiUrl = `https://ccwhqcbjae.execute-api.us-east-1.amazonaws.com/api/ntp/commercialOperation/v1/serviceOrder/getFieldsByServiceOrder/${numeroOrden}`;
+  // ─────────────────────────────────────────────
+  // API & Carga
+  // ─────────────────────────────────────────────
 
-    const apiToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExM2UyNDNjLTczZjctNGM4NC05MDE1LWU3NWRkZGFiZDI3MSIsImRhdGEiOiIyN2VmOWRiOTg0OTNhYzBiYjFkMmQ1YjJhYjVhZWFjMWViZjY1NDFhYjE4NGVmNTdmYzU3MGFkZmJhM2M1ODY3ODNmMjBhZjg0ZmQ5Y2ZmYWU3NzljYTY5NmRjMDRlZDFjODRiMzRiZjQyNWU4MTJjMDI3MmZmYjdlNTA1Yjg1YjgxNDFmMzc5NGIzNmEyNTEwYjBmODE4Njg0MzhmZGQ0YWUxYmJiMzJiZjIzMDg3OWRmZWQwMDIwYTJjYzdjOTQ0YjhhNGYxYzM0NDA1ZTRhNWRiY2I0NzA4NTc1NzFhZTYxMWZlMWQyYjYzM2YzNWNkMmExZjMyODI5OTljN2FjZjI4MjNiZjJmOTA1N2JiNDZjZjFlMzExNzg2MDQ0ZWZlOGNkYjA5YmM2YzliMjdlNmEyZDYyYjBhNzFjZjcyNGRhY2I2NGJmNzI4MTZkNmQ0ZTJjYTA1NzRmZjJiYjljODc3ZWJkMjhkNzZhZDMzMDA1NzlmMGZmYTlhMTliYWU2M2UwZWJiN2VmZGFhYTlhNjI4NDEzMGJlMzU5MmY3M2Q3ODIwYzQ0MTg2ZGEzMmNlMzBiNzJhYTc2MDIyYWMzZWVlYjI5MDRlNWNlZWU1YTI5OGQxYTIwNzAwZTM3NWFiMWRkMWEzMzcyMjU3NjFjOGIzMTRlOTE0MzM4MzgzMWVkNDJkZmFkNWQwOGMwOTRkZDg1ZDY4YTU4NTAwYmYzZTY5YWEzMmYyN2IyNjU0ZTBiOWI3MzUyMmU5Njc3MzRlZWNiZTUxMTIwMWJmOTFjY2RkOTJlMGQxMjE5YjFjNTFhZGRhODk0Y2U0ZjQ3ODhjODg5YjkwZTllYmY2YmM1OTlhZDkwZDdhNWY2YWQ4YjJkM2ViYzRmN2ZhMWMzZmEwNDJhMWRlOTAwNjhjN2U2YjEyNjhjZTlkNjdmZGUyYWQwMWNmMjg1N2Q2OWNiNDQ2NTIxNThjYzlkZmQ3YWI5MDNkM2Q5YTZmYmQ5N2Q4MDVhYzc4MDI5NTlhY2ZjZDZjMmQwMThlZTdmYzJjMDRkOGNmNzFjNDRlZTlhNGZhNjY1MDM4YjQyZjcwZTQ4NTAwZGNkMTliYTA5MzM0MzZlOWFkYWYxYzlmOWJlYzM0ZjQ2NDY1NmI0YzJhZjg4YTYyNWI5ZTZmNzcyZTNhYTFkMTZhNDU3YzdjZWFhOWU0ZTQ5N2ZhY2Y0YmRkNmVmZWI2NDMzYTNkZDNmY2FiNDBkZmM4NTViOThkMTI2ZmY5ZmIyMWJiZDBmMTcwNzgyYjEyZjQ0ODk5OGQwZGQ1NDk1YjMzODU3ODViMjU1MmU1YmZhMTUyMDhmNGNiNzhjMTc4ZmNhNDkxYjhhZTc5ZDliOTI5ZmE2NWJlZWZlZmQzMTg4NmUzZGVjOGViNzUzMzkiLCJ0eXBlIjoidXNlciIsImlhdCI6MTc3MjcyMzE3NywiZXhwIjoxNzczMzI3OTc3fQ.ycNXyvh9CU262mCfD8enzr4YiUK8i8VKoGDI8mqw__k';
-    const headers = new HttpHeaders({ 'Authorization': `Bearer ${apiToken}` });
+  cargarEstructuraFormulario(numeroOrden: string): void {
+    this.loadingFormConfig.set(true);
 
-    this.http.get(apiUrl, { headers }).subscribe({
-      next: (respuestaApi: any) => {
-        console.log("✅ Estructura descargada exitosamente con Token:", respuestaApi);
-        this.formularioEstructuraDestino = respuestaApi;
-        this.loadingFormConfig = false;
-      },
-      error: (error) => {
-        console.error("❌ Error consumiendo la API de AWS (Revisa permisos del Token):", error);
-        this.loadingFormConfig = false;
-        Swal.fire({
-          title: 'Error de conexión',
-          text: 'No se pudo cargar la estructura del formulario. Revisa la consola.',
-          icon: 'error'
-        });
-      }
-    });
+    // 🟢 MEJORA: Token movido a environment.ts — nunca en el código fuente
+    const apiUrl = `${this.API_BASE_URL}/serviceOrder/getFieldsByServiceOrder/${numeroOrden}`;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${this.API_TOKEN}` });
+
+    this.http.get(apiUrl, { headers })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (respuesta: any) => {
+          console.log('✅ Estructura descargada:', respuesta);
+          this.formularioEstructuraDestino.set(respuesta);
+          this.loadingFormConfig.set(false);
+        },
+        error: (error) => {
+          console.error('❌ Error cargando estructura:', error);
+          this.loadingFormConfig.set(false);
+          Swal.fire({
+            title: 'Error de conexión',
+            text: 'No se pudo cargar la estructura del formulario.',
+            icon: 'error',
+          });
+        },
+      });
   }
 
-  mostrarToast(mensaje: string) {
-    this.toastMessage.set(mensaje);
-    setTimeout(() => this.toastMessage.set(null), 3000);
-  }
+  // ─────────────────────────────────────────────
+  // Navegación
+  // ─────────────────────────────────────────────
 
-  atLeastOneFileValidator(): ValidatorFn {
-    return (control: AbstractControl) => {
-      const group = control as FormGroup;
-      const controls = group.controls;
-      const hasFile = Object.keys(controls).some(key => controls[key].value instanceof File);
-      return hasFile ? null : { noFiles: true };
-    };
-  }
-
-  private rebuildStep2Docs(config: DocConfig[]) {
-    const group: any = {};
-    config.forEach(doc => { group[doc.key] = [null]; });
-    this.form.setControl('step2_docs', this.fb.group(group, { validators: [this.atLeastOneFileValidator()] }));
-  }
-
-  onCountryChange(event: Event) {
-    const element = event.target as HTMLSelectElement;
-    const country = element.value;
-    if (!country) return;
-
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { step: 1, sn: country },
-      queryParamsHandling: 'merge',
-      replaceUrl: true
-    });
-
-    this.arrayItems.set([]);
-    this.form.get('step2_docs')?.reset();
-  }
-
-  goToStep(step: number) {
-    if (this.currentStep === 2 && step === 3) {
+  goToStep(step: number): void {
+    if (this.currentStep() === 2 && step === 3) {
       const docsGroup = this.form.get('step2_docs');
       if (docsGroup?.invalid) {
         docsGroup.markAllAsTouched();
         return;
       }
     }
-    this.router.navigate([], { relativeTo: this.route, queryParams: { step: step }, queryParamsHandling: 'merge' });
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { step },
+      queryParamsHandling: 'merge',
+    });
   }
 
-  irARegistroManual() {
-    this.router.navigate([], { relativeTo: this.route, queryParams: { step: 3, mode: 'manual', country: 'Otro' }, queryParamsHandling: 'merge' });
-  }
-
-  prevStep() {
-    if (this.currentStep === 2 || (this.currentStep === 3 && this.isManualMode)) {
+  prevStep(): void {
+    const step = this.currentStep();
+    if (step === 2 || (step === 3 && this.isManualMode())) {
       this.router.navigate([], {
         relativeTo: this.route,
         queryParams: { step: 1 },
         queryParamsHandling: 'merge',
-        replaceUrl: true
+        replaceUrl: true,
       });
-      this.countrySelected = undefined;
-      this.isManualMode = false;
+      this.countrySelected.set(undefined);
+      this.isManualMode.set(false);
       this.arrayItems.set([]);
       this.form.get('step2_docs')?.reset();
-    } else if (this.currentStep > 1) {
-      this.goToStep(this.currentStep - 1);
+    } else if (step > 1) {
+      this.goToStep(step - 1);
     }
   }
 
-  onFileSelected(event: Event, docKey: string, fileInput: HTMLInputElement) {
+  irARegistroManual(): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { step: 3, mode: 'manual', country: 'Otro' },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  siguienteSeccion(): void {
+    if (!this.validarSeccionActual()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Campos incompletos',
+        text: 'Por favor, diligencia todos los campos obligatorios (*) de esta sección para continuar.',
+        confirmButtonColor: 'var(--accent)',
+        background: 'var(--surface)',
+        color: 'var(--text)',
+      });
+      return;
+    }
+
+    if (!this.esUltimaSeccion()) {
+      this.seccionActualIndex.update((i) => i + 1);
+    } else {
+      this.currentStep.set(3);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  anteriorSeccion(): void {
+    if (this.seccionActualIndex() > 0) {
+      this.seccionActualIndex.update((i) => i - 1);
+    } else {
+      this.currentStep.set(1);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ─────────────────────────────────────────────
+  // País & Documentos
+  // ─────────────────────────────────────────────
+
+  onCountryChange(event: Event): void {
+    const country = (event.target as HTMLSelectElement).value;
+    if (!country) return;
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { step: 1, sn: country },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
+
+    this.arrayItems.set([]);
+    this.form.get('step2_docs')?.reset();
+  }
+
+  private rebuildStep2Docs(config: DocConfig[]): void {
+    const group: Record<string, any> = {};
+    config.forEach((doc) => (group[doc.key] = [null]));
+    this.form.setControl(
+      'step2_docs',
+      this.fb.group(group, { validators: [this.atLeastOneFileValidator()] })
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  // Archivos
+  // ─────────────────────────────────────────────
+
+  onFileSelected(event: Event, docKey: string, fileInput: HTMLInputElement): void {
     const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      const file = input.files[0];
-      const control = this.form.get('formDinamico')?.get(docKey);
+    const file = input.files?.[0];
+    if (!file) return;
 
-      let nombreParaMostrar = file.name;
+    const campos = this.camposDinamicos();
+    const extension = file.name.split('.').pop() ?? '';
+    const matchNum = docKey.match(/\d+/);
+    const numDoc = matchNum?.[0] ?? '1';
 
-      const partesNombre = file.name.split('.');
-      const extension = partesNombre.length > 1 ? partesNombre.pop() : '';
+    let campoSistemaGestion: any = null;
 
-      const matchNum = docKey.match(/\d+/);
-      const numDoc = matchNum ? matchNum[0] : '1';
-
-      let campoSistemaGestion: any = null;
-
-      if (numDoc === '1') {
-        campoSistemaGestion = this.camposDinamicos.find(c =>
+    if (numDoc === '1') {
+      campoSistemaGestion = campos.find(
+        (c) =>
           (c.label.toLowerCase().includes('tipo de sistema de gestión') ||
-           c.label.toLowerCase().includes('tipo de sistema')) &&
+            c.label.toLowerCase().includes('tipo de sistema')) &&
           !c.key.includes('_clon') &&
           c.type !== 'documento-agrupado'
-        );
-      } else {
-        const cajaAgrupada = this.camposDinamicos.find(c =>
-          c.type === 'documento-agrupado' &&
-          c.key === `agrupado_${numDoc}`
-        );
-
-        if (cajaAgrupada && cajaAgrupada.selectConfig) {
-          campoSistemaGestion = cajaAgrupada.selectConfig;
-        }
+      );
+    } else {
+      const cajaAgrupada = campos.find(
+        (c) => c.type === 'documento-agrupado' && c.key === `agrupado_${numDoc}`
+      );
+      if (cajaAgrupada?.selectConfig) {
+        campoSistemaGestion = cajaAgrupada.selectConfig;
       }
+    }
 
-      if (campoSistemaGestion) {
-        const valorSelect = this.form.get('formDinamico')?.get(campoSistemaGestion.key)?.value;
-        if (valorSelect && String(valorSelect).trim() !== '') {
-          nombreParaMostrar = `${valorSelect}.${extension}`;
-        }
+    let nombreParaMostrar = file.name;
+    if (campoSistemaGestion) {
+      const valorSelect = this.form.get('formDinamico')?.get(campoSistemaGestion.key)?.value;
+      if (valorSelect?.trim()) {
+        nombreParaMostrar = `${valorSelect}.${extension}`;
       }
+    }
 
-      this.form.get(`step2_docs.${docKey}`)?.setValue(file);
-      this.form.get('step2_docs')?.updateValueAndValidity();
+    this.form.get(`step2_docs.${docKey}`)?.setValue(file);
+    this.form.get('step2_docs')?.updateValueAndValidity();
 
-      this.form.get('formDinamico')?.get(docKey)?.setValue(nombreParaMostrar);
-      this.cdr.detectChanges();
-
-      if (control) {
-        control.setValue(nombreParaMostrar);
-        control.markAsDirty();
-        control.markAsTouched();
-        control.updateValueAndValidity();
-        console.log(`✅ Archivo renombrado inyectado en ${docKey}:`, control.value);
-      }
-
-      this.cdr.detectChanges();
+    const control = this.form.get('formDinamico')?.get(docKey);
+    if (control) {
+      control.setValue(nombreParaMostrar);
+      control.markAsDirty();
+      control.markAsTouched();
+      control.updateValueAndValidity();
     }
   }
 
-  eliminarDocumentoAdjunto(controlName: string, fileInput: HTMLInputElement) {
+  eliminarDocumentoAdjunto(controlName: string, fileInput: HTMLInputElement): void {
     this.form.get('formDinamico')?.get(controlName)?.setValue('');
     fileInput.value = '';
   }
 
-  removeFile(docKey: string = '', fileInput?: HTMLInputElement) {
-    if (this.currentStep === 1) {
+  removeFile(docKey = '', fileInput?: HTMLInputElement): void {
+    const step = this.currentStep();
+
+    if (step === 1) {
       this.form.get(`step2_docs.${docKey}`)?.setValue(null);
       this.form.get('step2_docs')?.updateValueAndValidity();
     }
 
-    if (this.currentStep === 2) {
+    if (step === 2) {
       this.form.get('formDinamico')?.get(docKey)?.setValue('');
     }
 
     if (fileInput) {
       fileInput.value = '';
     } else {
-      const el = document.getElementById('file-' + docKey) as HTMLInputElement;
+      const el = document.getElementById('file-' + docKey) as HTMLInputElement | null;
       if (el) el.value = '';
     }
 
-    if (this.currentStep === 1) {
-      this.camposDinamicos = [];
+    if (step === 1) {
+      this.camposDinamicos.set([]);
       this.form.setControl('formDinamico', this.fb.group({}));
-      this.overlayOpen = false;
-      alert("Archivo eliminado. Por favor, adjunta un documento válido.");
+      this.overlayOpen.set(false);
+      alert('Archivo eliminado. Por favor, adjunta un documento válido.');
     }
-
-    this.cdr.detectChanges();
   }
 
-  procesarYSiguiente() {
-    const docKey = 'rut';
-    const file = this.form.get(`step2_docs.${docKey}`)?.value;
+  // ─────────────────────────────────────────────
+  // Procesamiento PDF
+  // ─────────────────────────────────────────────
+
+  procesarYSiguiente(): void {
+    const file = this.form.get('step2_docs.rut')?.value;
 
     if (file instanceof File) {
-      this.overlayOpen = true;
-      this.overlayTitle = 'Extrayendo Documento...';
-      this.overlaySubtitle = 'Analizando datos con IA';
-      this.cdr.detectChanges();
-      this.procesarPdf(docKey);
+      this.overlayOpen.set(true);
+      this.overlayTitle.set('Extrayendo Documento...');
+      this.overlaySubtitle.set('Analizando datos con IA');
+      this.procesarPdf('rut');
     } else {
-      this.currentStep = 2;
+      this.currentStep.set(2);
     }
   }
 
-  procesarPdf(docKey: string) {
+  procesarPdf(docKey: string): void {
     const file = this.form.get(`step2_docs.${docKey}`)?.value;
     if (!(file instanceof File)) return;
 
-    this.overlayOpen = true;
-    this.overlayTitle = 'Extrayendo Documento...';
+    this.overlayOpen.set(true);
+    this.overlayTitle.set('Extrayendo Documento...');
 
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('render', JSON.stringify({ "dpi": 200, "pages": "1" }));
-
-    this.services.startExtraction(file, docKey).subscribe({
-      next: (data) => {
-        const jobId = data.jobId;
-        if (jobId) {
-          this.iniciarPolling(jobId);
-        } else {
+    this.services.startExtraction(file, docKey)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data: any) => {
+          if (data.jobId) {
+            this.iniciarPolling(data.jobId);
+          } else {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error de Ticket',
+              text: 'No se recibió Ticket de AWS. Intenta de nuevo.',
+              confirmButtonColor: 'var(--accent)',
+            });
+          }
+        },
+        error: (err: any) => {
+          console.error('❌ Error enviando PDF:', err);
           Swal.fire({
-          icon: 'error',
-          title: 'Error de Ticket',
-          text: 'No se recibió Ticket de AWS. Intenta de nuevo.',
-          confirmButtonColor: 'var(--accent)'
-        });
-      }
-    },
-    error: (err) => {
-      console.error("❌ Error enviando PDF:", err);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error de conexión',
-        text: 'Error de conexión con AWS.',
-        confirmButtonColor: 'var(--accent)'
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'Error de conexión con AWS.',
+            confirmButtonColor: 'var(--accent)',
+          });
+        },
       });
-    }
-    });
   }
 
-  iniciarPolling(jobId: string, intentos: number = 0) {
+  iniciarPolling(jobId: string, intentos = 0): void {
     if (intentos > 20) {
-      this.overlayOpen = false;
-      this.cdr.detectChanges();
+      this.overlayOpen.set(false);
       Swal.fire({
         icon: 'warning',
         title: 'Tiempo agotado',
         text: 'El procesamiento está tardando demasiado. Por favor, borra el archivo e intenta subirlo de nuevo.',
-        confirmButtonColor: 'var(--accent)'
+        confirmButtonColor: 'var(--accent)',
       });
       return;
     }
 
-    this.services.checkStatus(jobId).subscribe({
-      next: (res: any) => {
-        const estado = res.status ? res.status.toLowerCase() : '';
-        const progreso = res.progress || 0;
+    this.services.checkStatus(jobId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (res: any) => {
+          const estado = res.status?.toLowerCase() ?? '';
+          const progreso = res.progress ?? 0;
 
-        this.overlayTitle = `Analizando documento (${progreso}%)...`;
-        this.cdr.detectChanges();
+          this.overlayTitle.set(`Analizando documento (${progreso}%)...`);
 
-        if (estado === 'completed' || progreso === 100) {
-          this.extraerDatosDelJSON(res);
-        } else if (estado === 'failed' || estado === 'error') {
-          this.overlayTitle = 'Error leyendo el documento en AWS';
-          this.cdr.detectChanges();
+          if (estado === 'completed' || progreso === 100) {
+            this.extraerDatosDelJSON(res);
+          } else if (estado === 'failed' || estado === 'error') {
+            this.overlayTitle.set('Error leyendo el documento en AWS');
+            setTimeout(() => {
+              this.overlayOpen.set(false);
+              Swal.fire('Error', 'AWS no pudo procesar este archivo. Intenta con uno más claro.', 'error');
+            }, 1500);
+          } else {
+            setTimeout(() => this.iniciarPolling(jobId, intentos + 1), 5000);
+          }
+        },
+        error: (err: any) => {
+          console.error('Error de red en el polling:', err);
+          if (intentos < 3) {
+            setTimeout(() => this.iniciarPolling(jobId, intentos + 1), 5000);
+          } else {
+            this.overlayOpen.set(false);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error de conexión',
+              text: 'Perdimos conexión con el servidor. Borra el archivo y vuelve a intentar.',
+              confirmButtonColor: 'var(--error)',
+            });
+          }
+        },
+      });
+  }
 
-          setTimeout(() => {
-            this.overlayOpen = false;
-            this.cdr.detectChanges();
-            Swal.fire('Error', 'AWS no pudo procesar este archivo. Intenta con uno más claro.', 'error');
-          }, 1500);
+  // ─────────────────────────────────────────────
+  // Contactos
+  // ─────────────────────────────────────────────
 
-        } else {
-          setTimeout(() => {
-            this.iniciarPolling(jobId, intentos + 1);
-          }, 5000);
-        }
-      },
-      error: (err: any) => {
-        console.error("Error de red en el polling:", err);
-        if (intentos < 3) {
-          setTimeout(() => { this.iniciarPolling(jobId, intentos + 1); }, 5000);
-        } else {
-          this.overlayOpen = false;
-          this.cdr.detectChanges();
-          Swal.fire({
-            icon: 'error',
-            title: 'Error de conexión',
-            text: 'Perdimos conexión con el servidor. Borra el archivo y vuelve a intentar.',
-            confirmButtonColor: 'var(--error)'
-          });
-        }
+  getGrupoContacto(key: string): number {
+    if (!key) return 0;
+    if (key === 'contactType') return 1;
+    const match = key.match(/(contactPerson|positionCompany|email|TelExt|cellphone)(\d+)/);
+    return match?.[2] ? parseInt(match[2], 10) : 0;
+  }
+
+  esInicioDeContacto(index: number): boolean {
+    const campos = this.camposDinamicos();
+    const campo = campos[index];
+    const grupoActual = this.getGrupoContacto(campo.key);
+
+    if (grupoActual === 0 || campo.visible === false) return false;
+
+    for (let i = index - 1; i >= 0; i--) {
+      if (campos[i].visible !== false) {
+        return this.getGrupoContacto(campos[i].key) !== grupoActual;
+      }
+    }
+    return true;
+  }
+
+  agregarContacto(): void {
+    if (!this.puedeAgregarContacto()) {
+      this.mostrarLimiteAlcanzado('Solo se permiten hasta 5 personas de contacto.');
+      return;
+    }
+
+    this.contactosActivos.update((n) => n + 1);
+    const nuevoGrupo = this.contactosActivos();
+
+    this.camposDinamicos.update((campos) =>
+      campos.map((c) =>
+        this.getGrupoContacto(c.key) === nuevoGrupo ? { ...c, visible: true } : c
+      )
+    );
+  }
+
+  eliminarEsteContacto(grupo: number): void {
+    Swal.fire({
+      title: '¿Eliminar contacto?',
+      text: 'Se borrarán los datos de esta persona. Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: 'var(--error)',
+      cancelButtonColor: 'var(--surface-3)',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      background: 'var(--surface)',
+      color: 'var(--text)',
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+
+      this.camposDinamicos.update((campos) =>
+        campos.map((c) => {
+          if (this.getGrupoContacto(c.key) !== grupo) return c;
+          const control = this.form.get('formDinamico')?.get(c.key);
+          control?.setValue('');
+          control?.markAsUntouched();
+          control?.setErrors(null);
+          return { ...c, visible: false };
+        })
+      );
+
+      if (this.contactosActivos() > 1) {
+        this.contactosActivos.update((n) => n - 1);
       }
     });
   }
 
+  // ─────────────────────────────────────────────
+  // Beneficiarios
+  // ─────────────────────────────────────────────
 
+  esInicioDeBeneficiario(index: number): boolean {
+    const campos = this.camposDinamicos();
+    const campo = campos[index];
+    if (campo.grupoBeneficiario === 0 || campo.visible === false) return false;
 
-
-
-  agregarBeneficiario() {
-    if (this.beneficiariosActivos < 10) {
-      this.beneficiariosActivos++;
-
-      // Hacemos visibles los campos que pertenecen a este número de beneficiario
-      this.camposDinamicos.forEach(campo => {
-        if (campo.grupoBeneficiario === this.beneficiariosActivos) {
-          campo.visible = true;
-          campo.seccion = '1. Información del Proveedor'; // Aseguramos que se queden en la sección 3
-        }
-      });
-
-      this.cdr.detectChanges();
-
-    } else {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Límite alcanzado',
-        text: 'Has alcanzado el límite máximo permitido de 10 beneficiarios finales.',
-        confirmButtonText: 'Entendido',
-        confirmButtonColor: 'var(--accent)',
-        background: 'var(--surface)',
-        color: 'var(--text)',
-        customClass: {
-          popup: 'provider-card'
-        }
-      });
+    for (let i = index - 1; i >= 0; i--) {
+      if (campos[i].visible !== false) {
+        return campos[i].grupoBeneficiario !== campo.grupoBeneficiario;
+      }
     }
+    return true;
   }
 
+  // 🟢 Agrupa campos por grupoBeneficiario para renderizado en tabla
+  getCamposBeneficiarios(campos: CampoDinamico[]): { grupo: number; campos: CampoDinamico[] }[] {
+    const map = new Map<number, CampoDinamico[]>();
+    for (const c of campos) {
+      if (c.grupoBeneficiario > 0) {
+        if (!map.has(c.grupoBeneficiario)) map.set(c.grupoBeneficiario, []);
+        map.get(c.grupoBeneficiario)!.push(c);
+      }
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a - b).map(([grupo, cs]) => ({ grupo, campos: cs }));
+  }
 
-eliminarEsteBeneficiario(grupo: number) {
+  // 🟢 Campos normales sin beneficiario
+  getCamposNormales(campos: CampoDinamico[]): CampoDinamico[] {
+    return campos.filter(c =>
+      c.grupoBeneficiario === 0 &&
+      c.type !== 'documento-agrupado' && c.type !== 'legal-text' &&
+      c.type !== 'bloque-firmas' && c.type !== 'docs-info' &&
+      c.type !== 'beneficiary-info' && !c.type.includes('info')
+    );
+  }
+
+  // 🟢 Campos especiales (legal, firmas, docs-info, etc.) sin beneficiario
+  getCamposEspeciales(campos: CampoDinamico[]): CampoDinamico[] {
+    return campos.filter(c =>
+      c.grupoBeneficiario === 0 &&
+      (c.type === 'documento-agrupado' || c.type === 'legal-text' ||
+       c.type === 'bloque-firmas' || c.type === 'docs-info' ||
+       c.type === 'beneficiary-info' || c.type.includes('info'))
+    );
+  }
+
+  mostrarBotonBeneficiario(index: number): boolean {
+    const campos = this.camposDinamicos();
+    if (!this.puedeAgregarBeneficiario()) return false;
+
+    const campoActual = campos[index];
+    if (campoActual.visible === false) return false;
+
+    if (this.beneficiariosActivos() === 0) {
+      const primerOculto = campos.findIndex((c) => c.grupoBeneficiario > 0);
+      return primerOculto > 0 && index === primerOculto - 1;
+    }
+
+    let ultimoIndiceVisible = -1;
+    for (let i = campos.length - 1; i >= 0; i--) {
+      if (campos[i].grupoBeneficiario > 0 && campos[i].visible !== false) {
+        ultimoIndiceVisible = i;
+        break;
+      }
+    }
+    return index === ultimoIndiceVisible;
+  }
+
+  agregarBeneficiario(): void {
+    if (!this.puedeAgregarBeneficiario()) {
+      this.mostrarLimiteAlcanzado('Has alcanzado el límite máximo permitido de 10 beneficiarios finales.');
+      return;
+    }
+
+    this.beneficiariosActivos.update((n) => n + 1);
+    const nuevoBeneficiario = this.beneficiariosActivos();
+
+    this.camposDinamicos.update((campos) =>
+      campos.map((c) =>
+        c.grupoBeneficiario === nuevoBeneficiario
+          ? { ...c, visible: true, seccion: '1. Información del Proveedor' }
+          : c
+      )
+    );
+  }
+
+  eliminarEsteBeneficiario(grupo: number): void {
     Swal.fire({
       title: '¿Quitar beneficiario?',
       text: 'Se borrarán los datos que hayas ingresado para este beneficiario.',
@@ -495,409 +784,256 @@ eliminarEsteBeneficiario(grupo: number) {
       cancelButtonText: 'Cancelar',
       background: 'var(--surface)',
       color: 'var(--text)',
-      customClass: {
-        popup: 'provider-card',
-        cancelButton: 'btn-secondary'
-      }
     }).then((result) => {
-      if (result.isConfirmed) {
+      if (!result.isConfirmed) return;
 
-        // 🟢 Buscamos EXACTAMENTE los campos de este grupo y los destruimos
-        this.camposDinamicos.forEach(campo => {
-          if (campo.grupoBeneficiario === grupo) {
-            campo.visible = false; // Lo ocultamos
-
-            const control = this.form.get('formDinamico')?.get(campo.key);
-            if (control) {
-              control.setValue(''); // Vaciamos el dato
-              control.markAsUntouched(); // Quitamos alertas rojas
-              control.setErrors(null); // Evitamos que bloquee el formulario
-            }
-          }
-        });
-
-        // Solo restamos el contador si es mayor a 0
-        if (this.beneficiariosActivos > 0) {
-          this.beneficiariosActivos--;
-        }
-
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  getGrupoContacto(key: string): number {
-    if (!key) return 0;
-
-    // Si es el select principal, pertenece al Contacto 1
-    if (key === 'contactType') return 1;
-
-    // Extrae el número final de las llaves (ej: email2 -> 2)
-    const match = key.match(/(contactPerson|positionCompany|email|TelExt|cellphone)(\d+)/);
-    return match && match[2] ? parseInt(match[2], 10) : 0;
-  }
-
-  esInicioDeContacto(index: number): boolean {
-    const campo = this.camposDinamicos[index];
-    const grupoActual = this.getGrupoContacto(campo.key);
-
-    if (grupoActual === 0 || campo.visible === false) return false;
-
-    // Revisa hacia atrás para ver si es el primer campo de ese grupo
-    for (let i = index - 1; i >= 0; i--) {
-      const campoAnterior = this.camposDinamicos[i];
-      if (campoAnterior.visible !== false) {
-        return this.getGrupoContacto(campoAnterior.key) !== grupoActual;
-      }
-    }
-    return true;
-  }
-
-agregarContacto() {
-    if (this.contactosActivos < 5) {
-      this.contactosActivos++;
-
-      this.camposDinamicos.forEach(campo => {
-        // Buscamos los campos que pertenezcan al nuevo número (ej. el 2)
-        if (this.getGrupoContacto(campo.key) === this.contactosActivos) {
-          campo.visible = true; // Solo los encendemos, ya están en la sección correcta por el paso 1
-        }
-      });
-
-      this.cdr.detectChanges(); // Forzamos a Angular a redibujar la pantalla bonita
-
-    } else {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Límite alcanzado',
-        text: 'Solo se permiten hasta 5 personas de contacto.',
-        confirmButtonColor: '#3b82f6',
-        background: 'var(--surface)',
-        color: 'var(--text)'
-      });
-    }
-  }
-
-  eliminarEsteContacto(grupo: number) {
-    Swal.fire({
-      title: '¿Eliminar contacto?',
-      text: 'Se borrarán los datos de esta persona. Esta acción no se puede deshacer.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: 'var(--error)',
-      cancelButtonColor: 'var(--surface-3)',
-      confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'Cancelar',
-      background: 'var(--surface)',
-      color: 'var(--text)'
-    }).then((result) => {
-      if (result.isConfirmed) {
-
-        // Apagamos los campos y borramos lo que el usuario escribió
-        this.camposDinamicos.forEach(campo => {
-          if (this.getGrupoContacto(campo.key) === grupo) {
-            campo.visible = false;
-
-            const control = this.form.get('formDinamico')?.get(campo.key);
-            if (control) {
-              control.setValue('');
-              control.markAsUntouched();
-              control.setErrors(null);
-            }
-          }
-        });
-
-        if (this.contactosActivos > 1) {
-          this.contactosActivos--;
-        }
-
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-
-  eliminarUltimoBeneficiario() {
-    if (this.beneficiariosActivos > 0) {
-      Swal.fire({
-        title: '¿Quitar beneficiario?',
-        text: 'Se borrarán los datos que hayas ingresado para este beneficiario.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 'var(--error)',
-        cancelButtonColor: 'var(--surface-3)',
-        confirmButtonText: 'Sí, quitar',
-        cancelButtonText: 'Cancelar',
-        background: 'var(--surface)',
-        color: 'var(--text)',
-        customClass: {
-          popup: 'provider-card',
-          cancelButton: 'btn-secondary'
-        }
-      }).then((result) => {
-        if (result.isConfirmed) {
-
-          this.camposDinamicos.forEach(campo => {
-            if (campo.grupoBeneficiario === this.beneficiariosActivos) {
-              campo.visible = false; // Lo ocultamos de la pantalla
-
-              const control = this.form.get('formDinamico')?.get(campo.key);
-              if (control) {
-                control.setValue(''); // Vaciamos el dato
-                control.markAsUntouched(); // 🟢 Quitamos las alertas rojas de validación
-                control.setErrors(null); // 🟢 Evitamos que bloquee el botón de "Siguiente"
-              }
-            }
-          });
-
-          this.beneficiariosActivos--;
-          this.cdr.detectChanges();
-        }
-      });
-    }
-  }
-
-  esInicioDeBeneficiario(index: number): boolean {
-    const campo = this.camposDinamicos[index];
-    if (campo.grupoBeneficiario === 0 || campo.visible === false) return false;
-    for (let i = index - 1; i >= 0; i--) {
-      const campoAnterior = this.camposDinamicos[i];
-      if (campoAnterior.visible !== false) {
-        return campoAnterior.grupoBeneficiario !== campo.grupoBeneficiario;
-      }
-    }
-    return true;
-  }
-
-  mostrarBotonBeneficiario(index: number): boolean {
-    if (!this.esEmpresaJuridica || this.beneficiariosActivos >= 10) return false;
-    const campoActual = this.camposDinamicos[index];
-    if (campoActual.visible === false) return false;
-
-    if (this.beneficiariosActivos === 0) {
-      const primerOculto = this.camposDinamicos.findIndex(c => c.grupoBeneficiario > 0);
-      if (primerOculto > 0) {
-        return index === primerOculto - 1;
-      }
-      return false;
-    } else {
-      let ultimoIndiceVisible = -1;
-      for (let i = this.camposDinamicos.length - 1; i >= 0; i--) {
-        const c = this.camposDinamicos[i];
-        if (c.grupoBeneficiario > 0 && c.visible !== false) {
-          ultimoIndiceVisible = i;
-          break;
-        }
-      }
-      return index === ultimoIndiceVisible;
-    }
-  }
-
-  esInicioDeSeccion(index: number): boolean {
-    const campoActual = this.camposDinamicos[index];
-    if (campoActual.visible === false) return false;
-    for (let i = index - 1; i >= 0; i--) {
-      const campoAnterior = this.camposDinamicos[i];
-      if (campoAnterior.visible !== false) {
-        return campoAnterior.seccion !== campoActual.seccion;
-      }
-    }
-    return true;
-  }
-
-
-
-  agregarDocumento() {
-    if (this.documentosActivos < 10) {
-      this.documentosActivos++;
-
-      const docIndex = this.camposDinamicos.findIndex(c => c.key === `document${this.documentosActivos}`);
-      if (docIndex === -1) return;
-
-      const docOriginal = { ...this.camposDinamicos[docIndex] };
-      this.camposDinamicos.splice(docIndex, 1);
-
-      const selectOriginal = this.camposDinamicos.find(c =>
-        (c.label.toLowerCase().includes('tipo de sistema de gestión') ||
-         c.label.toLowerCase().includes('tipo de sistema')) &&
-        !c.key.includes('_clon') && c.type !== 'documento-agrupado'
+      this.camposDinamicos.update((campos) =>
+        campos.map((c) => {
+          if (c.grupoBeneficiario !== grupo) return c;
+          const control = this.form.get('formDinamico')?.get(c.key);
+          control?.setValue('');
+          control?.markAsUntouched();
+          control?.setErrors(null);
+          return { ...c, visible: false };
+        })
       );
 
-      if (selectOriginal) {
-        const nuevaLlaveSelect = `${selectOriginal.key}_clon${this.documentosActivos}`;
-
-        const clonSelect = {
-          ...selectOriginal,
-          key: nuevaLlaveSelect,
-          label: `${selectOriginal.label} ${this.documentosActivos}`,
-          grupoDocumento: this.documentosActivos,
-          visible: true
-        };
-
-        const formDinamico = this.form.get('formDinamico') as any;
-        if (formDinamico && typeof formDinamico.addControl === 'function') {
-           formDinamico.addControl(nuevaLlaveSelect, this.fb.control(''));
-        }
-
-        const llaveAnterior = this.documentosActivos === 2 ? 'document1' : `agrupado_${this.documentosActivos - 1}`;
-        const indexAnterior = this.camposDinamicos.findIndex(c => c.key === llaveAnterior);
-
-        const seccionHeredada = indexAnterior !== -1 ? this.camposDinamicos[indexAnterior].seccion : '1. Información del Proveedor';
-
-        docOriginal.visible = true;
-        docOriginal.label = `Documento ${this.documentosActivos}`;
-        docOriginal.grupoDocumento = this.documentosActivos;
-
-        const campoAgrupado = {
-          type: 'documento-agrupado',
-          key: `agrupado_${this.documentosActivos}`,
-          visible: true,
-          isLong: true,
-          seccion: seccionHeredada,
-          tituloInterno: `📁 Documento Adicional ${this.documentosActivos - 1}`,
-          selectConfig: clonSelect,
-          fileConfig: docOriginal
-        };
-
-        const insertIndex = indexAnterior !== -1 ? indexAnterior + 1 : this.camposDinamicos.length;
-        this.camposDinamicos.splice(insertIndex, 0, campoAgrupado);
+      if (this.beneficiariosActivos() > 0) {
+        this.beneficiariosActivos.update((n) => n - 1);
       }
-
-      this.cdr.detectChanges();
-    }
+    });
   }
 
-  async extraerDatosDelJSON(statusRes: any) {
+  eliminarUltimoBeneficiario(): void {
+    if (this.beneficiariosActivos() === 0) return;
+    this.eliminarEsteBeneficiario(this.beneficiariosActivos());
+  }
+
+  // ─────────────────────────────────────────────
+  // Documentos adicionales
+  // ─────────────────────────────────────────────
+
+  agregarDocumento(): void {
+    if (!this.puedeAgregarDocumento()) return;
+
+    this.documentosActivos.update((n) => n + 1);
+    const nuevoIndex = this.documentosActivos();
+
+    const campos = [...this.camposDinamicos()];
+    const docIndex = campos.findIndex((c) => c.key === `document${nuevoIndex}`);
+    if (docIndex === -1) return;
+
+    const docOriginal = { ...campos[docIndex] };
+    campos.splice(docIndex, 1);
+
+    const selectOriginal = campos.find(
+      (c) =>
+        (c.label.toLowerCase().includes('tipo de sistema de gestión') ||
+          c.label.toLowerCase().includes('tipo de sistema')) &&
+        !c.key.includes('_clon') &&
+        c.type !== 'documento-agrupado'
+    );
+
+    if (selectOriginal) {
+      const nuevaLlaveSelect = `${selectOriginal.key}_clon${nuevoIndex}`;
+
+      const clonSelect: CampoDinamico = {
+        ...selectOriginal,
+        key: nuevaLlaveSelect,
+        label: `${selectOriginal.label} ${nuevoIndex}`,
+        grupoDocumento: nuevoIndex,
+        visible: true,
+      };
+
+      const formDinamico = this.form.get('formDinamico') as FormGroup;
+      formDinamico?.addControl(nuevaLlaveSelect, this.fb.control(''));
+
+      const llaveAnterior = nuevoIndex === 2 ? 'document1' : `agrupado_${nuevoIndex - 1}`;
+      const indexAnterior = campos.findIndex((c) => c.key === llaveAnterior);
+      const seccionHeredada = indexAnterior !== -1 ? campos[indexAnterior].seccion : '1. Información del Proveedor';
+
+      docOriginal.visible = true;
+      docOriginal.label = `Documento ${nuevoIndex}`;
+      docOriginal.grupoDocumento = nuevoIndex;
+
+      const campoAgrupado: CampoDinamico = {
+        type: 'documento-agrupado',
+        key: `agrupado_${nuevoIndex}`,
+        visible: true,
+        isLong: true,
+        seccion: seccionHeredada,
+        tituloInterno: `📁 Documento Adicional ${nuevoIndex - 1}`,
+        selectConfig: clonSelect,
+        fileConfig: docOriginal,
+        label: '',
+        options: [],
+        columnSpan: 1,
+        autocompletado: false,
+        grupoBeneficiario: 0,
+        grupoDocumento: nuevoIndex,
+        orderToGetValue: 99,
+      };
+
+      const insertIndex = indexAnterior !== -1 ? indexAnterior + 1 : campos.length;
+      campos.splice(insertIndex, 0, campoAgrupado);
+    }
+
+    this.camposDinamicos.set(campos);
+  }
+
+  // ─────────────────────────────────────────────
+  // Secciones
+  // ─────────────────────────────────────────────
+
+  esInicioDeSeccion(index: number): boolean {
+    const campos = this.camposDinamicos();
+    const campoActual = campos[index];
+    if (campoActual.visible === false) return false;
+
+    for (let i = index - 1; i >= 0; i--) {
+      if (campos[i].visible !== false) {
+        return campos[i].seccion !== campoActual.seccion;
+      }
+    }
+    return true;
+  }
+
+  validarSeccionActual(): boolean {
+    let esValido = true;
+    this.camposSeccionActual().forEach((c) => {
+      const control = this.form.get('formDinamico')?.get(c.key);
+      if (control?.invalid) {
+        control.markAsTouched();
+        esValido = false;
+      }
+    });
+    return esValido;
+  }
+
+  getNombreCorto(seccion: string): string {
+    const nombre = seccion.replace(/^\d+\.\s*/, '').toUpperCase();
+    if (nombre.includes('GENERAL')) return 'Info. General';
+    if (nombre.includes('TRIBUTARIA')) return 'Tributaria';
+    if (nombre.includes('BANCARIA')) return 'Bancaria';
+    if (nombre.includes('DOCUMENTACIÓN') || nombre.includes('REQUERIDA')) return 'Documentos';
+    if (nombre.includes('CUMPLIMIENTO') || nombre.includes('LEGAL')) return 'Legal';
+    if (nombre.includes('NUVANT')) return 'Uso Interno';
+    return nombre.length > 15 ? nombre.substring(0, 15) + '...' : nombre;
+  }
+
+  // ─────────────────────────────────────────────
+  // Extracción de datos PDF
+  // ─────────────────────────────────────────────
+
+  async extraerDatosDelJSON(statusRes: any): Promise<void> {
     try {
-      console.log("🚀 Iniciando extracción inteligente de RUT y Plantilla...");
-
-      const fieldsExtraidos = statusRes.result?.resultsByPage?.[0]?.fields || [];
-
+      const fieldsExtraidos = statusRes.result?.resultsByPage?.[0]?.fields ?? [];
       const campoFecha = fieldsExtraidos.find((f: any) => f.field === 'Fecha generación documento');
 
-      if (campoFecha && campoFecha.value) {
+      if (campoFecha?.value) {
         const esValido = this.validarVigenciaRut(campoFecha.value);
-
         if (!esValido) {
-          this.overlayOpen = false;
-          this.cdr.detectChanges();
-
+          this.overlayOpen.set(false);
           await Swal.fire({
             title: 'Documento Vencido',
             text: 'El documento tiene más de 30 días de antigüedad. Por favor, adjunta uno reciente.',
             icon: 'error',
             confirmButtonColor: 'var(--accent)',
             background: 'var(--surface)',
-            color: 'var(--text)'
+            color: 'var(--text)',
           });
-
           this.removeFile();
-          this.cdr.detectChanges();
           return;
         }
       }
 
-      this.overlayTitle = 'Organizando la información...';
-      this.overlaySubtitle = 'Casi listo';
-      this.cdr.detectChanges();
+      this.overlayTitle.set('Organizando la información...');
+      this.overlaySubtitle.set('Casi listo');
 
-      const tipoContribuyenteObj = fieldsExtraidos.find((f: any) => f.field.includes('Tipo de contribuyente'));
-      const esJuridica = tipoContribuyenteObj && tipoContribuyenteObj.value?.toLowerCase().includes('jurídica');
+      const tipoContribuyente = fieldsExtraidos.find((f: any) =>
+        f.field.includes('Tipo de contribuyente')
+      );
+      const esJuridica = !!tipoContribuyente?.value?.toLowerCase().includes('jurídica');
+      this.esJuridica.set(esJuridica);
+      this.esEmpresaJuridica.set(esJuridica);
 
-      this.esJuridica = !!esJuridica; // 🟢 Variable global actualizada
-      this.esEmpresaJuridica = !!esJuridica;
+      const nuevoCamposDinamicos: CampoDinamico[] = [];
+      const controlesReactivos: Record<string, any> = {};
 
-      this.camposDinamicos = [];
-      const controlesReactivos: { [key: string]: any } = {};
+      let estructura = this.formularioEstructuraDestino();
+      if (estructura) {
+        estructura = this.pdfMapService.fillFormWithPdfData(statusRes, estructura);
+        this.formularioEstructuraDestino.set(estructura);
 
-      if (this.formularioEstructuraDestino) {
-        this.formularioEstructuraDestino = this.pdfMapService.fillFormWithPdfData(statusRes, this.formularioEstructuraDestino);
+        const dataRead = estructura.allowedToRead?.data ?? [];
+        const dataWrite = estructura.isAllowedToWrite?.data ?? [];
 
-        const dataRead = this.formularioEstructuraDestino.allowedToRead?.data || [];
-        const dataWrite = this.formularioEstructuraDestino.isAllowedToWrite?.data || [];
-        const seccionesPlantilla = [...dataRead, ...dataWrite];
+        [...dataRead, ...dataWrite].forEach((itemPlantilla: any) => {
+          const fields = itemPlantilla.fields;
+          if (!fields?.labelId) return;
 
-        seccionesPlantilla.forEach((itemPlantilla: any) => {
-          if (itemPlantilla.fields && itemPlantilla.fields.labelId) {
-            const key = itemPlantilla.fields.labelId;
-            const valorExtraido = itemPlantilla.valueField;
-            const fueExtraidoPorIA = valorExtraido !== null && valorExtraido !== undefined && String(valorExtraido).trim() !== '';
+          const key: string = fields.labelId;
+          const valorExtraido = itemPlantilla.valueField;
+          const fueExtraido = valorExtraido !== null && valorExtraido !== undefined && String(valorExtraido).trim() !== '';
 
-            // 🟢 CORRECCIÓN LÓGICA: Ahora sí muestra los datos de la IA correctamente
-            let esCampoParaEsteUsuario = true;
-            const camposSoloNatural = ['firstLastName', 'secondLastName', 'identification', 'identificationNumber', 'names'];
-            const camposSoloJuridica = ['companyname','nitId', 'dv', 'representativeName', 'nationalIdentityCard', 'riskControlSystem', 'which risk',];
+          // Filtrar campos según tipo de persona
+          let esCampoParaEsteUsuario = true;
+          if (esJuridica) {
+            if (CAMPOS_SOLO_NATURAL.includes(key)) esCampoParaEsteUsuario = false;
+          } else {
+            if (CAMPOS_SOLO_JURIDICA.includes(key) || key.toLowerCase().includes('beneficiary')) esCampoParaEsteUsuario = false;
+          }
 
-            if (this.esEmpresaJuridica) {
-              if (camposSoloNatural.includes(key)) esCampoParaEsteUsuario = false;
-            } else {
-              if (camposSoloJuridica.includes(key) || key.toLowerCase().includes('beneficiary')) esCampoParaEsteUsuario = false;
-            }
+          const nroContacto = this.getGrupoContacto(key);
+          let esVisible = nroContacto <= 1;
+          let grupoBeneficiario = 0;
+          let grupoDocumento = 0;
 
-            const nroContacto = this.getGrupoContacto(key);
-            let esVisible = true;
-            let grupoBeneficiario = 0;
-            let grupoDocumento = 0;
-            if (nroContacto > 1) {
-               esVisible = false;
-            }
-
-            if (this.esEmpresaJuridica && key.toLowerCase().includes('beneficiary')) {
-              const match = key.match(/\d+/);
-              if (match) {
-                grupoBeneficiario = parseInt(match[0], 10);
-                esVisible = false; // Los beneficiarios inician ocultos hasta darle click a "+"
-              }
-            }
-            if (nroContacto > 1) {
+          if (esJuridica && key.toLowerCase().includes('beneficiary')) {
+            const match = key.match(/\d+/);
+            if (match) {
+              grupoBeneficiario = parseInt(match[0], 10);
               esVisible = false;
             }
+          }
 
-            if (key.startsWith('document')) {
-              const match = key.match(/\d+/);
-              if (match) {
-                grupoDocumento = parseInt(match[0], 10);
-                if (grupoDocumento > this.documentosActivos) esVisible = false;
-              }
+          if (key.startsWith('document')) {
+            const match = key.match(/\d+/);
+            if (match) {
+              grupoDocumento = parseInt(match[0], 10);
+              if (grupoDocumento > this.documentosActivos()) esVisible = false;
             }
+          }
 
-            if (!controlesReactivos[key] && esCampoParaEsteUsuario) {
-              controlesReactivos[key] = [fueExtraidoPorIA ? valorExtraido : ''];
+          if (!controlesReactivos[key] && esCampoParaEsteUsuario) {
+            controlesReactivos[key] = [fueExtraido ? valorExtraido : ''];
 
-              let nombreSeccion = itemPlantilla.fields.section || itemPlantilla.section || '1. Información del Proveedor';
+            let nombreSeccion = fields.section ?? itemPlantilla.section ?? '1. Información del Proveedor';
+            if (grupoBeneficiario > 0 || key.toLowerCase().includes('beneficiary')) nombreSeccion = '1. Información del Proveedor';
+            if (nroContacto > 0 || key.toLowerCase().includes('contact')) nombreSeccion = '3. INFORMACIÓN GENERAL DEL PROVEEDOR';
 
-              if (grupoBeneficiario > 0 || key.toLowerCase().includes('beneficiary')) {
-                nombreSeccion = '1. Información del Proveedor';
-              }
-
-              const nroContacto = this.getGrupoContacto(key);
-              if (nroContacto > 0 || key.toLowerCase().includes('contact')) {
-                nombreSeccion = '3. INFORMACIÓN GENERAL DEL PROVEEDOR';
-              }
-
-             this.camposDinamicos.push({
-                key: key,
-                label: itemPlantilla.fields.labelName,
-                visible: esVisible,         // 👈 Nace visible solo si es el contacto 1
-                seccion: nombreSeccion,     // 👈 Forzado a la sección 3
-                type: itemPlantilla.fields.labelType || 'text',
-                options: itemPlantilla.fields.options || [],
-                isLong: false,
-                columnSpan: itemPlantilla.fields.columnSpan || 1,
-                autocompletado: false,
-                grupoBeneficiario: 0,
-                grupoDocumento: 0,
-                orderToGetValue: itemPlantilla.fields.orderToGetValue || 99
-              });
-                  }
+            nuevoCamposDinamicos.push({
+              key,
+              label: fields.labelName,
+              visible: esVisible,
+              seccion: nombreSeccion,
+              type: fields.labelType ?? 'text',
+              options: fields.options ?? [],
+              isLong: false,
+              columnSpan: fields.columnSpan ?? 1,
+              autocompletado: false,
+              grupoBeneficiario,
+              grupoDocumento,
+              orderToGetValue: fields.orderToGetValue ?? 99,
+            });
           }
         });
       }
 
-      const camposManualesAdicionales: any[] = [
-        // --- SECCIÓN 3: INFORMACIÓN GENERAL ---
+      // Campos manuales adicionales (definición compacta)
+      const camposManuales: Partial<CampoDinamico>[] = [
         { key: 'contactPerson', label: 'Persona de contacto', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
-        { key: 'positionCompany', label: 'Cargo', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1},
+        { key: 'positionCompany', label: 'Cargo', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
         { key: 'email', label: 'Email', type: 'email', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
         { key: 'TelExt', label: 'Tel/ext', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
         { key: 'cellphone', label: 'Celular', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
@@ -905,11 +1041,7 @@ agregarContacto() {
         { key: 'City', label: 'Ciudad', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
         { key: 'address', label: 'Dirección', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
         { key: 'addressHeadquarters', label: 'Dirección (2) sede', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
-
-        // 🟢 CAJA INFORMATIVA BENEFICIARIOS (Solo Jurídicas) -> ordenFijo: 15.5 para que quede al final de la Sec 3
         { key: 'texto_info_beneficiario', label: '', type: 'beneficiary-info', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 3, ordenFijo: 15.5 },
-
-        // --- SECCIÓN 4: INFORMACIÓN TRIBUTARIA ---
         { key: 'companyType', label: 'Tipo empresa', type: 'select', seccion: '4. INFORMACIÓN TRIBUTARIA', visible: true, columnSpan: 1 },
         { key: 'ivaRegime', label: 'Régimen de IVA', type: 'select', seccion: '4. INFORMACIÓN TRIBUTARIA', visible: true, columnSpan: 1 },
         { key: 'largeTaxpayer', label: 'Gran Contribuyente', type: 'select', seccion: '4. INFORMACIÓN TRIBUTARIA', visible: true, columnSpan: 1 },
@@ -919,385 +1051,276 @@ agregarContacto() {
         { key: 'icaActivityCode', label: 'Código actividad ICA', type: 'text', seccion: '4. INFORMACIÓN TRIBUTARIA', visible: true, columnSpan: 1 },
         { key: 'icaFee', label: 'Tarifa ICA', type: 'text', seccion: '4. INFORMACIÓN TRIBUTARIA', visible: true, columnSpan: 1 },
         { key: 'economicActivity', label: 'Actividad económica (código CIUU)', type: 'text', seccion: '4. INFORMACIÓN TRIBUTARIA', visible: true, columnSpan: 1 },
-
-        // --- SECCIÓN 5: INFORMACIÓN BANCARIA ---
         { key: 'nameBank', label: 'Nombre del banco', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
-        { key: 'branch', label: 'Sucursal', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1},
+        { key: 'branch', label: 'Sucursal', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
         { key: 'countryCity', label: 'País/ciudad', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
-        { key: 'bankAddress', label: 'Dirección', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1},
+        { key: 'bankAddress', label: 'Dirección', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
         { key: 'bankPhone', label: 'Teléfono', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
         { key: 'accountNumber', label: 'Número de cuenta', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
         { key: 'typeAccount', label: 'Tipo de cuenta', type: 'select', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
         { key: 'paymentCurrency', label: 'Moneda de pago', type: 'select', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
-        { key: 'agreedPaymentTerm', label: 'Plazo de Pago pactado', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1},
+        { key: 'agreedPaymentTerm', label: 'Plazo de Pago pactado', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
         { key: 'paymentMethod', label: 'Método de pago', type: 'select', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
         { key: 'emailElectronicBillingPayments', label: 'E-mail Facturación electrónica/Pagos', type: 'email', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
         { key: 'WhichMetodWire', label: '¿Cuales?', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
-
-        // --- SECCIÓN 6: DOCUMENTACIÓN REQUERIDA ---
-        { key: 'texto_info_seccion6', label: '', type: 'docs-info', seccion: '6. DOCUMENTACIÓN REQUERIDA', visible: true, columnSpan: 3, ordenFijo: 45.5 }, // 🟢 Decimal para ubicarse bien
-        { key: 'typeManagementSystem', label: 'Tipo de sistema de gestión', type: 'select', seccion: '6. DOCUMENTACIÓN REQUERIDA', visible: true, columnSpan: 1},
+        { key: 'texto_info_seccion6', label: '', type: 'docs-info', seccion: '6. DOCUMENTACIÓN REQUERIDA', visible: true, columnSpan: 3, ordenFijo: 45.5 },
+        { key: 'typeManagementSystem', label: 'Tipo de sistema de gestión', type: 'select', seccion: '6. DOCUMENTACIÓN REQUERIDA', visible: true, columnSpan: 1 },
         { key: 'document1', label: 'Documento sistema de gestión', type: 'text', seccion: '6. DOCUMENTACIÓN REQUERIDA', visible: true, columnSpan: 2, required: false, grupoDocumento: 1 },
         { key: 'document_ambiental', label: 'Certificación ISO 14001 o Sostenibilidad', type: 'text', seccion: '6. DOCUMENTACIÓN REQUERIDA', visible: true, columnSpan: 3 },
-
-        // 🟢 SECCIÓN 8: USO EXCLUSIVO NUVANT
-        { key: 'applicationState', label: 'Estado de la solicitud', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno, columnSpan: 1, required: this.esUsuarioInterno, ordenFijo: 90.1 },
-        { key: 'requestedBy', label: 'Solicitado por', type: 'text', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno, columnSpan: 1, required: this.esUsuarioInterno, ordenFijo: 90.2 },
-        { key: 'managementWhichItBelongs', label: 'Gerencia a la que pertenece', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno, columnSpan: 1, required: this.esUsuarioInterno, ordenFijo: 90.3 },
-        { key: 'ApplicantPosition', label: 'Cargo del solicitante', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno, columnSpan: 1, required: this.esUsuarioInterno, ordenFijo: 90.4 },
-        { key: 'supplierType', label: 'Tipo de proveedor', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno, columnSpan: 2, required: this.esUsuarioInterno, ordenFijo: 90.5 },
-        { key: 'supplierClassification', label: 'Clasificación del proveedor', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno, columnSpan: 2, required: this.esUsuarioInterno, ordenFijo: 90.6 },
-        { key: 'date', label: 'Fecha', type: 'date', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno, columnSpan: 1, required: this.esUsuarioInterno, ordenFijo: 90.7 },
-        { key: 'isCounterpartySelected', label: '¿El proveedor es seleccionado por la contraparte?', type: 'textarea', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno, columnSpan: 3, ordenFijo: 90.8 }
+        { key: 'applicationState', label: 'Estado de la solicitud', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 1, required: this.esUsuarioInterno(), ordenFijo: 90.1 },
+        { key: 'requestedBy', label: 'Solicitado por', type: 'text', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 1, required: this.esUsuarioInterno(), ordenFijo: 90.2 },
+        { key: 'managementWhichItBelongs', label: 'Gerencia a la que pertenece', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 1, required: this.esUsuarioInterno(), ordenFijo: 90.3 },
+        { key: 'ApplicantPosition', label: 'Cargo del solicitante', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 1, required: this.esUsuarioInterno(), ordenFijo: 90.4 },
+        { key: 'supplierType', label: 'Tipo de proveedor', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 2, required: this.esUsuarioInterno(), ordenFijo: 90.5 },
+        { key: 'supplierClassification', label: 'Clasificación del proveedor', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 2, required: this.esUsuarioInterno(), ordenFijo: 90.6 },
+        { key: 'date', label: 'Fecha', type: 'date', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 1, required: this.esUsuarioInterno(), ordenFijo: 90.7 },
+        { key: 'isCounterpartySelected', label: '¿El proveedor es seleccionado por la contraparte?', type: 'textarea', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 3, ordenFijo: 90.8 },
       ];
 
-
-
-
-      // =========================================================================
-      // 🟢 LA MAGIA DE HERENCIA Y ORDENAMIENTO (BASADO EN API)
-      // =========================================================================
-      camposManualesAdicionales.forEach(campoManual => {
-
-        const indexAPI = this.camposDinamicos.findIndex(c => c.key === campoManual.key || c.label.toLowerCase().trim() === campoManual.label.toLowerCase().trim());
+      // Fusión campos API + manuales
+      camposManuales.forEach((campoManual) => {
+        const key = campoManual.key!;
+        const indexAPI = nuevoCamposDinamicos.findIndex(
+          (c) => c.key === key || c.label.toLowerCase().trim() === campoManual.label?.toLowerCase().trim()
+        );
 
         let valorDeIA = '';
-        let extraidoPorIA = false;
-        let opcionesDelBackend = campoManual.options || [];
-        let ordenDefinitivo = campoManual.ordenFijo || 9999; // 🟢 Por defecto toma el orden que le pusimos, si no tiene, va al final
+        let opcionesDelBackend = campoManual.options ?? [];
+        let ordenDefinitivo = campoManual.ordenFijo ?? 9999;
 
         if (indexAPI !== -1) {
-          const campoAPI = this.camposDinamicos[indexAPI];
-          const llaveAPI = campoAPI.key;
-
-          valorDeIA = controlesReactivos[llaveAPI] ? controlesReactivos[llaveAPI][0] : '';
-          extraidoPorIA = campoAPI.autocompletado;
-
-          if (campoAPI.options && campoAPI.options.length > 0) {
-            opcionesDelBackend = campoAPI.options;
-          }
-
-          // 🟢 Si la API trae un orden para este campo, sobrescribimos el manual
+          const campoAPI = nuevoCamposDinamicos[indexAPI];
+          valorDeIA = controlesReactivos[campoAPI.key]?.[0] ?? '';
+          if (campoAPI.options?.length) opcionesDelBackend = campoAPI.options;
           if (campoAPI.orderToGetValue !== undefined && campoAPI.orderToGetValue !== 9999) {
             ordenDefinitivo = campoAPI.orderToGetValue;
           }
-
-          delete controlesReactivos[llaveAPI];
-          this.camposDinamicos.splice(indexAPI, 1);
+          delete controlesReactivos[campoAPI.key];
+          nuevoCamposDinamicos.splice(indexAPI, 1);
         }
 
-        controlesReactivos[campoManual.key] = [valorDeIA, campoManual.required ? Validators.required : null];
+        controlesReactivos[key] = [valorDeIA, campoManual.required ? Validators.required : null];
 
-        this.camposDinamicos.push({
-          key: campoManual.key,
-          label: campoManual.label,
-          type: campoManual.type,
+        nuevoCamposDinamicos.push({
+          key,
+          label: campoManual.label ?? '',
+          type: campoManual.type ?? 'text',
           options: opcionesDelBackend,
           isLong: false,
-          columnSpan: campoManual.columnSpan,
-          autocompletado: extraidoPorIA,
-          visible: campoManual.visible,
+          columnSpan: campoManual.columnSpan ?? 1,
+          autocompletado: false,
+          visible: campoManual.visible ?? true,
           grupoBeneficiario: 0,
-          grupoDocumento: campoManual.grupoDocumento || 0,
-          seccion: campoManual.seccion,
-          orderToGetValue: ordenDefinitivo // 🟢 Guardamos el orden final para la grilla
+          grupoDocumento: campoManual.grupoDocumento ?? 0,
+          seccion: campoManual.seccion ?? '',
+          orderToGetValue: ordenDefinitivo,
+          ordenFijo: campoManual.ordenFijo,
         });
       });
 
-      // =========================================================================
-      // 🟢 ORDEN FINAL ABSOLUTO DE TODOS LOS CAMPOS
-      // =========================================================================
+      // Orden final
+      nuevoCamposDinamicos.sort((a, b) => (a.orderToGetValue ?? 9999) - (b.orderToGetValue ?? 9999));
 
-      // 1. Ordenamos todos los campos combinados usando el número dictado por la API (o nuestros decimales)
-      this.camposDinamicos.sort((a, b) => {
-         const ordenA = a.orderToGetValue || 9999;
-         const ordenB = b.orderToGetValue || 9999;
-         return ordenA - ordenB;
-      });
-
-      // 2. Extraemos las secciones respetando el orden matemático que acabamos de establecer
-      this.seccionesDisponibles = [...new Set(this.camposDinamicos.map(c => c.seccion))];
-      this.seccionActualIndex = 0;
-
+      this.camposDinamicos.set(nuevoCamposDinamicos);
+      this.seccionesDisponibles.set([...new Set(nuevoCamposDinamicos.map((c) => c.seccion))]);
+      this.seccionActualIndex.set(0);
       this.form.setControl('formDinamico', this.fb.group(controlesReactivos));
 
       setTimeout(() => {
-        this.overlayOpen = false;
-        this.currentStep = 2;
-        this.cdr.detectChanges();
+        this.overlayOpen.set(false);
+        this.currentStep.set(2);
       }, 500);
 
     } catch (error) {
-      console.error("Error crítico mapeando el JSON:", error);
-      this.overlayOpen = false;
-      this.cdr.detectChanges();
-
+      console.error('Error crítico mapeando el JSON:', error);
+      this.overlayOpen.set(false);
       Swal.fire({
         title: 'Error de Lectura',
         text: 'Ocurrió un problema al organizar los datos del documento. Intenta subirlo nuevamente.',
         icon: 'warning',
         confirmButtonColor: 'var(--accent)',
         background: 'var(--surface)',
-        color: 'var(--text)'
+        color: 'var(--text)',
       });
     }
   }
 
   validarVigenciaRut(textoFecha: string): boolean {
-    if (!textoFecha) return false;
-
     const match = textoFecha.match(/(\d{2})-(\d{2})-(\d{4})/);
     if (!match) return false;
 
-    const dia = parseInt(match[1], 10);
-    const mes = parseInt(match[2], 10) - 1;
-    const anio = parseInt(match[3], 10);
-
-    const fechaRUT = new Date(anio, mes, dia);
-    const fechaHoy = new Date();
-
-    const diferenciaMilisegundos = fechaHoy.getTime() - fechaRUT.getTime();
-    const diasPasados = Math.floor(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
-
-    console.log(`📅 El RUT fue generado hace ${diasPasados} días.`);
-
+    const fechaRUT = new Date(parseInt(match[3], 10), parseInt(match[2], 10) - 1, parseInt(match[1], 10));
+    const diasPasados = Math.floor((Date.now() - fechaRUT.getTime()) / 86_400_000);
+    console.log(`📅 RUT generado hace ${diasPasados} días.`);
     return diasPasados <= 30;
   }
 
-  verificarEstado(jobId: string) { /* ... */ }
-
-  onOverlayClose() {
-    this.overlayOpen = false;
-  }
-
-  submitForm() {
-    this.overlayOpen = true;
-    this.overlayTitle = 'Enviando información...';
-
-    const formData = new FormData();
-    formData.append('country', this.countrySelected || '');
-    formData.append('oc', this.ocParam);
-    formData.append('os', this.osParam);
-    formData.append('sn', this.snParam);
-
-    const datosExtraidos = this.form.get('formDinamico')?.value || {};
-    formData.append('providerData', JSON.stringify(datosExtraidos));
-
-    const docs = this.form.get('step2_docs')?.value;
-    if (docs) {
-      Object.keys(docs).forEach(key => {
-        const file = docs[key];
-        if (file instanceof File) formData.append(`document_${key}`, file);
-      });
-    }
-
-    console.log("📦 CAJA FUERTE:", datosExtraidos);
-
-    setTimeout(() => {
-      this.overlayOpen = false;
-      Swal.fire({ title: '¡Registro Exitoso!', text: 'Melooo!', icon: 'success' });
-    }, 2000);
-  }
-
-  dianData = {
-    viaInicial: 'CL', numInicial: '', nombreViaInicial: '', letraInicial: '', bisInicial: '', cuadInicial: '',
-    placa1: '', placaLetra: '', placaBis: '', placaCuad: '', placa2: '',
-    finalTipo: 'AP', finalValor: '', complemento: ''
-  };
+  // ─────────────────────────────────────────────
+  // Dirección DIAN
+  // ─────────────────────────────────────────────
 
   esCampoDireccion(label: string): boolean {
     const lbl = String(label).toLowerCase();
     return lbl.includes('dirección') || lbl.includes('direccion');
   }
 
-  abrirModalDireccion(key: string) {
-    this.campoDireccionActivo = key;
-    this.direccionesTokens = [];
-    this.modalDireccionAbierto = true;
-    this.cdr.detectChanges();
+  abrirModalDireccion(key: string): void {
+    this.campoDireccionActivo.set(key);
+    this.direccionesTokens.set([]);
+    this.modalDireccionAbierto.set(true);
   }
 
-  cerrarModalDireccion() {
-    this.modalDireccionAbierto = false;
-    this.campoDireccionActivo = '';
-    this.cdr.detectChanges();
+  cerrarModalDireccion(): void {
+    this.modalDireccionAbierto.set(false);
+    this.campoDireccionActivo.set('');
   }
 
-  obtenerDireccionActual(): string {
-    return this.direccionesTokens.map(t => t.text).join(" ").replace(/\s+/g, " ").trim();
-  }
-
-  confirmarDireccion() {
-    const direccionFinal = this.obtenerDireccionActual();
-
-    const control = this.form.get('formDinamico')?.get(this.campoDireccionActivo);
+  confirmarDireccion(): void {
+    const control = this.form.get('formDinamico')?.get(this.campoDireccionActivo());
     if (control) {
-      control.setValue(direccionFinal);
+      control.setValue(this.direccionActual());
       control.markAsDirty();
       control.markAsTouched();
       control.updateValueAndValidity();
     }
-
     this.cerrarModalDireccion();
   }
 
-  limpiarTokens() {
-    this.direccionesTokens = [];
-    this.cdr.detectChanges();
-  }
+  limpiarTokens(): void { this.direccionesTokens.set([]); }
 
-  eliminarToken(index: number) {
-    this.direccionesTokens.splice(index, 1);
-    this.cdr.detectChanges();
+  eliminarToken(index: number): void {
+    this.direccionesTokens.update((tokens) => tokens.filter((_, i) => i !== index));
   }
 
   private sanitizeDIAN(raw: string, mode: 'strict' | 'token' | 'numeric' = 'strict'): string {
-    const up = (raw || "").toUpperCase().trim();
-    const noAcc = up.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    if (mode === "numeric") return noAcc.replace(/[^0-9]+/g, "").trim();
-    const disallowed = mode === "token" ? /[^A-Z0-9Ñ #\-]+/g : /[^A-Z0-9Ñ ]+/g;
-    return noAcc.replace(disallowed, " ").replace(/\s+/g, " ").trim();
+    const noAcc = (raw ?? '').toUpperCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (mode === 'numeric') return noAcc.replace(/[^0-9]+/g, '').trim();
+    const disallowed = mode === 'token' ? /[^A-Z0-9Ñ #\-]+/g : /[^A-Z0-9Ñ ]+/g;
+    return noAcc.replace(disallowed, ' ').replace(/\s+/g, ' ').trim();
   }
 
-  addDianInicial() {
-    const num = this.sanitizeDIAN(this.dianData.numInicial, "numeric");
-    const nombre = this.sanitizeDIAN(this.dianData.nombreViaInicial, "strict");
+  private agregarToken(kind: string, parts: string[]): void {
+    const clean = parts.map((p) => this.sanitizeDIAN(p, 'strict')).filter(Boolean);
+    if (clean.length) {
+      this.direccionesTokens.update((t) => [...t, { kind, text: clean.join(' ') }]);
+    }
+  }
+
+  addDianInicial(): void {
+    const num = this.sanitizeDIAN(this.dianData.numInicial, 'numeric');
+    const nombre = this.sanitizeDIAN(this.dianData.nombreViaInicial, 'strict');
 
     if ((num && nombre) || (!num && !nombre)) {
-      Swal.fire({
-          icon: 'warning',
-          title: 'Faltan datos',
-          text: 'Debes diligenciar SOLO uno: "Número" o "Nombre de la vía" (no ambos).',
-          confirmButtonColor: 'var(--accent)',
-          background: 'var(--surface)',
-          color: 'var(--text)'
-      });
+      Swal.fire({ icon: 'warning', title: 'Faltan datos', text: 'Debes diligenciar SOLO uno: "Número" o "Nombre de la vía" (no ambos).', confirmButtonColor: 'var(--accent)' });
       return;
     }
 
-    const core = num ? num : nombre;
+    const core = num || nombre;
     const parts = num
       ? [this.dianData.viaInicial, core, this.dianData.letraInicial, this.dianData.bisInicial, this.dianData.cuadInicial]
       : [this.dianData.viaInicial, core, this.dianData.bisInicial, this.dianData.cuadInicial];
 
-    const cleanParts = parts.map(p => this.sanitizeDIAN(p, "strict")).filter(Boolean);
-
-    if (cleanParts.length) {
-      this.direccionesTokens = [...this.direccionesTokens, { kind: "INI", text: cleanParts.join(" ") }];
-    }
-
-    this.dianData.numInicial = ''; this.dianData.nombreViaInicial = ''; this.dianData.letraInicial = '';
-    this.dianData.bisInicial = ''; this.dianData.cuadInicial = '';
-
-    this.cdr.detectChanges();
+    this.agregarToken('INI', parts);
+    Object.assign(this.dianData, { numInicial: '', nombreViaInicial: '', letraInicial: '', bisInicial: '', cuadInicial: '' });
   }
 
-  addDianPlaca() {
+  addDianPlaca(): void {
     if (!this.dianData.placa1 || !this.dianData.placa2) {
-      Swal.fire({
-          icon: 'warning',
-          title: 'Faltan datos',
-          text: 'Ingresa Parte 1 y Parte 2 de la placa.',
-          confirmButtonColor: 'var(--accent)',
-          background: 'var(--surface)',
-          color: 'var(--text)'
-      });
+      Swal.fire({ icon: 'warning', title: 'Faltan datos', text: 'Ingresa Parte 1 y Parte 2 de la placa.', confirmButtonColor: 'var(--accent)' });
       return;
     }
-    const parts = [this.dianData.placa1, this.dianData.placaLetra, this.dianData.placaBis, this.dianData.placaCuad, this.dianData.placa2];
-    const cleanParts = parts.map(p => this.sanitizeDIAN(p, "strict")).filter(Boolean);
-
-    if (cleanParts.length) {
-      this.direccionesTokens = [...this.direccionesTokens, { kind: "PLACA", text: cleanParts.join(" ") }];
-    }
-
-    this.dianData.placa1 = ''; this.dianData.placa2 = ''; this.dianData.placaLetra = '';
-    this.dianData.placaBis = ''; this.dianData.placaCuad = '';
-
-    this.cdr.detectChanges();
+    this.agregarToken('PLACA', [this.dianData.placa1, this.dianData.placaLetra, this.dianData.placaBis, this.dianData.placaCuad, this.dianData.placa2]);
+    Object.assign(this.dianData, { placa1: '', placa2: '', placaLetra: '', placaBis: '', placaCuad: '' });
   }
 
-  addDianFinal() {
+  addDianFinal(): void {
     if (!this.dianData.finalValor) return;
-    const cleanParts = [this.dianData.finalTipo, this.dianData.finalValor].map(p => this.sanitizeDIAN(p, "strict")).filter(Boolean);
-
-    if (cleanParts.length) {
-      this.direccionesTokens = [...this.direccionesTokens, { kind: "FIN", text: cleanParts.join(" ") }];
-    }
+    this.agregarToken('FIN', [this.dianData.finalTipo, this.dianData.finalValor]);
     this.dianData.finalValor = '';
-
-    this.cdr.detectChanges();
   }
 
-  addDianToken(token: string) {
-    this.direccionesTokens = [...this.direccionesTokens, { kind: "TOK", text: token }];
-    this.cdr.detectChanges();
+  addDianToken(token: string): void {
+    this.direccionesTokens.update((t) => [...t, { kind: 'TOK', text: token }]);
   }
 
-  addDianComplemento() {
-    const c = this.sanitizeDIAN(this.dianData.complemento, "strict");
-    if (c) {
-      this.direccionesTokens = [...this.direccionesTokens, { kind: "COMP", text: c }];
-    }
+  addDianComplemento(): void {
+    const c = this.sanitizeDIAN(this.dianData.complemento, 'strict');
+    if (c) this.agregarToken('COMP', [c]);
     this.dianData.complemento = '';
-
-    this.cdr.detectChanges();
-  }
-  validarSeccionActual(): boolean {
-    const camposSeccion = this.camposDinamicos.filter(c => c.seccion === this.seccionesDisponibles[this.seccionActualIndex] && c.visible !== false);
-    let esValido = true;
-
-    camposSeccion.forEach(c => {
-      const control = this.form.get('formDinamico')?.get(c.key);
-      if (control && control.invalid) {
-        control.markAsTouched(); // Marca en rojo el campo faltante
-        esValido = false;
-      }
-    });
-    return esValido;
-  }
-  getNombreCorto(seccion: string): string {
-    const nombreLimpio = seccion.replace(/^\d+\.\s*/, '').toUpperCase();
-
-    if (nombreLimpio.includes('GENERAL')) return 'Info. General';
-    if (nombreLimpio.includes('TRIBUTARIA')) return 'Tributaria';
-    if (nombreLimpio.includes('BANCARIA')) return 'Bancaria';
-    if (nombreLimpio.includes('DOCUMENTACIÓN') || nombreLimpio.includes('REQUERIDA')) return 'Documentos';
-    if (nombreLimpio.includes('CUMPLIMIENTO') || nombreLimpio.includes('LEGAL')) return 'Legal';
-    if (nombreLimpio.includes('NUVANT')) return 'Uso Interno';
-
-    return nombreLimpio.length > 15 ? nombreLimpio.substring(0, 15) + '...' : nombreLimpio;
   }
 
-  siguienteSeccion() {
-    if (!this.validarSeccionActual()) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Campos incompletos',
-        text: 'Por favor, diligencia todos los campos obligatorios (*) de esta sección para continuar.',
-        confirmButtonColor: 'var(--accent)',
-        background: 'var(--surface)',
-        color: 'var(--text)'
+  // ─────────────────────────────────────────────
+  // Envío del formulario
+  // ─────────────────────────────────────────────
+
+  submitForm(): void {
+    this.overlayOpen.set(true);
+    this.overlayTitle.set('Enviando información...');
+
+    const formData = new FormData();
+    formData.append('country', this.countrySelected() ?? '');
+    formData.append('oc', this.ocParam());
+    formData.append('os', this.osParam());
+    formData.append('sn', this.snParam());
+
+    const datosExtraidos = this.form.get('formDinamico')?.value ?? {};
+    formData.append('providerData', JSON.stringify(datosExtraidos));
+
+    const docs = this.form.get('step2_docs')?.value;
+    if (docs) {
+      Object.entries(docs).forEach(([key, file]) => {
+        if (file instanceof File) formData.append(`document_${key}`, file);
       });
-      return;
     }
 
-    if (this.seccionActualIndex < this.seccionesDisponibles.length - 1) {
-      this.seccionActualIndex++; // Avanza a la siguiente sección
-    } else {
-      this.currentStep = 3; // Si ya era la última sección, pasa al Paso 3 (Revisión)
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Sube el scroll suavemente
-    this.cdr.detectChanges();
+    console.log('📦 Datos a enviar:', datosExtraidos);
+
+    setTimeout(() => {
+      this.overlayOpen.set(false);
+      Swal.fire({ title: '¡Registro Exitoso!', text: '¡Todo salió bien!', icon: 'success' });
+    }, 2000);
   }
 
-  anteriorSeccion() {
-    if (this.seccionActualIndex > 0) {
-      this.seccionActualIndex--; // Retrocede una sección
-    } else {
-      this.currentStep = 1; // Si estaba en la primera, vuelve a los documentos
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    this.cdr.detectChanges();
+  // ─────────────────────────────────────────────
+  // Overlay
+  // ─────────────────────────────────────────────
+
+  onOverlayClose(): void { this.overlayOpen.set(false); }
+
+  // ─────────────────────────────────────────────
+  // Toast
+  // ─────────────────────────────────────────────
+
+  mostrarToast(mensaje: string): void {
+    this.toastMessage.set(mensaje);
+    setTimeout(() => this.toastMessage.set(null), 3000);
+  }
+
+  // ─────────────────────────────────────────────
+  // Validators
+  // ─────────────────────────────────────────────
+
+  atLeastOneFileValidator(): ValidatorFn {
+    return (control: AbstractControl) => {
+      const group = control as FormGroup;
+      const hasFile = Object.values(group.controls).some((c) => c.value instanceof File);
+      return hasFile ? null : { noFiles: true };
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // Helpers privados
+  // ─────────────────────────────────────────────
+
+  private mostrarLimiteAlcanzado(text: string): void {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Límite alcanzado',
+      text,
+      confirmButtonText: 'Entendido',
+      confirmButtonColor: 'var(--accent)',
+      background: 'var(--surface)',
+      color: 'var(--text)',
+    });
   }
 }

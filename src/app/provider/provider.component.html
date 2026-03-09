@@ -1,7 +1,7 @@
 <div class="provider-page">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
-  <div class="provider-wrapper" style="max-width: 100%;">
+  <div class="provider-wrapper">
 
     <header class="provider-header">
       <div class="logo-container">
@@ -10,22 +10,22 @@
     </header>
 
     <nav class="steps">
-      <div *ngIf="countrySelected !== 'Otro'" class="step" [class.active]="currentStep === 1">
-        1. Documentos
+      <div *ngIf="countrySelected() !== 'Otro'" class="step" [class.active]="currentStep() === 1">
+        1. DocumentosA
       </div>
-      <div class="step" [class.active]="currentStep === 2">
-        {{ countrySelected === 'Otro' ? '1.' : '2.' }} Información
+      <div class="step" [class.active]="currentStep() === 2">
+        {{ countrySelected() === 'Otro' ? '1.' : '2.' }} Información
       </div>
-      <div class="step" [class.active]="currentStep === 3">
-        {{ countrySelected === 'Otro' ? '2.' : '3.' }} Revisión
+      <div class="step" [class.active]="currentStep() === 3">
+        {{ countrySelected() === 'Otro' ? '2.' : '3.' }} Revisión
       </div>
     </nav>
 
     <section class="provider-card" [formGroup]="form">
 
-      <div *ngIf="currentStep === 1 && countrySelected !== 'Otro'" class="step-content">
+      <div *ngIf="currentStep() === 1 && countrySelected() !== 'Otro'" class="step-content">
         <div formGroupName="step2_docs">
-          <h2 class="title">Documentos para {{ countrySelected }}</h2>
+          <h2 class="title">Documentos para {{ countrySelected() }}</h2>
           <p class="step-description">
             Sube los archivos necesarios para validar tu cuenta.
           </p>
@@ -82,226 +82,257 @@
         </div>
       </div>
 
-     <div *ngIf="currentStep === 2" class="step-content">
-  <div formGroupName="formDinamico">
+      <div *ngIf="currentStep() === 2" class="step-content">
+        <div formGroupName="formDinamico">
 
-    <div class="sub-stepper-wrapper step-spacing">
-      <div class="sub-stepper">
-        <div class="sub-step"
-             *ngFor="let sec of seccionesDisponibles; let idx = index"
-             [class.active]="idx === seccionActualIndex"
-             [class.completed]="idx < seccionActualIndex">
+          <div class="sub-stepper-wrapper step-spacing">
+            <div class="sub-stepper">
+              <div class="sub-step"
+                   *ngFor="let sec of seccionesDisponibles(); let idx = index"
+                   [class.active]="idx === seccionActualIndex()"
+                   [class.completed]="idx < seccionActualIndex()">
 
-          <div class="sub-step-bubble">
-            <span *ngIf="idx >= seccionActualIndex">{{ idx + 1 }}</span>
-            <span *ngIf="idx < seccionActualIndex">✓</span>
+                <div class="sub-step-bubble">
+                  <span *ngIf="idx >= seccionActualIndex()">{{ idx + 1 }}</span>
+                  <span *ngIf="idx < seccionActualIndex()">✓</span>
+                </div>
+                <span class="sub-step-label">{{ getNombreCorto(sec) }}</span>
+
+              </div>
+            </div>
           </div>
-          <span class="sub-step-label">{{ getNombreCorto(sec) }}</span>
+          <hr class="stepper-divider">
+
+          <!-- ─── RENDER AGRUPADO POR CONTACTO ─── -->
+          <ng-container *ngFor="let bloque of camposAgrupados()">
+
+            <!-- Header del grupo de contacto (solo si grupo > 0) -->
+            <div class="form-group full contact-header-box" *ngIf="bloque.grupo > 0">
+              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; margin-top: 20px;">
+                <h4 style="color: #3b82f6; margin: 0; font-size: 16px;">📞 Persona de Contacto #{{ bloque.grupo }}</h4>
+                <button type="button"
+                        *ngIf="bloque.grupo > 1"
+                        (click)="eliminarEsteContacto(bloque.grupo)"
+                        style="background: #fee2e2; color: #ef4444; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">
+                  🗑️ Quitar
+                </button>
+              </div>
+            </div>
+
+            <!-- ── CAMPOS NORMALES (sin beneficiario) ── -->
+            <div class="form-grid" [class.contact-group-grid]="bloque.grupo > 0">
+              <ng-container *ngFor="let campo of getCamposNormales(bloque.campos)">
+                <div class="form-group"
+                     [class.full]="campo.isLong"
+                     [class.is-contact-box]="bloque.grupo > 0"
+                     [class.span-2]="campo.columnSpan === 2"
+                     [class.span-3]="campo.columnSpan === 3">
+                  <label class="label">
+                    {{ campo.label }}
+                    <span class="req" *ngIf="campo.required">*</span>
+                  </label>
+                  <div class="input-action-container">
+                    <div class="input-wrapper">
+                      <app-dynamic-field [config]="campo" [formControlName]="campo.key"></app-dynamic-field>
+                      <span class="badge-auto" *ngIf="campo.autocompletado">Autocompletado</span>
+                      <div *ngIf="esCampoDireccion(campo.label)" class="address-shield"
+                           (click)="abrirModalDireccion(campo.key)"
+                           title="Haz clic para generar la dirección con el estándar DIAN"></div>
+                    </div>
+                    <div class="action-buttons-group" *ngIf="campo.key.startsWith('document') || esCampoDireccion(campo.label)">
+                      <ng-container *ngIf="campo.key.startsWith('document')">
+                        <input #fileInput type="file" class="hidden-input" (change)="onFileSelected($event, campo.key, fileInput)" />
+                        <button type="button" class="btn-icon-premium btn-blue" *ngIf="!form.get('formDinamico')?.get(campo.key)?.value" (click)="fileInput.click()" title="Adjuntar documento">📎</button>
+                        <button type="button" class="btn-icon-premium btn-red" *ngIf="form.get('formDinamico')?.get(campo.key)?.value" (click)="eliminarDocumentoAdjunto(campo.key, fileInput)" title="Quitar archivo">🗑️</button>
+                        <button type="button" class="btn-icon-premium btn-green" *ngIf="campo.grupoDocumento === documentosActivos() && documentosActivos() < 10" (click)="agregarDocumento()" title="Agregar otro documento">➕</button>
+                      </ng-container>
+                      <ng-container *ngIf="esCampoDireccion(campo.label)">
+                        <button type="button" class="btn-icon-premium btn-purple" (click)="abrirModalDireccion(campo.key)" title="Generador de Dirección DIAN">📍</button>
+                      </ng-container>
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
+            </div>
+
+            <!-- ── TABLA DE BENEFICIARIOS ── -->
+            <ng-container *ngIf="getCamposBeneficiarios(bloque.campos).length > 0">
+              <div class="beneficiarios-tabla-wrapper">
+
+                <!-- Info box -->
+                <ng-container *ngFor="let campo of getCamposEspeciales(bloque.campos)">
+                  <div class="form-group full beneficiary-info-box" *ngIf="campo.type === 'beneficiary-info'">
+                    <h4 class="beneficiary-title">Relacione los socios o accionistas hasta llegar al beneficiario final, teniendo en cuenta que:</h4>
+                    <p class="beneficiary-text">
+                      <strong>"Beneficiario Final:</strong> es la(s) persona(s) natural(es) que finalmente posee(n) o controla(n) a un cliente...
+                    </p>
+                    <ol class="beneficiary-list">
+                      <li>Persona natural que, actuando individual o conjuntamente, ejerza control...</li>
+                      <li>Persona natural que, actuando individual o conjuntamente, sea titular...</li>
+                      <li>Cuando no se identifique alguna persona natural en los numerales 1) y 2)...</li>
+                    </ol>
+                  </div>
+                </ng-container>
+
+                <!-- Tabla -->
+                <div class="beneficiarios-tabla-scroll">
+                  <table class="beneficiarios-tabla">
+                    <thead>
+                      <tr>
+                        <th class="bft-num">#</th>
+                        <ng-container *ngFor="let campo of getCamposBeneficiarios(bloque.campos)[0]?.campos">
+                          <th>{{ campo.label }}</th>
+                        </ng-container>
+                        <th class="bft-actions">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let grupo of getCamposBeneficiarios(bloque.campos)">
+                        <td class="bft-num">{{ grupo.grupo }}</td>
+                        <td *ngFor="let campo of grupo.campos">
+                          <div class="bft-cell">
+                            <app-dynamic-field [config]="campo" [formControlName]="campo.key"></app-dynamic-field>
+                          </div>
+                        </td>
+                        <td class="bft-actions">
+                          <button type="button" class="btn-remove" *ngIf="grupo.grupo > 1"
+                                  (click)="eliminarEsteBeneficiario(grupo.grupo)" title="Quitar beneficiario">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                              <path d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </ng-container>
+
+            <!-- ── CAMPOS ESPECIALES (legal, firmas, docs-info) ── -->
+            <ng-container *ngFor="let campo of getCamposEspeciales(bloque.campos)">
+
+              <div class="form-group full document-clone-box" *ngIf="campo.type === 'documento-agrupado'">
+                <h4 class="clone-box-title">{{ campo.tituloInterno }}</h4>
+                <div class="duo-grid">
+                  <div class="duo-item">
+                    <label class="label">{{ campo.selectConfig.label }} <span class="req">*</span></label>
+                    <div class="input-wrapper">
+                      <app-dynamic-field [config]="campo.selectConfig" [formControlName]="campo.selectConfig.key"></app-dynamic-field>
+                    </div>
+                  </div>
+                  <div class="duo-item">
+                    <label class="label">{{ campo.fileConfig.label }} <span class="req">*</span></label>
+                    <div class="input-action-container">
+                      <div class="input-wrapper">
+                        <app-dynamic-field [config]="campo.fileConfig" [formControlName]="campo.fileConfig.key"></app-dynamic-field>
+                      </div>
+                      <div class="action-buttons-group">
+                        <input #fileInputClone type="file" class="hidden-input" (change)="onFileSelected($event, campo.fileConfig.key, fileInputClone)" />
+                        <button type="button" class="btn-icon-premium btn-blue" *ngIf="!form.get('formDinamico')?.get(campo.fileConfig.key)?.value" (click)="fileInputClone.click()">📎</button>
+                        <button type="button" class="btn-icon-premium btn-red" *ngIf="form.get('formDinamico')?.get(campo.fileConfig.key)?.value" (click)="eliminarDocumentoAdjunto(campo.fileConfig.key, fileInputClone)">🗑️</button>
+                        <button type="button" class="btn-icon-premium btn-green" *ngIf="campo.fileConfig.grupoDocumento === documentosActivos() && documentosActivos() < 10" (click)="agregarDocumento()">➕</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group full info-text-box" *ngIf="campo.type === 'docs-info'">
+                <ul class="doc-requirements-list">
+                  <li>Una copia legible del RUT (Con una fecha de generación del documento no mayor a los 30 días)</li>
+                  <li>Certificado de Cámara y Comercio (Con una fecha de generación del documento no mayor a los 30 días)</li>
+                  <li>Certificación bancaria donde se indique titular de la cuenta y tipo de cuenta (Con una fecha de generación del documento no mayor a los 30 días)</li>
+                  <li>Cedula del Representante Legal (Opcional)</li>
+                </ul>
+                <p class="doc-requirements-desc">
+                  En el recuadro marque con una X el tipo de sistema de gestión implementado en su compañía y suministre el certificado o resolución correspondiente:
+                </p>
+              </div>
+
+              <div class="form-group full legal-text-box" *ngIf="campo.type === 'legal-text'">
+                <div class="legal-content">
+                  <h4>CONOCIMIENTO DEL COMPROMISO QUE TIENE NUVANT EN LA PREVENCIÓN DEL SOBORNO TRANSNACIONAL Y LA LUCHA CONTRA LA CORRUPCIÓN</h4>
+                  <p>Para Nuvant S.A.S es muy importante comunicarle que como compañía promueve actividades de ética empresarial...</p>
+                  <h4>DECLARACIÓN SOBRE ORIGEN DE FONDOS Y AUTORIZACIÓN DE CONSULTA EN CENTRALES DE RIESGO Y LISTAS RESTRICTIVAS</h4>
+                  <p><strong>Declaro expresamente que:</strong></p>
+                  <ol>
+                    <li>Tanto mi actividad, profesión u oficio es lícita...</li>
+                    <li>La información que he suministrado en este documento es veraz...</li>
+                    <li>Los recursos que se derivan de esta relación comercial no serán destinados al financiamiento del terrorismo...</li>
+                    <li>Autorizo la consulta en las centrales de riesgo...</li>
+                  </ol>
+                  <h4>AUTORIZACIÓN DE TRATAMIENTO DE DATOS</h4>
+                  <p><strong>Autorización</strong></p>
+                  <p>En calidad de representante legal y/o apoderado tengo facultades legales para autorizar a Nuvant S.A.S...</p>
+                </div>
+              </div>
+
+              <div class="form-group full" *ngIf="campo.type === 'bloque-firmas'">
+                <div class="signature-box-container">
+                  <div class="sig-column">
+                    <div class="sig-input-area">
+                      <input type="text" formControlName="nombre_representante_legal" placeholder="Escribe el nombre aquí..." class="sig-input" />
+                    </div>
+                    <div class="sig-label">Nombre del representante Legal<br>o quien en su caso lo represente</div>
+                  </div>
+                  <div class="sig-column">
+                    <div class="sig-input-area sig-file-area">
+                      <input #firmaFile type="file" class="hidden-input" (change)="onFileSelected($event, 'document_firma_sello', firmaFile)" />
+                      <button type="button" class="btn-secondary-sm" *ngIf="!form.get('formDinamico.document_firma_sello')?.value" (click)="firmaFile.click()">📎 Adjuntar firma y sello</button>
+                      <div class="file-status-box" *ngIf="form.get('formDinamico.document_firma_sello')?.value">
+                        <span class="file-name">✅ {{ form.get('formDinamico.document_firma_sello')?.value }}</span>
+                        <button type="button" class="btn-remove" (click)="eliminarDocumentoAdjunto('document_firma_sello', firmaFile)">🗑️</button>
+                      </div>
+                    </div>
+                    <div class="sig-label">Firma del Representante Legal<br>y Sello</div>
+                  </div>
+                  <div class="sig-column">
+                    <div class="sig-input-area">
+                      <input type="date" formControlName="fecha_firma" class="sig-input date-input" />
+                    </div>
+                    <div class="sig-label">Fecha</div>
+                  </div>
+                </div>
+              </div>
+
+            </ng-container>
+
+          </ng-container>
+
+          <div class="full" *ngIf="seccionesDisponibles()[seccionActualIndex()]?.includes('Información del Proveedor') && beneficiariosActivos() < 10">
+            <div style="display: flex; justify-content: center; margin-top: 30px; border-top: 1px dashed var(--border-strong); padding-top: 20px;">
+              <button type="button"
+                      (click)="agregarBeneficiario()"
+                      style="border: 2px dashed #8b5cf6; color: #8b5cf6; background: rgba(139, 92, 246, 0.05); padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px; transition: all 0.3s;">
+                <span style="font-size: 18px;">👤➕</span> Agregar Beneficiario Final
+              </button>
+            </div>
+          </div>
+
+          <div class="full" *ngIf="seccionesDisponibles()[seccionActualIndex()]?.includes('INFORMACIÓN GENERAL') && contactosActivos() < 5">
+            <div style="display: flex; justify-content: center; margin-top: 30px; border-top: 1px dashed var(--border-strong); padding-top: 20px;">
+              <button type="button"
+                      (click)="agregarContacto()"
+                      style="border: 2px dashed #3b82f6; color: #3b82f6; background: rgba(59, 130, 246, 0.05); padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px; transition: all 0.3s;">
+                <span style="font-size: 18px;">📞➕</span> Agregar Persona de Contacto
+              </button>
+            </div>
+          </div>
+
+          <div class="pagination-footer-premium">
+            <button type="button" class="btn-nav btn-nav-back" (click)="anteriorSeccion()">
+              <span class="icon">←</span> Atrás
+            </button>
+            <button type="button" class="btn-nav btn-nav-next" (click)="siguienteSeccion()">
+              {{ seccionActualIndex() === seccionesDisponibles().length - 1 ? 'Finalizar e ir a Revisión' : 'Siguiente Sección' }} <span class="icon">→</span>
+            </button>
+          </div>
 
         </div>
       </div>
-    </div>
-    <hr class="stepper-divider">
 
-    <div class="form-grid">
-      <ng-container *ngFor="let campo of camposDinamicos; let i = index">
-        <ng-container *ngIf="campo.seccion === seccionesDisponibles[seccionActualIndex]">
-
-          <div class="form-group full beneficiary-header-box" *ngIf="esInicioDeBeneficiario(i)">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-top: 20px;">
-              <h4 style="color: var(--accent); margin: 0; font-size: 16px;">👤 Beneficiario Final #{{ campo.grupoBeneficiario }}</h4>
-
-              <button type="button"
-                      *ngIf="campo.grupoBeneficiario > 1"
-                      (click)="eliminarEsteBeneficiario(campo.grupoBeneficiario)"
-                      style="background: #fee2e2; color: #ef4444; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">
-                🗑️ Quitar
-              </button>
-            </div>
-          </div>
-
-          <div class="form-group full contact-header-box" *ngIf="esInicioDeContacto(i)">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; margin-top: 20px;">
-              <h4 style="color: #3b82f6; margin: 0; font-size: 16px;">📞 Persona de Contacto #{{ getGrupoContacto(campo.key) }}</h4>
-
-              <button type="button"
-                      *ngIf="getGrupoContacto(campo.key) > 1"
-                      (click)="eliminarEsteContacto(getGrupoContacto(campo.key))"
-                      style="background: #fee2e2; color: #ef4444; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px;">
-                🗑️ Quitar
-              </button>
-            </div>
-          </div>
-
-          <div class="form-group"
-               *ngIf="campo.visible !== false && campo.type !== 'documento-agrupado' && campo.type !== 'legal-text' && campo.type !== 'bloque-firmas' && campo.type !== 'docs-info' && campo.type !== 'beneficiary-info' && !campo.type.includes('info')"
-               [class.full]="campo.isLong"
-               [class.is-beneficiary-box]="campo.grupoBeneficiario > 0"
-               [class.is-contact-box]="getGrupoContacto(campo.key) > 0"
-               [class.span-2]="campo.columnSpan === 2"
-               [class.span-3]="campo.columnSpan === 3">
-
-            <label class="label">
-              {{ campo.label }}
-              <span class="req" *ngIf="campo.required">*</span>
-            </label>
-
-            <div class="input-action-container">
-              <div class="input-wrapper">
-                <app-dynamic-field [config]="campo" [formControlName]="campo.key"></app-dynamic-field>
-                <span class="badge-auto" *ngIf="campo.autocompletado">Autocompletado</span>
-                <div *ngIf="esCampoDireccion(campo.label)"
-                     class="address-shield"
-                     (click)="abrirModalDireccion(campo.key)"
-                     title="Haz clic para generar la dirección con el estándar DIAN">
-                </div>
-              </div>
-
-              <div class="action-buttons-group" *ngIf="campo.key.startsWith('document') || esCampoDireccion(campo.label)">
-                <ng-container *ngIf="campo.key.startsWith('document')">
-                  <input #fileInput type="file" class="hidden-input" (change)="onFileSelected($event, campo.key, fileInput)" />
-                  <button type="button" class="btn-icon-premium btn-blue" *ngIf="!form.get('formDinamico')?.get(campo.key)?.value" (click)="fileInput.click()" title="Adjuntar documento">📎</button>
-                  <button type="button" class="btn-icon-premium btn-red" *ngIf="form.get('formDinamico')?.get(campo.key)?.value" (click)="eliminarDocumentoAdjunto(campo.key, fileInput)" title="Quitar archivo">🗑️</button>
-                  <button type="button" class="btn-icon-premium btn-green" *ngIf="campo.grupoDocumento === documentosActivos && documentosActivos < 10" (click)="agregarDocumento()" title="Agregar otro documento">➕</button>
-                </ng-container>
-
-                <ng-container *ngIf="esCampoDireccion(campo.label)">
-                  <button type="button" class="btn-icon-premium btn-purple" (click)="abrirModalDireccion(campo.key)" title="Generador de Dirección DIAN">📍</button>
-                </ng-container>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-group full document-clone-box" *ngIf="campo.type === 'documento-agrupado' && campo.visible !== false">
-            <h4 class="clone-box-title">{{ campo.tituloInterno }}</h4>
-            <div class="duo-grid">
-               <div class="duo-item">
-                  <label class="label">{{ campo.selectConfig.label }} <span class="req">*</span></label>
-                  <div class="input-wrapper">
-                     <app-dynamic-field [config]="campo.selectConfig" [formControlName]="campo.selectConfig.key"></app-dynamic-field>
-                  </div>
-               </div>
-               <div class="duo-item">
-                  <label class="label">{{ campo.fileConfig.label }} <span class="req">*</span></label>
-                  <div class="input-action-container">
-                     <div class="input-wrapper">
-                       <app-dynamic-field [config]="campo.fileConfig" [formControlName]="campo.fileConfig.key"></app-dynamic-field>
-                     </div>
-                     <div class="action-buttons-group">
-                       <input #fileInputClone type="file" class="hidden-input" (change)="onFileSelected($event, campo.fileConfig.key, fileInputClone)" />
-                       <button type="button" class="btn-icon-premium btn-blue" *ngIf="!form.get('formDinamico')?.get(campo.fileConfig.key)?.value" (click)="fileInputClone.click()">📎</button>
-                       <button type="button" class="btn-icon-premium btn-red" *ngIf="form.get('formDinamico')?.get(campo.fileConfig.key)?.value" (click)="eliminarDocumentoAdjunto(campo.fileConfig.key, fileInputClone)">🗑️</button>
-                       <button type="button" class="btn-icon-premium btn-green" *ngIf="campo.fileConfig.grupoDocumento === documentosActivos && documentosActivos < 10" (click)="agregarDocumento()">➕</button>
-                     </div>
-                  </div>
-               </div>
-            </div>
-          </div>
-
-          <div class="form-group full info-text-box" *ngIf="campo.type === 'docs-info' && campo.visible !== false">
-            <ul class="doc-requirements-list">
-              <li>Una copia legible del RUT (Con una fecha de generación del documento no mayor a los 30 días)</li>
-              <li>Certificado de Cámara y Comercio (Con una fecha de generación del documento no mayor a los 30 días)</li>
-              <li>Certificación bancaria donde se indique titular de la cuenta y tipo de cuenta (Con una fecha de generación del documento no mayor a los 30 días)</li>
-              <li>Cedula del Representante Legal (Opcional)</li>
-            </ul>
-            <p class="doc-requirements-desc">
-              En el recuadro marque con una X el tipo de sistema de gestión implementado en su compañía y suministre el certificado o resolución correspondiente:
-            </p>
-          </div>
-
-          <div class="form-group full legal-text-box" *ngIf="campo.type === 'legal-text' && campo.visible !== false">
-            <div class="legal-content">
-              <h4>CONOCIMIENTO DEL COMPROMISO QUE TIENE NUVANT EN LA PREVENCIÓN DEL SOBORNO TRANSNACIONAL Y LA LUCHA CONTRA LA CORRUPCIÓN</h4>
-              <p>Para Nuvant S.A.S es muy importante comunicarle que como compañía promueve actividades de ética empresarial...</p>
-              <h4>DECLARACIÓN SOBRE ORIGEN DE FONDOS Y AUTORIZACIÓN DE CONSULTA EN CENTRALES DE RIESGO Y LISTAS RESTRICTIVAS</h4>
-              <p><strong>Declaro expresamente que:</strong></p>
-              <ol>
-                <li>Tanto mi actividad, profesión u oficio es lícita...</li>
-                <li>La información que he suministrado en este documento es veraz...</li>
-                <li>Los recursos que se derivan de esta relación comercial no serán destinados al financiamiento del terrorismo...</li>
-                <li>Autorizo la consulta en las centrales de riesgo...</li>
-              </ol>
-              <h4>AUTORIZACIÓN DE TRATAMIENTO DE DATOS</h4>
-              <p><strong>Autorización</strong></p>
-              <p>En calidad de representante legal y/o apoderado tengo facultades legales para autorizar a Nuvant S.A.S...</p>
-            </div>
-          </div>
-
-          <div class="form-group full" *ngIf="campo.type === 'bloque-firmas' && campo.visible !== false">
-            <div class="signature-box-container">
-              <div class="sig-column">
-                <div class="sig-input-area">
-                  <input type="text" formControlName="nombre_representante_legal" placeholder="Escribe el nombre aquí..." class="sig-input" />
-                </div>
-                <div class="sig-label">Nombre del representante Legal<br>o quien en su caso lo represente</div>
-              </div>
-              <div class="sig-column">
-                <div class="sig-input-area sig-file-area">
-                  <input #firmaFile type="file" class="hidden-input" (change)="onFileSelected($event, 'document_firma_sello', firmaFile)" />
-                  <button type="button" class="btn-secondary-sm" *ngIf="!form.get('formDinamico.document_firma_sello')?.value" (click)="firmaFile.click()">📎 Adjuntar firma y sello</button>
-                  <div class="file-status-box" *ngIf="form.get('formDinamico.document_firma_sello')?.value">
-                    <span class="file-name">✅ {{ form.get('formDinamico.document_firma_sello')?.value }}</span>
-                    <button type="button" class="btn-remove" (click)="eliminarDocumentoAdjunto('document_firma_sello', firmaFile)">🗑️</button>
-                  </div>
-                </div>
-                <div class="sig-label">Firma del Representante Legal<br>y Sello</div>
-              </div>
-              <div class="sig-column">
-                <div class="sig-input-area">
-                  <input type="date" formControlName="fecha_firma" class="sig-input date-input" />
-                </div>
-                <div class="sig-label">Fecha</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="form-group full beneficiary-info-box" *ngIf="campo.type === 'beneficiary-info' && campo.visible !== false">
-            <h4 class="beneficiary-title">Relacione los socios o accionistas hasta llegar al beneficiario final, teniendo en cuenta que:</h4>
-            <p class="beneficiary-text">
-              <strong>“Beneficiario Final:</strong> es la(s) persona(s) natural(es) que finalmente posee(n) o controla(n) a un cliente...
-            </p>
-            <ol class="beneficiary-list">
-              <li>Persona natural que, actuando individual o conjuntamente, ejerza control...</li>
-              <li>Persona natural que, actuando individual o conjuntamente, sea titular...</li>
-              <li>Cuando no se identifique alguna persona natural en los numerales 1) y 2)...</li>
-            </ol>
-          </div>
-
-        </ng-container>
-      </ng-container>
-    </div> <div class="full" *ngIf="seccionesDisponibles[seccionActualIndex]?.includes('Información del Proveedor') && beneficiariosActivos < 10">
-      <div style="display: flex; justify-content: center; margin-top: 30px; border-top: 1px dashed var(--border-strong); padding-top: 20px;">
-        <button type="button"
-                (click)="agregarBeneficiario()"
-                style="border: 2px dashed #8b5cf6; color: #8b5cf6; background: rgba(139, 92, 246, 0.05); padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px; transition: all 0.3s;">
-          <span style="font-size: 18px;">👤➕</span> Agregar Beneficiario Final
-        </button>
-      </div>
-    </div>
-
-    <div class="full" *ngIf="seccionesDisponibles[seccionActualIndex]?.includes('INFORMACIÓN GENERAL') && contactosActivos < 5">
-      <div style="display: flex; justify-content: center; margin-top: 30px; border-top: 1px dashed var(--border-strong); padding-top: 20px;">
-        <button type="button"
-                (click)="agregarContacto()"
-                style="border: 2px dashed #3b82f6; color: #3b82f6; background: rgba(59, 130, 246, 0.05); padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px; transition: all 0.3s;">
-          <span style="font-size: 18px;">📞➕</span> Agregar Persona de Contacto
-        </button>
-      </div>
-    </div>
-
-    <div class="pagination-footer-premium">
-      <button type="button" class="btn-nav btn-nav-back" (click)="anteriorSeccion()">
-        <span class="icon">←</span> Atrás
-      </button>
-      <button type="button" class="btn-nav btn-nav-next" (click)="siguienteSeccion()">
-        {{ seccionActualIndex === seccionesDisponibles.length - 1 ? 'Finalizar e ir a Revisión' : 'Siguiente Sección' }} <span class="icon">→</span>
-      </button>
-    </div>
-
-  </div>
-</div>
-      <div *ngIf="currentStep === 3" class="step-content">
+      <div *ngIf="currentStep() === 3" class="step-content">
         <h2 class="title">Revisión y envío</h2>
         <p style="color: var(--muted); margin-bottom: 24px; font-size: 14px;">
           Verifica que la información sea correcta antes de finalizar.
@@ -310,7 +341,7 @@
         <div class="review-card">
           <div class="review-item">
             <label>País de Operación</label>
-            <span>{{ countrySelected }}</span>
+            <span>{{ countrySelected() }}</span>
           </div>
 
           <hr style="border: none; border-top: 1px solid var(--border-strong); margin: 16px 0;">
@@ -318,7 +349,7 @@
             Datos Extraídos del Documento
           </p>
 
-          <div class="review-item" *ngFor="let campo of camposDinamicos">
+          <div class="review-item" *ngFor="let campo of camposDinamicos()">
             <label>{{ campo.label }}</label>
             <span style="text-align: right; max-width: 60%;">
               {{ form.get('formDinamico.' + campo.key)?.value || 'N/A' }}
@@ -327,7 +358,7 @@
         </div>
 
         <div class="actions">
-          <button type="button" class="btn-secondary" (click)="currentStep = 2">Atrás</button>
+          <button type="button" class="btn-secondary" (click)="currentStep.set(2)">Atrás</button>
           <button type="button" class="btn-primary" (click)="submitForm()">Finalizar Registro</button>
         </div>
       </div>
@@ -341,7 +372,7 @@
 
 </div>
 
-<div class="dian-modal-overlay" *ngIf="modalDireccionAbierto">
+<div class="dian-modal-overlay" *ngIf="modalDireccionAbierto()">
   <div class="dian-modal-card">
     <div class="dian-header">
       <h2>Generador de Dirección DIAN</h2>
@@ -407,24 +438,24 @@
       </div>
 
       <div class="dian-result-box">
-        <span class="dian-token" *ngFor="let t of direccionesTokens; let idx = index">
+        <span class="dian-token" *ngFor="let t of direccionesTokens(); let idx = index">
           <small>{{ t.kind }}</small> {{ t.text }}
           <button type="button" (click)="eliminarToken(idx)">✕</button>
         </span>
       </div>
-      <div class="dian-preview"><strong>Dirección Formateada:</strong> {{ obtenerDireccionActual() || '(vacío)' }}</div>
+      <div class="dian-preview"><strong>Dirección Formateada:</strong> {{ direccionActual() || '(vacío)' }}</div>
     </div>
 
     <div class="dian-footer">
       <button type="button" class="btn-secondary" (click)="limpiarTokens()">Limpiar</button>
-      <button type="button" class="btn-primary" (click)="confirmarDireccion()" [disabled]="direccionesTokens.length === 0">Confirmar y Usar</button>
+      <button type="button" class="btn-primary" (click)="confirmarDireccion()" [disabled]="direccionesTokens().length === 0">Confirmar y Usar</button>
     </div>
   </div>
 </div>
 
 <app-progress-overlay
-  [open]="overlayOpen"
-  [title]="overlayTitle"
-  [subtitle]="overlaySubtitle"
+  [open]="overlayOpen()"
+  [title]="overlayTitle()"
+  [subtitle]="overlaySubtitle()"
   (close)="onOverlayClose()">
 </app-progress-overlay>

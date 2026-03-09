@@ -1,67 +1,135 @@
-<div class="provider-page">
-  <div class="provider-wrapper">
-    <!-- Header oscuro -->
-    <div class="provider-header">
+<div class="rp-page">
+
+  <!-- Fondo decorativo -->
+  <div class="rp-bg-orb rp-bg-orb--1"></div>
+  <div class="rp-bg-orb rp-bg-orb--2"></div>
+  <div class="rp-bg-grid"></div>
+
+  <div class="rp-wrapper">
+
+    <!-- Logo -->
+    <div class="rp-logo">
       <img src="assets/nuvant.png" alt="Nuvant" />
     </div>
-    <!-- Card blanca -->
-    <div class="provider-card">
-      <div class="icon-circle">
-        <img src="assets/favicon.ico" />
+
+    <!-- Card principal -->
+    <div class="rp-card">
+
+      <!-- Spinner de validación -->
+      <div *ngIf="loadingValidacion()" class="rp-loading">
+        <div class="rp-spinner">
+          <svg viewBox="0 0 50 50"><circle cx="25" cy="25" r="20" fill="none" stroke-width="4"/></svg>
+        </div>
+        <p class="rp-loading__text">Verificando orden<span class="rp-dots"></span></p>
       </div>
-      <div *ngIf="loadingValidacion" class="spinner-container text-center" style="margin-top: 40px; color: white;">
-      <div class="spinner" style="margin: 0 auto 15px;"></div>
-      <p>Verificando estado de la orden...</p>
-    </div>
 
-    <div *ngIf="ordenValida" class="main-content fade-in">
-        <h1>Completa tu registro como proveedor</h1>
+      <!-- Contenido principal -->
+      <div *ngIf="ordenValida()" class="rp-content fade-in">
 
-
-        <div class="token-box" (paste)="onPaste($event)" [formGroup]="form">
-          <ng-container formArrayName="digits">
-            <input
-              #otpInput
-              *ngFor="let ctrl of digitsFA.controls; let i = index"
-              type="text"
-              inputmode="numeric"
-              maxlength="1"
-              [formControlName]="i"
-              (input)="onInput($event, i)"
-              (keydown)="onKeydown($event, i)"
-              [class.error-input]="ctrl.hasError('invalid')"
-            />
-          </ng-container>
+        <!-- Icono -->
+        <div class="rp-icon-wrap">
+          <div class="rp-icon-ring rp-icon-ring--outer"></div>
+          <div class="rp-icon-ring rp-icon-ring--inner"></div>
+          <div class="rp-icon-core">
+            <img src="assets/favicon.ico" alt="Nuvant icon" />
+          </div>
         </div>
 
-            <div class="actions">
-              <button type="button" class="btn-primary" (click)="validateToken()">
-                Validar e Iniciar
-              </button>
-            </div>
+        <h1 class="rp-title">Verificación de identidad</h1>
+        <p class="rp-subtitle">Confirma que eres el destinatario de esta invitación</p>
 
-            <p style="font-size: 0.8em; margin-top: 10px; color: var(--muted);">
-              ¿No recibiste el código? <a (click)="requestToken()" style="cursor:pointer; color: blue;">Reenviar</a>
-            </p>
+        <!-- Email pill -->
+        <div class="rp-email-block">
+          <div class="rp-email-label">Se enviará un código a</div>
+          <div class="rp-email-pill">
+            <span class="rp-email-pill__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="3"/>
+                <path d="m2 7 10 7 10-7"/>
+              </svg>
+            </span>
+            <span class="rp-email-pill__text">{{ providerEmail() || '—' }}</span>
+          </div>
+          <p class="rp-email-note">¿No es tu correo? Contacta al administrador.</p>
+        </div>
+
+        <!-- Botón enviar código -->
+        <div *ngIf="!tokenSent()" class="rp-action-area">
+          <button class="rp-btn rp-btn--primary" [disabled]="loading()" (click)="requestToken()">
+            <span *ngIf="!loading()" class="rp-btn__inner">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7z"/>
+              </svg>
+              Enviar código de verificación
+            </span>
+            <span *ngIf="loading()" class="rp-btn__loader">
+              <span class="rp-btn-spinner"></span>
+              Enviando código...
+            </span>
+          </button>
+        </div>
+
+        <!-- Paso 2: OTP -->
+        <div *ngIf="tokenSent()" class="rp-otp-area fade-in">
+
+          <div class="rp-otp-header">
+            <div class="rp-otp-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>
+              </svg>
+              Código enviado
+            </div>
+            <p class="rp-otp-hint">Ingresa los 6 dígitos que llegaron a tu correo</p>
           </div>
 
+          <div class="rp-otp-inputs token-box" (paste)="onPaste($event)" [formGroup]="form">
+            <ng-container formArrayName="digits">
+              <input
+                #otpInput
+                *ngFor="let ctrl of digitsFA.controls; let i = index"
+                type="text"
+                inputmode="numeric"
+                maxlength="1"
+                autocomplete="one-time-code"
+                [formControlName]="i"
+                (input)="onInput($event, i)"
+                (keydown)="onKeydown($event, i)"
+                [class.rp-otp-input--error]="ctrl.hasError('invalid')"
+              />
+            </ng-container>
+          </div>
 
-        <div class="info-list">
-          <div class="info-item">
-            <span class="icon">🔒</span>
-            <span>Tu información está segura y confidencial</span>
-  
-            </div>
+          <div class="rp-action-area">
+            <button class="rp-btn rp-btn--primary" [disabled]="loading()" (click)="validateToken()">
+              <span class="rp-btn__inner">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Validar e ingresar
+              </span>
+            </button>
+          </div>
+
+          <div class="rp-resend">
+            ¿No llegó el código?
+            <button class="rp-resend__btn" (click)="requestToken()" [disabled]="loading()">Reenviar</button>
+          </div>
+
         </div>
       </div>
-
-
-      <div class="help">
-        <p>¿Necesitas ayuda?</p>
-        <a href="mailto:proveedores@nuvantglobal.com"> ---- </a>
-      </div>
     </div>
+
     <!-- Footer -->
+    <div class="rp-footer">
+      <span class="rp-footer__badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        Conexión segura y encriptada
+      </span>
+      <span class="rp-footer__sep">·</span>
+      <a href="mailto:proveedores@nuvantglobal.com" class="rp-footer__link">¿Necesitas ayuda?</a>
+    </div>
 
   </div>
-
+</div>

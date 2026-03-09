@@ -207,20 +207,25 @@ export class FormComponent {
 
  this.service.createInvitation(payload).subscribe({
       next: (res: any) => {
-        this.service.setData(payload);
+        // 🟢 Guardamos el email junto al payload para que registerprovider lo lea
+        this.service.setData({ ...payload, providerEmail: raw.email });
 
         // 🌟 1. ATRAPAMOS LA NUEVA ESTRUCTURA DEL JSON DEL BACKEND
         const commercialOpId = res.commercialOp?.id;                 // UUID para 'oc'
         const orderServerId = res.serviceOrder?.orderServerId;       // UUID para 'os'
         const numServiceOrder = res.serviceOrder?.numServiceOrder;   // Código NUSR... para 'numSo'
 
-        // 🌟 2. MANDAMOS LOS 4 PARÁMETROS EN LA URL
+        // 🟢 Codificamos el email en Base64 — no viaja legible en la URL
+        const em = btoa(raw.email);
+
+        // 🌟 2. MANDAMOS LOS 5 PARÁMETROS EN LA URL
         this.router.navigate(['/invited'], {
           queryParams: {
             oc: commercialOpId,
             os: orderServerId,
-            numSo: numServiceOrder, 
-            sn: this.selectedCountryCode
+            numSo: numServiceOrder,
+            sn: this.selectedCountryCode,
+            em  // email en Base64
           }
         });
 
@@ -228,7 +233,8 @@ export class FormComponent {
           oc: commercialOpId,
           os: orderServerId,
           numSo: numServiceOrder,
-          sn: this.selectedCountryCode
+          sn: this.selectedCountryCode,
+          em
         });
       },
       error: (err: any) => {
@@ -243,4 +249,3 @@ export class FormComponent {
     });
   }
 }
-

@@ -12,17 +12,12 @@ export class services {
   private statusUrl = 'https://3l5btwx64e.execute-api.us-east-1.amazonaws.com/api/pdf-services/pdf-extract-fields/extract/status';
   private apiValidarOrden = 'https://ccwhqcbjae.execute-api.us-east-1.amazonaws.com/api/ntp/commercialOperation/v1/validateOpenSO/';
 
-
-
-
   constructor(private http: HttpClient) {}
 
   private invitedUrl = 'https://ccwhqcbjae.execute-api.us-east-1.amazonaws.com/api/ntp/commercialOperation/v1/createCompleteOrder/SR';
 
   createInvitation(payload: any): Observable<any> {
   console.log("🚀 Disparando petición REAL a AWS con este payload:", payload);
-
-
   const myToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExM2UyNDNjLTczZjctNGM4NC05MDE1LWU3NWRkZGFiZDI3MSIsImRhdGEiOiIyN2VmOWRiOTg0OTNhYzBiYjFkMmQ1YjJhYjVhZWFjMWViZjY1NDFhYjE4NGVmNTdmYzU3MGFkZmJhM2M1ODY3ODNmMjBhZjg0ZmQ5Y2ZmYWU3NzljYTY5NmRjMDRlZDFjODRiMzRiZjQyNWU4MTJjMDI3MmZmYjdlNTA1Yjg1YjgxNDFmMzc5NGIzNmEyNTEwYjBmODE4Njg0MzhmZGQ0YWUxYmJiMzJiZjIzMDg3OWRmZWQwMDIwYTJjYzdjOTQ0YjhhNGYxYzM0NDA1ZTRhNWRiY2I0NzA4NTc1NzFhZTYxMWZlMWQyYjYzM2YzNWNkMmExZjMyODI5OTljN2FjZjI4MjNiZjJmOTA1N2JiNDZjZjFlMzExNzg2MDQ0ZWZlOGNkYjA5YmM2YzliMjdlNmEyZDYyYjBhNzFjZjcyNGRhY2I2NGJmNzI4MTZkNmQ0ZTJjYTA1NzRmZjJiYjljODc3ZWJkMjhkNzZhZDMzMDA1NzlmMGZmYTlhMTliYWU2M2UwZWJiN2VmZGFhYTlhNjI4NDEzMGJlMzU5MmY3M2Q3ODIwYzQ0MTg2ZGEzMmNlMzBiNzJhYTc2MDIyYWMzZWVlYjI5MDRlNWNlZWU1YTI5OGQxYTIwNzAwZTM3NWFiMWRkMWEzMzcyMjU3NjFjOGIzMTRlOTE0MzM4MzgzMWVkNDJkZmFkNWQwOGMwOTRkZDg1ZDY4YTU4NTAwYmYzZTY5YWEzMmYyN2IyNjU0ZTBiOWI3MzUyMmU5Njc3MzRlZWNiZTUxMTIwMWJmOTFjY2RkOTJlMGQxMjE5YjFjNTFhZGRhODk0Y2U0ZjQ3ODhjODg5YjkwZTllYmY2YmM1OTlhZDkwZDdhNWY2YWQ4YjJkM2ViYzRmN2ZhMWMzZmEwNDJhMWRlOTAwNjhjN2U2YjEyNjhjZTlkNjdmZGUyYWQwMWNmMjg1N2Q2OWNiNDQ2NTIxNThjYzlkZmQ3YWI5MDNkM2Q5YTZmYmQ5N2Q4MDVhYzc4MDI5NTlhY2ZjZDZjMmQwMThlZTdmYzJjMDRkOGNmNzFjNDRlZTlhNGZhNjY1MDM4YjQyZjcwZTQ4NTAwZGNkMTliYTA5MzM0MzZlOWFkYWYxYzlmOWJlYzM0ZjQ2NDY1NmI0YzJhZjg4YTYyNWI5ZTZmNzcyZTNhYTFkMTZhNDU3YzdjZWFhOWU0ZTQ5N2ZhY2Y0YmRkNmVmZWI2NDMzYTNkZDNmY2FiNDBkZmM4NTViOThkMTI2ZmY5ZmIyMWJiZDBmMTcwNzgyYjEyZjQ0ODk5OGQwZGQ1NDk1YjMzODU3ODViMjU1MmU1YmZhMTUyMDhmNGNiNzhjMTc4ZmNhNDkxYjhhZTc5ZDliOTI5ZmE2NWJlZWZlZmQzMTg4NmUzZGVjOGViNzUzMzkiLCJ0eXBlIjoidXNlciIsImlhdCI6MTc3MjcyMzE3NywiZXhwIjoxNzczMzI3OTc3fQ.ycNXyvh9CU262mCfD8enzr4YiUK8i8VKoGDI8mqw__k'
   const headers = new HttpHeaders({
       'Content-Type': 'application/json',
@@ -54,36 +49,32 @@ export class services {
   );
 }
 
+  // ── OTP: Crear y enviar código al correo ──
   sendTokenEmail(email: string): Observable<any> {
-  // Reemplaza con la URL real de tu API de envío de correos
-    const url = 'https://3l5btwx64e.execute-api.us-east-1.amazonaws.com/api/send-token';
-    return this.http.post(url, { email });
+    const url = 'https://n8n-prd-hooks.ops-nvt.com/webhook/d95669f7-d936-4976-b091-a1a9e1989e44';
+    return this.http.post(url, { email }, { observe: 'response' });
   }
 
-    private extractUrl = 'https://3l5btwx64e.execute-api.us-east-1.amazonaws.com/api/pdf-services/pdf-extract-fields/extract-rut';
+  // ── OTP: Validar código ingresado por el proveedor ──
+  validateTokenEmail(email: string, otp: string): Observable<any> {
+    const url = 'https://n8n-prd-hooks.ops-nvt.com/webhook/f00c3c63-8ea5-4513-82f4-aefb0ee5b6d6';
+    return this.http.post(url, { email, OTP: otp }, { observe: 'response' });
+  }
 
-    startExtraction(file: File, docType: string): Observable<any> {
+  private extractUrl = 'https://3l5btwx64e.execute-api.us-east-1.amazonaws.com/api/pdf-services/pdf-extract-fields/extract-rut';
+
+  startExtraction(file: File, docType: string): Observable<any> {
     const pdfToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjczM2VhNDNhLTc4N2QtNDM4Yi04ZTAwLTU0ZDc0YjVlMGRkOSIsImRhdGEiOiIzMzY0MDBlZWI0MWVjYzAwYWMwYmVkODZlNjk2YTk5OSIsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzY4NjkzMTM2LCJleHAiOjIwODQyNjkxMzZ9.qZn1fMZMfxJvx90t6huKa_saFKzBKYpU0MrBzpVonMY';
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${pdfToken}`
-    });
-
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${pdfToken}` });
     const fd = new FormData();
     fd.append('file', file);
     fd.append('render', JSON.stringify({ "dpi": 200, "pages": "1" }));
-
     return this.http.post<any>(this.extractUrl, fd, { headers });
-    }
+  }
 
-  // --- API PDF Step 2: Consultar estado ---
-    checkStatus(jobId: string): Observable<any> {
-      const pdfToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjczM2VhNDNhLTc4N2QtNDM4Yi04ZTAwLTU0ZDc0YjVlMGRkOSIsImRhdGEiOiIzMzY0MDBlZWI0MWVjYzAwYWMwYmVkODZlNjk2YTk5OSIsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzY4NjkzMTM2LCJleHAiOjIwODQyNjkxMzZ9.qZn1fMZMfxJvx90t6huKa_saFKzBKYpU0MrBzpVonMY';
-
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${pdfToken}`
-      });
-
-      // Nota: Revisa si tu backend espera ?jobId= o ?executionId=. Lo dejaré como executionId que era el que tenías.
+  checkStatus(jobId: string): Observable<any> {
+    const pdfToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjczM2VhNDNhLTc4N2QtNDM4Yi04ZTAwLTU0ZDc0YjVlMGRkOSIsImRhdGEiOiIzMzY0MDBlZWI0MWVjYzAwYWMwYmVkODZlNjk2YTk5OSIsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzY4NjkzMTM2LCJleHAiOjIwODQyNjkxMzZ9.qZn1fMZMfxJvx90t6huKa_saFKzBKYpU0MrBzpVonMY';
+    const headers = new HttpHeaders({ 'Authorization': `Bearer ${pdfToken}` });
     return this.http.get<any>(`${this.statusUrl}?jobId=${jobId}`, { headers });
   }
 
@@ -93,12 +84,6 @@ export class services {
   }
 
   private data: any;
-  setData(value: any): void {
-    this.data = value;
-  }
-
-  getData(): any {
-    return this.data;
-  }
+  setData(value: any): void { this.data = value; }
+  getData(): any { return this.data; }
 }
-

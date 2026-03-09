@@ -1,277 +1,571 @@
-/* =========================================================
-   VARIABLES GLOBALES (Paleta Nuvant)
-   ========================================================= */
+/* ============================================================
+   FUENTES
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=DM+Sans:wght@400;500&display=swap');
+
+/* ============================================================
+   VARIABLES
+   ============================================================ */
 :host {
-  --primary-color: #2563eb;       /* Azul corporativo */
-  --primary-hover: #1d4ed8;
-  --bg-color: #f8fafc;            /* Fondo gris muy claro */
-  --card-bg: #ffffff;
-  --text-main: #0f172a;           /* Texto oscuro principal */
-  --muted: #64748b;               /* Texto secundario/gris */
-  --border-color: #cbd5e1;
-  --error-color: #ef4444;         /* Rojo para errores */
-  --success-color: #10b981;
+  --blue:        #FF6647;
+  --blue-dark:   #e0502e;
+  --blue-glow:   rgba(255,102,71,0.18);
+  --blue-soft:   rgba(255,102,71,0.08);
+  --bg:          #f0f4ff;
+  --card:        #ffffff;
+  --text:        #080d29;
+  --muted:       #64748b;
+  --border:      #dde4f0;
+  --error:       #ef4444;
+  --success:     #10b981;
+  --font-head:   'Sora', sans-serif;
+  --font-body:   'DM Sans', sans-serif;
+  --radius-card: 24px;
+  --radius-btn:  14px;
+  --shadow-card: 0 20px 60px rgba(8,13,41,0.10), 0 4px 16px rgba(255,102,71,0.08);
 }
 
-/* =========================================================
-   LAYOUT PRINCIPAL
-   ========================================================= */
-.provider-page {
+/* ============================================================
+   FONDO DE PÁGINA
+   ============================================================ */
+.rp-page {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--bg-color);
-  padding: 20px;
-  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  font-family: var(--font-body);
+  position: relative;
+  overflow: hidden;
+  padding: 24px;
 }
 
-.provider-wrapper {
+/* Orbes de color de fondo */
+.rp-bg-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+.rp-bg-orb--1 {
+  width: 520px; height: 520px;
+  background: radial-gradient(circle, rgba(255,102,71,0.13) 0%, transparent 70%);
+  top: -180px; left: -160px;
+}
+.rp-bg-orb--2 {
+  width: 420px; height: 420px;
+  background: radial-gradient(circle, rgba(255,102,71,0.10) 0%, transparent 70%);
+  bottom: -120px; right: -100px;
+}
+
+/* Grid sutil de fondo */
+.rp-bg-grid {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,102,71,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,102,71,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+/* ============================================================
+   WRAPPER
+   ============================================================ */
+.rp-wrapper {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 1200px; /* Ancho perfecto para un login */
+  max-width: 460px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 20px;
 }
 
-/* =========================================================
-   HEADER & CARD
-   ========================================================= */
-.provider-header {
-  margin-bottom: 24px;
+/* ============================================================
+   LOGO
+   ============================================================ */
+.rp-logo img {
+  height: 36px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(255,102,71,0.15));
 }
 
-.provider-header img {
-  height: 40px; /* Ajusta según el tamaño de tu logo nuvant.png */
+/* ============================================================
+   CARD
+   ============================================================ */
+.rp-card {
+  width: 100%;
+  background: var(--card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  border: 1px solid rgba(255,255,255,0.8);
+  padding: 40px 36px 36px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Línea decorativa top de la card */
+.rp-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 10%; right: 10%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--blue), transparent);
+  border-radius: 0 0 4px 4px;
+}
+
+/* ============================================================
+   LOADING
+   ============================================================ */
+.rp-loading {
+  padding: 16px 0 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.rp-spinner {
+  width: 48px;
+  height: 48px;
+}
+
+.rp-spinner svg {
+  width: 100%;
+  height: 100%;
+  animation: rp-spin 1.2s linear infinite;
+}
+
+.rp-spinner svg circle {
+  stroke: var(--blue);
+  stroke-linecap: round;
+  stroke-dasharray: 80;
+  stroke-dashoffset: 60;
+}
+
+.rp-loading__text {
+  font-family: var(--font-body);
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.rp-dots::after {
+  content: '';
+  animation: rp-dots 1.4s steps(4, end) infinite;
+}
+
+@keyframes rp-dots {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+  100% { content: ''; }
+}
+
+/* ============================================================
+   ÍCONO CENTRAL
+   ============================================================ */
+.rp-icon-wrap {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 28px;
+}
+
+.rp-icon-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid var(--blue);
+  opacity: 0.12;
+  animation: rp-pulse-ring 2.8s ease-out infinite;
+}
+
+.rp-icon-ring--outer {
+  inset: -10px;
+  animation-delay: 0s;
+}
+
+.rp-icon-ring--inner {
+  inset: -3px;
+  opacity: 0.18;
+  animation-delay: 0.6s;
+}
+
+.rp-icon-core {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #fff3f1 0%, #ffe8e3 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px var(--blue-glow);
+}
+
+.rp-icon-core img {
+  width: 34px;
+  height: 34px;
   object-fit: contain;
 }
 
-.provider-card {
-  background: var(--card-bg);
-  width: 100%;
-  border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-  padding: 40px;
-  position: relative;
-  text-align: center;
+@keyframes rp-pulse-ring {
+  0%   { transform: scale(1);    opacity: 0.15; }
+  60%  { transform: scale(1.18); opacity: 0; }
+  100% { transform: scale(1.18); opacity: 0; }
 }
 
-.icon-circle {
-  width: 64px;
-  height: 64px;
-  background-color: #f1f5f9;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 24px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-}
-
-.icon-circle img {
-  width: 32px;
-  height: 32px;
-}
-
-h1 {
-  font-size: 1.5rem;
+/* ============================================================
+   TEXTOS
+   ============================================================ */
+.rp-title {
+  font-family: var(--font-head);
+  font-size: 1.45rem;
   font-weight: 700;
-  color: var(--text-main);
-  margin-bottom: 12px;
+  color: var(--text);
+  margin: 0 0 8px;
+  letter-spacing: -0.3px;
   line-height: 1.3;
 }
 
-.login-intro p {
+.rp-subtitle {
+  font-size: 0.9rem;
   color: var(--muted);
-  font-size: 0.95rem;
-  line-height: 1.5;
-  margin-bottom: 30px;
+  margin: 0 0 28px;
+  line-height: 1.55;
 }
 
-/* =========================================================
-   SECCIÓN DEL TOKEN (LOS CUADRITOS OTP)
-   ========================================================= */
-.token-section {
-  margin-top: 20px;
+/* ============================================================
+   EMAIL PILL
+   ============================================================ */
+.rp-email-block {
+  margin-bottom: 28px;
 }
 
-.token-label {
+.rp-email-label {
+  font-size: 0.78rem;
   font-weight: 600;
-  color: var(--text-main);
-  margin-bottom: 16px;
-  font-size: 0.95rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
 }
 
-.token-box {
+.rp-email-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--blue-soft);
+  border: 1.5px solid rgba(255,102,71,0.18);
+  border-radius: 100px;
+  padding: 10px 20px;
+  max-width: 100%;
+}
+
+.rp-email-pill__icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--blue);
+  display: flex;
+  align-items: center;
+}
+
+.rp-email-pill__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.rp-email-pill__text {
+  font-family: var(--font-head);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--blue-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rp-email-note {
+  font-size: 0.77rem;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+/* ============================================================
+   BOTÓN PRIMARIO
+   ============================================================ */
+.rp-action-area {
+  margin-bottom: 4px;
+}
+
+.rp-btn {
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-btn);
+  cursor: pointer;
+  font-family: var(--font-head);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.22s ease;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.rp-btn--primary {
+  background: linear-gradient(135deg, var(--blue) 0%, var(--blue-dark) 100%);
+  color: white;
+  padding: 15px 24px;
+  box-shadow: 0 4px 18px var(--blue-glow), 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.rp-btn--primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.rp-btn--primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px var(--blue-glow), 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.rp-btn--primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.rp-btn--primary:disabled {
+  background: #94a3b8;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.rp-btn__inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+
+.rp-btn__inner svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+}
+
+.rp-btn__loader {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.rp-btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: rp-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   OTP AREA
+   ============================================================ */
+.rp-otp-area {
+  margin-top: 4px;
+}
+
+.rp-otp-header {
+  margin-bottom: 22px;
+}
+
+.rp-otp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #f0fdf4;
+  border: 1.5px solid #bbf7d0;
+  color: #15803d;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 100px;
+  padding: 6px 14px;
+  margin-bottom: 10px;
+}
+
+.rp-otp-badge svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.rp-otp-hint {
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Inputs OTP */
+.rp-otp-inputs {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  margin-bottom: 30px;
+  gap: 10px;
+  margin-bottom: 24px;
 }
 
-.token-box input {
-  width: 48px;
-  height: 56px;
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
+.rp-otp-inputs input {
+  width: 50px;
+  height: 58px;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  font-family: var(--font-head);
   font-size: 1.5rem;
   font-weight: 700;
   text-align: center;
-  color: var(--text-main);
-  background-color: #fff;
-  transition: all 0.2s ease;
+  color: var(--text);
+  background: #fafbff;
+  transition: all 0.18s ease;
   outline: none;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+  caret-color: var(--blue);
 }
 
-/* Efecto al hacer clic en el cuadrito */
-.token-box input:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
-  transform: translateY(-2px);
+.rp-otp-inputs input:focus {
+  border-color: var(--blue);
+  background: #fff;
+  box-shadow: 0 0 0 4px var(--blue-glow), 0 2px 8px rgba(255,102,71,0.08);
+  transform: translateY(-2px) scale(1.04);
 }
 
-/* Efecto visual cuando el token es incorrecto */
-.token-box input.error-input {
-  border-color: var(--error-color);
-  color: var(--error-color);
-  background-color: #fef2f2;
+.rp-otp-inputs input.rp-otp-input--error {
+  border-color: var(--error);
+  background: #fef2f2;
+  color: var(--error);
+  animation: rp-shake 0.4s ease;
 }
 
-/* =========================================================
-   BOTONES Y ACCIONES
-   ========================================================= */
-.actions {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
+/* Reenviar */
+.rp-resend {
+  margin-top: 16px;
+  font-size: 0.83rem;
+  color: var(--muted);
 }
 
-.btn-primary {
-  background-color: var(--primary-color);
-  color: white;
+.rp-resend__btn {
+  background: none;
   border: none;
-  border-radius: 10px;
-  padding: 14px 32px;
-  font-size: 1rem;
+  color: var(--blue);
   font-weight: 600;
-  width: 100%;
+  font-size: inherit;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  padding: 0;
+  font-family: var(--font-body);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.18s;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background-color: var(--primary-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+.rp-resend__btn:hover:not(:disabled) {
+  color: var(--blue-dark);
 }
 
-.btn-primary:disabled {
-  background-color: #94a3b8;
+.rp-resend__btn:disabled {
+  color: #94a3b8;
   cursor: not-allowed;
-  box-shadow: none;
 }
 
-a {
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.rp-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.rp-footer__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.rp-footer__badge svg {
+  width: 13px;
+  height: 13px;
+}
+
+.rp-footer__sep {
+  opacity: 0.4;
+}
+
+.rp-footer__link {
+  color: var(--blue);
+  font-weight: 500;
   text-decoration: none;
-  font-weight: 600;
-  transition: color 0.2s;
+  transition: color 0.18s;
 }
 
-a:hover {
+.rp-footer__link:hover {
+  color: var(--blue-dark);
   text-decoration: underline;
 }
 
-/* =========================================================
-   FOOTER Y MENSAJES EXTRA
-   ========================================================= */
-.info-list {
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #e2e8f0;
-}
-
-.info-item {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-.help {
-  margin-top: 24px;
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
-.provider-footer {
-  margin-top: 30px;
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-
-/* =========================================================
+/* ============================================================
    ANIMACIONES
-   ========================================================= */
+   ============================================================ */
 .fade-in {
-  animation: fadeIn 0.6s ease-out forwards;
+  animation: rp-fadeIn 0.5s ease-out both;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
+@keyframes rp-fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Animación de error (temblor) */
-.shake {
-  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
-}
-
-@keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0); }
-  20%, 80% { transform: translate3d(2px, 0, 0); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
-  40%, 60% { transform: translate3d(4px, 0, 0); }
-}
-
-/* =========================================================
-   SPINNER DE CARGA (Validando Orden)
-   ========================================================= */
-.spinner-container {
-  color: var(--muted) !important; /* Forzamos color oscuro si el fondo es blanco */
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e2e8f0;
-  border-top-color: var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
+@keyframes rp-spin {
   to { transform: rotate(360deg); }
 }
 
-/* =========================================================
-   RESPONSIVE (Móviles)
-   ========================================================= */
+@keyframes rp-shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-5px); }
+  40%       { transform: translateX(5px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
 @media (max-width: 480px) {
-  .provider-card {
-    padding: 30px 20px;
+  .rp-card {
+    padding: 32px 22px 28px;
   }
 
-  .token-box input {
-    width: 40px;
+  .rp-otp-inputs input {
+    width: 42px;
     height: 50px;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
+    border-radius: 10px;
   }
 
-  .token-box {
-    gap: 8px;
+  .rp-otp-inputs {
+    gap: 7px;
+  }
+
+  .rp-title {
+    font-size: 1.25rem;
   }
 }
