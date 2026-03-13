@@ -1302,49 +1302,24 @@ export class ProviderComponent implements OnInit {
               : (fields.labelType ?? 'text');
 
             // ── Si es contactType (sin número), replicar para los 5 grupos de contacto ──
-            if (key === 'contactType') {
-              for (let gi = 1; gi <= 5; gi++) {
-                const keyN = `contactType${gi}`;
-                if (!controlesReactivos[keyN]) {
-                  const valorContactN = gi === 1
-                    ? (typeof valorExtraido === 'string' ? valorExtraido.toUpperCase() : (valorExtraido ?? ''))
-                    : '';
-                  controlesReactivos[keyN] = [valorContactN];
-                  nuevoCamposDinamicos.push({
-                    key: keyN,
-                    label: fields.labelName,
-                    idValueField: gi === 1 ? (itemPlantilla.id ?? '') : '',
-                    visible: gi === 1,           // solo grupo 1 visible por defecto
-                    seccion: nombreSeccion,
-                    type: tipoForzado,
-                    options: fields.options ?? [],
-                    isLong: false,
-                    columnSpan: fields.columnSpan ?? 1,
-                    autocompletado: false,
-                    grupoBeneficiario: 0,
-                    grupoDocumento: 0,
-                    orderToGetValue: fields.orderToGetValue ?? 99,
-                  });
-                }
-              }
-            } else {
-              nuevoCamposDinamicos.push({
-                key,
-                label: fields.labelName,
-                idValueField: itemPlantilla.id ?? '',
-                visible: esVisible,
-                seccion: nombreSeccion,
-                type: tipoForzado,
-                options: fields.options ?? [],
-                isLong: false,
-                columnSpan: fields.columnSpan ?? 1,
-                autocompletado: false,
-                grupoBeneficiario,
-                grupoDocumento,
-                orderToGetValue: fields.orderToGetValue ?? 99,
-                isWritable: itemPlantilla._isWritable,
-              });
-            }
+            if (key === 'contactType') return;
+
+            nuevoCamposDinamicos.push({
+              key,
+              label: fields.labelName,
+              idValueField: itemPlantilla.id ?? '',
+              visible: esVisible,
+              seccion: nombreSeccion,
+              type: tipoForzado,
+              options: fields.options ?? [],
+              isLong: false,
+              columnSpan: fields.columnSpan ?? 1,
+              autocompletado: false,
+              grupoBeneficiario,
+              grupoDocumento,
+              orderToGetValue: fields.orderToGetValue ?? 99,
+              isWritable: itemPlantilla._isWritable,
+            });
           }
         });
       }

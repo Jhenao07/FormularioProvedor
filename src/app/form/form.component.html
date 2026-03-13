@@ -169,10 +169,6 @@
             <div class="counter" [class.counter-warn]="obsLength > 250">{{ obsLength }} / 300</div>
           </div>
 
-          <p class="note">
-            📋 La firma del documento se solicitará después de la validación por parte de Compras.
-          </p>
-
           <div class="actions">
             <button type="button" class="btn secondary" (click)="form.reset()">Limpiar</button>
             <button type="button" class="btn primary" (click)="sendinvitation()" [disabled]="isSending()">
