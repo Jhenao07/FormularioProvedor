@@ -55,7 +55,7 @@ export class RegisterproviderComponent implements OnInit {
       Array.from({ length: 6 }, () =>
         new FormControl<string>('', {
           nonNullable: true,
-          validators: [Validators.required, Validators.pattern(/^\d$/)],
+          validators: [Validators.required, Validators.pattern(/^[A-Z0-9]$/)],
         })
       )
     ),
@@ -218,7 +218,8 @@ export class RegisterproviderComponent implements OnInit {
 
   onInput(event: Event, idx: number): void {
     const input = event.target as HTMLInputElement;
-    input.value = (input.value ?? '').replace(/\D/g, '').slice(0, 1);
+    // 🟢 Acepta letras y números, fuerza mayúsculas
+    input.value = (input.value ?? '').replace(/[^A-Z0-9]/gi, '').toUpperCase().slice(0, 1);
     this.digitsFA.at(idx).setValue(input.value, { emitEvent: false });
     if (input.value && idx < this.digitsFA.length - 1) this.focus(idx + 1);
   }
@@ -248,7 +249,8 @@ export class RegisterproviderComponent implements OnInit {
   onPaste(event: ClipboardEvent): void {
     event.preventDefault();
     const digits = (event.clipboardData?.getData('text') ?? '')
-      .replace(/\D/g, '')
+      .replace(/[^A-Z0-9]/gi, '')
+      .toUpperCase()
       .slice(0, 6)
       .split('');
 

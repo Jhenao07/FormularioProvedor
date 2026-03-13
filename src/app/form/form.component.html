@@ -2,99 +2,115 @@
   <div class="page">
     <div class="card">
 
+      <!-- ── HEADER ── -->
       <div class="header">
         <img src="assets/nuvant.png" alt="Nuvant" />
         <div class="input-group">
-          <h3>Digite su cédula:</h3>
-          <div class="input-icon">
-            <input
-              type="text"
-              placeholder="Ingrese su cédula"
-              formControlName="documentNumber"
-              (input)="numbers()"
-              [class.is-invalid]="form.get('documentNumber')?.invalid && form.get('documentNumber')?.touched"
-            />
-            <span>🪪</span>
+          <h3>Consultar empleado</h3>
+          <div class="search-row">
+            <div class="input-icon">
+              <input
+                type="text"
+                placeholder="Ingrese su número de cédula"
+                formControlName="documentNumber"
+                (input)="numbers()"
+                maxlength="11" [class.is-invalid]="documentNumber?.invalid && documentNumber?.touched"
+              />
+              <span>🪪</span>
+            </div>
+            <button type="button" class="btn consult" (click)="search()" [disabled]="isSearching()">
+              <span *ngIf="!isSearching()">Consultar</span>
+              <span *ngIf="isSearching()" class="spinner"></span>
+            </button>
           </div>
-
-          <div *ngIf="form.get('documentNumber')?.invalid && form.get('documentNumber')?.touched" class="error-message">
-            <small *ngIf="form.get('documentNumber')?.errors?.['required']">La cédula es requerida.</small>
-            <small *ngIf="form.get('documentNumber')?.errors?.['pattern']">Solo números.</small>
-            <small *ngIf="form.get('documentNumber')?.errors?.['minlength']">Mínimo 6 dígitos.</small>
+          <div *ngIf="documentNumber?.invalid && documentNumber?.touched" class="error-message">
+            <small *ngIf="documentNumber?.errors?.['required']">La cédula es requerida.</small>
+            <small *ngIf="documentNumber?.errors?.['pattern']">Solo se permiten números.</small>
+            <small *ngIf="documentNumber?.errors?.['minlength']">Mínimo 6 dígitos.</small>
           </div>
         </div>
-        <button type="button" class="btn consult" (click)="search()">Consultar</button>
       </div>
 
+      <!-- ── BODY ── -->
       <div class="body">
         <h1>Nueva solicitud de proveedor</h1>
         <p class="subtitle">Espacio exclusivo para Nuvant</p>
 
         <div class="form-card">
-          <h3>Datos del solicitante (Nuvant)</h3>
-          <p class="hint">*Espacio exclusivo para Nuvant</p>
+          <h3>Datos del solicitante</h3>
+          <p class="hint">*Estos campos se completan automáticamente al consultar la cédula.</p>
 
+          <!-- Solicitado por -->
           <div class="form-group">
             <label>Solicitado por *</label>
-            <input type="text" placeholder="Nombre del solicitante" formControlName="name" readonly />
+            <input type="text" placeholder="Nombre del solicitante" formControlName="name" readonly
+              [class.is-invalid]="form.get('name')?.invalid && form.get('name')?.touched" />
+            <small *ngIf="form.get('name')?.invalid && form.get('name')?.touched" class="error-text">Requerido.</small>
           </div>
 
-          <div class="grid-2">
+          <!-- Gerencia + Cargo + Área -->
+          <div class="grid-3">
             <div class="form-group">
               <label>Gerencia *</label>
-              <input type="text" placeholder="Gerencia" formControlName="gerencia" readonly />
+              <input type="text" placeholder="Gerencia" formControlName="agency" readonly
+                [class.is-invalid]="form.get('agency')?.invalid && form.get('agency')?.touched" />
+              <small *ngIf="form.get('agency')?.invalid && form.get('agency')?.touched" class="error-text">Requerido.</small>
             </div>
             <div class="form-group">
               <label>Cargo *</label>
-              <input type="text" placeholder="Cargo" formControlName="position" readonly />
+              <input type="text" placeholder="Cargo" formControlName="position" readonly
+                [class.is-invalid]="form.get('position')?.invalid && form.get('position')?.touched" />
+              <small *ngIf="form.get('position')?.invalid && form.get('position')?.touched" class="error-text">Requerido.</small>
             </div>
             <div class="form-group">
-              <label>Area</label>
-              <input type="text" placeholder="Area" formControlName="area" readonly />
+              <label>Área</label>
+              <input type="text" placeholder="Área" formControlName="area" readonly />
             </div>
           </div>
 
+          <div class="section-divider"></div>
+          <h3>Información del proveedor</h3>
+
+          <!-- Tipo de proveedor -->
           <div class="form-group">
             <label>Tipo de proveedor *</label>
             <div class="chips">
-              @for (type of ['Repuestos', 'Servicios', 'Asesoría / Consultoría', 'Maquinaria', 'Otros']; track type) {
+              @for (type of providerTypes; track type) {
                 <button
                   type="button"
                   class="chip"
                   [class.active]="form.get('providerType')?.value === type"
                   (click)="selectChip(type)"
-                >
-                  {{ type }}
-                </button>
+                >{{ type }}</button>
               }
             </div>
             <input
               *ngIf="form.get('providerType')?.value === 'Otros'"
-              class="mt" type="text" placeholder="Describa otros..."
+              class="mt"
+              type="text"
+              placeholder="Describa el tipo de proveedor..."
+              formControlName="otherType"
             />
-             <small *ngIf="form.get('providerType')?.invalid && form.get('providerType')?.touched" class="error-text">
-              Seleccione un tipo.
+            <small *ngIf="form.get('providerType')?.invalid && form.get('providerType')?.touched" class="error-text">
+              Seleccione un tipo de proveedor.
             </small>
           </div>
 
+          <!-- Clasificación -->
           <div class="form-group">
-            <label>Clasificación del proveedor *</label>
-            <select formControlName="classification" [class.is-invalid]="form.get('classification')?.invalid && form.get('classification')?.touched">
-              <option value="" disabled selected>Seleccione</option>
-              <option value="PequeñaEmpresa">Pequeña Empresa</option>
-              <option value="MedianaEmpresa">Mediana Empresa</option>
-              <option value="GranEmpresa">Gran Empresa</option>
+            <label>Clasificación del proveedor</label>
+            <select formControlName="classification">
+              <option value="" disabled selected>Seleccione una clasificación...</option>
+              @for (opt of classificationOptions; track opt) {
+                <option [value]="opt">{{ opt }}</option>
+              }
             </select>
-            <small *ngIf="form.get('classification')?.invalid && form.get('classification')?.touched" class="error-text">
-              Requerido.
-            </small>
           </div>
 
+          <!-- Ubicación -->
           <div class="form-group">
-            <label>Ubicación del Proveedor *</label>
-
+            <label>Ubicación del proveedor *</label>
             <div class="custom-select" [class.is-invalid]="form.get('country')?.invalid && form.get('country')?.touched">
-
               <div class="select-trigger" (click)="toggleDropdown()">
                 @if (form.get('country')?.value) {
                   <div class="selected-content">
@@ -106,7 +122,6 @@
                 }
                 <span class="arrow" [class.open]="dropdownOpen">▼</span>
               </div>
-
               @if (dropdownOpen) {
                 <div class="options-list">
                   @for (c of countriesList; track c.code) {
@@ -119,12 +134,12 @@
                 </div>
               }
             </div>
-
             <small *ngIf="form.get('country')?.invalid && form.get('country')?.touched" class="error-text">
               Debe seleccionar una ubicación.
             </small>
           </div>
 
+          <!-- Email proveedor -->
           <div class="form-group">
             <label>Email del proveedor *</label>
             <div class="input-icon">
@@ -132,29 +147,38 @@
                 type="email"
                 placeholder="nombre@empresa.com"
                 formControlName="email"
-                [class.is-invalid]="form.get('email')?.invalid && form.get('email')?.touched"
+                [class.is-invalid]="emailControl?.invalid && emailControl?.touched"
               />
               <span>✉️</span>
             </div>
-            <small class="hint">Se enviará aquí el enlace de registro.</small>
-            <small *ngIf="form.get('email')?.invalid && form.get('email')?.touched" class="error-text">
-              Email inválido o requerido.
+            <small class="hint-inline">Se enviará aquí el enlace de registro al proveedor.</small>
+            <small *ngIf="emailControl?.invalid && emailControl?.touched" class="error-text">
+              Ingresa un email válido.
             </small>
           </div>
 
+          <!-- Observaciones -->
           <div class="form-group">
-            <label>Observaciones para el proveedor (opcional)</label>
-            <textarea maxlength="300" formControlName="observations" placeholder="Escriba aquí..."></textarea>
-            <div class="counter">0 / 300</div>
+            <label>Observaciones para el proveedor <span class="optional">(opcional)</span></label>
+            <textarea
+              maxlength="300"
+              formControlName="observations"
+              placeholder="Escriba aquí instrucciones o notas para el proveedor..."
+              rows="3"
+            ></textarea>
+            <div class="counter" [class.counter-warn]="obsLength > 250">{{ obsLength }} / 300</div>
           </div>
 
           <p class="note">
-            La firma se solicitará después de la validación de Compras.
+            📋 La firma del documento se solicitará después de la validación por parte de Compras.
           </p>
 
           <div class="actions">
-            <button type="button" class="btn secondary">Cancelar</button>
-            <button type="button" class="btn primary" (click)="sendinvitation()">Enviar invitación</button>
+            <button type="button" class="btn secondary" (click)="form.reset()">Limpiar</button>
+            <button type="button" class="btn primary" (click)="sendinvitation()" [disabled]="isSending()">
+              <span *ngIf="!isSending()">Enviar invitación →</span>
+              <span *ngIf="isSending()" class="spinner spinner-light"></span>
+            </button>
           </div>
 
         </div>

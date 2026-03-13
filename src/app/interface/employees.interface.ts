@@ -5,7 +5,7 @@ export interface Employee {
   position: string;
   area: string;
   management: string;
-
+  agency: string;
 }
 
 export interface EmployeesResponse {
@@ -51,5 +51,5 @@ export interface CampoDinamicoUI {
   options: string[]; // ['C.C', 'NIT'] o vacío []
   valorFijo: string; // El valor extraído por AWS
   isLong?: boolean;
-  autocompletado?: boolean; 
+  autocompletado?: boolean;
 }

@@ -60,8 +60,7 @@
               "buildTarget": "forms:build:production"
             },
             "development": {
-              "buildTarget": "forms:build:development",
-              "proxyConfig": "proxy.conf.json"
+              "buildTarget": "forms:build:development"
             }
           },
           "defaultConfiguration": "development"

@@ -11,7 +11,7 @@
 
     <nav class="steps">
       <div *ngIf="countrySelected() !== 'Otro'" class="step" [class.active]="currentStep() === 1">
-        1. DocumentosA
+        1. Documentos
       </div>
       <div class="step" [class.active]="currentStep() === 2">
         {{ countrySelected() === 'Otro' ? '1.' : '2.' }} Información
@@ -103,13 +103,11 @@
           </div>
           <hr class="stepper-divider">
 
-          <!-- ─── RENDER AGRUPADO POR CONTACTO ─── -->
-          <ng-container *ngFor="let bloque of camposAgrupados()">
+          <ng-container *ngFor="let bloque of camposAgrupados(); trackBy: trackByGrupo">
 
-            <!-- Header del grupo de contacto (solo si grupo > 0) -->
             <div class="form-group full contact-header-box" *ngIf="bloque.grupo > 0">
-              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; margin-top: 20px;">
-                <h4 style="color: #3b82f6; margin: 0; font-size: 16px;">📞 Persona de Contacto #{{ bloque.grupo }}</h4>
+              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 2px solid #FF6647; padding-bottom: 10px; margin-top: 20px;">
+                <h4 style="color: #FF6647; margin: 0; font-size: 16px;">📞 Persona de Contacto #{{ bloque.grupo }}</h4>
                 <button type="button"
                         *ngIf="bloque.grupo > 1"
                         (click)="eliminarEsteContacto(bloque.grupo)"
@@ -119,10 +117,83 @@
               </div>
             </div>
 
-            <!-- ── CAMPOS NORMALES (sin beneficiario) ── -->
             <div class="form-grid" [class.contact-group-grid]="bloque.grupo > 0">
-              <ng-container *ngFor="let campo of getCamposNormales(bloque.campos)">
+              <ng-container *ngFor="let campo of bloque.normales; trackBy: trackByCampo">
+
+                <ng-container *ngIf="campo.type === 'hidden-phone-sub'"></ng-container>
+
+                <div class="form-group phone-group"
+                     *ngIf="campo.type === 'phone'"
+                     [class.is-contact-box]="bloque.grupo > 0"
+                     [class.span-2]="campo.columnSpan === 2"
+                     [class.span-3]="campo.columnSpan === 3">
+                  <label class="label">
+                    {{ campo.label }}
+                    <span class="req" *ngIf="campo.required">*</span>
+                  </label>
+                  <div class="phone-input-row">
+
+                    <div class="indicativo-wrapper"
+                         (click)="$event.stopPropagation(); toggleIndicativoDropdown(campo.key)">
+                      <span class="indicativo-flag">{{ getBanderaIndicativo(campo.key) }}</span>
+                      <span class="indicativo-code">{{ getCodigoIndicativo(campo.key) }}</span>
+                      <svg class="indicativo-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M6 9l6 6 6-6"/>
+                      </svg>
+                    </div>
+
+                    <div class="indicativo-dropdown"
+                         *ngIf="indicativoDropdownAbierto() === campo.key"
+                         (click)="$event.stopPropagation()">
+                      <div class="indicativo-search">
+                        <input type="text"
+                               class="indicativo-search-input"
+                               placeholder="Buscar país..."
+                               [(ngModel)]="busquedaIndicativo"
+                               [ngModelOptions]="{standalone: true}"
+                               (click)="$event.stopPropagation()"
+                               autofocus />
+                      </div>
+                      <div class="indicativo-dropdown-inner">
+                        <div *ngIf="loadingIndicativos()" class="indicativo-loading">Cargando países...</div>
+                        <ng-container *ngIf="!loadingIndicativos()">
+                         <div class="indicativo-option"
+                               *ngFor="let ind of getIndicativosFiltrados()"
+                               [class.active]="indicativoSeleccionado()[campo.key] === ind.codigo"
+                               (mousedown)="$event.preventDefault(); setIndicativo(campo.key, ind.codigo); busquedaIndicativo = ''">
+                            <span class="ind-flag">{{ ind.bandera }}</span>
+                            <span class="ind-nombre">{{ ind.nombre }}</span>
+                            <span class="ind-code">{{ ind.codigo }}</span>
+                          </div>
+                          <div class="indicativo-empty" *ngIf="getIndicativosFiltrados().length === 0">
+                            Sin resultados
+                          </div>
+                        </ng-container>
+                      </div>
+                    </div>
+
+                    <input class="phone-number-input"
+                           type="tel"
+                           inputmode="numeric"
+                           [formControlName]="getPhoneInputKey(campo.key)"
+                           placeholder="Número"
+                           (keypress)="$event.charCode >= 48 && $event.charCode <= 57" />
+
+                    <ng-container *ngIf="tieneExt(campo.key)">
+                      <span class="ext-label">Ext.</span>
+                      <input class="ext-input"
+                             type="tel"
+                             inputmode="numeric"
+                             [formControlName]="getExtKey(campo.key)"
+                             placeholder="000"
+                             (keypress)="$event.charCode >= 48 && $event.charCode <= 57" />
+                    </ng-container>
+
+                  </div>
+                </div>
+
                 <div class="form-group"
+                     *ngIf="campo.type !== 'phone'"
                      [class.full]="campo.isLong"
                      [class.is-contact-box]="bloque.grupo > 0"
                      [class.span-2]="campo.columnSpan === 2"
@@ -152,15 +223,14 @@
                     </div>
                   </div>
                 </div>
+
               </ng-container>
             </div>
 
-            <!-- ── TABLA DE BENEFICIARIOS ── -->
-            <ng-container *ngIf="getCamposBeneficiarios(bloque.campos).length > 0">
+            <ng-container *ngIf="bloque.beneficiarios.length > 0">
               <div class="beneficiarios-tabla-wrapper">
 
-                <!-- Info box -->
-                <ng-container *ngFor="let campo of getCamposEspeciales(bloque.campos)">
+                <ng-container *ngFor="let campo of bloque.especiales; trackBy: trackByCampo">
                   <div class="form-group full beneficiary-info-box" *ngIf="campo.type === 'beneficiary-info'">
                     <h4 class="beneficiary-title">Relacione los socios o accionistas hasta llegar al beneficiario final, teniendo en cuenta que:</h4>
                     <p class="beneficiary-text">
@@ -174,22 +244,21 @@
                   </div>
                 </ng-container>
 
-                <!-- Tabla -->
                 <div class="beneficiarios-tabla-scroll">
                   <table class="beneficiarios-tabla">
                     <thead>
                       <tr>
                         <th class="bft-num">#</th>
-                        <ng-container *ngFor="let campo of getCamposBeneficiarios(bloque.campos)[0]?.campos">
+                        <ng-container *ngFor="let campo of bloque.beneficiarios[0]?.campos; trackBy: trackByCampo">
                           <th>{{ campo.label }}</th>
                         </ng-container>
                         <th class="bft-actions">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr *ngFor="let grupo of getCamposBeneficiarios(bloque.campos)">
+                      <tr *ngFor="let grupo of bloque.beneficiarios; trackBy: trackByGrupo">
                         <td class="bft-num">{{ grupo.grupo }}</td>
-                        <td *ngFor="let campo of grupo.campos">
+                        <td *ngFor="let campo of grupo.campos; trackBy: trackByCampo">
                           <div class="bft-cell">
                             <app-dynamic-field [config]="campo" [formControlName]="campo.key"></app-dynamic-field>
                           </div>
@@ -209,8 +278,7 @@
               </div>
             </ng-container>
 
-            <!-- ── CAMPOS ESPECIALES (legal, firmas, docs-info) ── -->
-            <ng-container *ngFor="let campo of getCamposEspeciales(bloque.campos)">
+            <ng-container *ngFor="let campo of bloque.especiales; trackBy: trackByCampo">
 
               <div class="form-group full document-clone-box" *ngIf="campo.type === 'documento-agrupado'">
                 <h4 class="clone-box-title">{{ campo.tituloInterno }}</h4>
@@ -304,7 +372,7 @@
             <div style="display: flex; justify-content: center; margin-top: 30px; border-top: 1px dashed var(--border-strong); padding-top: 20px;">
               <button type="button"
                       (click)="agregarBeneficiario()"
-                      style="border: 2px dashed #8b5cf6; color: #8b5cf6; background: rgba(139, 92, 246, 0.05); padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px; transition: all 0.3s;">
+                      style="border: 2px dashed #FF6647; color: #FF6647; background: rgba(255, 102, 71, 0.05); padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px; transition: all 0.3s;">
                 <span style="font-size: 18px;">👤➕</span> Agregar Beneficiario Final
               </button>
             </div>
@@ -314,7 +382,7 @@
             <div style="display: flex; justify-content: center; margin-top: 30px; border-top: 1px dashed var(--border-strong); padding-top: 20px;">
               <button type="button"
                       (click)="agregarContacto()"
-                      style="border: 2px dashed #3b82f6; color: #3b82f6; background: rgba(59, 130, 246, 0.05); padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px; transition: all 0.3s;">
+                      style="border: 2px dashed #FF6647; color: #FF6647; background: rgba(255, 102, 71, 0.05); padding: 12px 24px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 15px; display: flex; align-items: center; gap: 8px; transition: all 0.3s;">
                 <span style="font-size: 18px;">📞➕</span> Agregar Persona de Contacto
               </button>
             </div>
@@ -393,7 +461,8 @@
             <option value="">Letra</option><option>A</option><option>B</option><option>C</option>
           </select>
           <select name="bIni" [(ngModel)]="dianData.bisInicial" [ngModelOptions]="{standalone: true}" class="dian-input">
-            <option value="">Bis</option><option value="BIS">BIS</option>
+            <option value="BIS"></option>
+            <option value="BIS">BIS</option>
           </select>
           <select name="cIni" [(ngModel)]="dianData.cuadInicial" [ngModelOptions]="{standalone: true}" class="dian-input">
             <option value="">Cuadrante</option><option value="NORTE">NORTE</option><option value="SUR">SUR</option><option value="ESTE">ESTE</option><option value="OESTE">OESTE</option>
@@ -410,7 +479,8 @@
             <option value="">Letra</option><option>A</option><option>B</option><option>C</option>
           </select>
           <select name="pB" [(ngModel)]="dianData.placaBis" [ngModelOptions]="{standalone: true}" class="dian-input">
-            <option value="">Bis</option><option value="BIS">BIS</option>
+            <option value="BIS"></option>
+            <option value="BIS">BIS</option>
           </select>
           <select name="pC" [(ngModel)]="dianData.placaCuad" [ngModelOptions]="{standalone: true}" class="dian-input">
             <option value="">Cuad.</option><option value="NORTE">NORTE</option><option value="SUR">SUR</option>

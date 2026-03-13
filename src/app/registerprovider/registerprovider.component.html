@@ -88,9 +88,9 @@
                 #otpInput
                 *ngFor="let ctrl of digitsFA.controls; let i = index"
                 type="text"
-                inputmode="numeric"
+                inputmode="text"
                 maxlength="1"
-                autocomplete="one-time-code"
+                autocomplete="one-time-code" style="text-transform: uppercase;"
                 [formControlName]="i"
                 (input)="onInput($event, i)"
                 (keydown)="onKeydown($event, i)"

@@ -7,6 +7,7 @@ import {
   computed,
   OnInit,
   ChangeDetectionStrategy,
+  HostListener,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -59,6 +60,14 @@ interface CampoDinamico {
   fileConfig?: any;
   tituloInterno?: string;
   required?: boolean;
+  idValueField?: string; // ID del registro en la DB para el body del POST
+  isWritable?: boolean;
+}
+
+interface Indicativo {
+  nombre: string;
+  codigo: string;   // e.g. "+57"
+  bandera: string;  // emoji flag
 }
 
 const COUNTRY_CONFIG: Record<string, DocConfig[]> = {
@@ -99,6 +108,8 @@ const COUNTRY_MAP: Record<string, string> = {
 
 const CAMPOS_SOLO_NATURAL = ['firstLastName', 'secondLastName', 'identification', 'identificationNumber', 'names'];
 const CAMPOS_SOLO_JURIDICA = ['companyname', 'nitId', 'dv', 'representativeName', 'nationalIdentityCard', 'riskControlSystem', 'which risk'];
+// Campos que se manejan internamente y nunca deben mostrarse en el formulario
+const CAMPOS_OCULTOS_SIEMPRE = ['supplierNationality'];
 
 // ─────────────────────────────────────────────
 // Componente
@@ -117,8 +128,7 @@ export class ProviderComponent implements OnInit {
 
   // ─── Configuración API ───────────────────────
   private readonly API_BASE_URL = 'https://ccwhqcbjae.execute-api.us-east-1.amazonaws.com/api/ntp/commercialOperation/v1';
-  private readonly API_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExM2UyNDNjLTczZjctNGM4NC05MDE1LWU3NWRkZGFiZDI3MSIsImRhdGEiOiIyN2VmOWRiOTg0OTNhYzBiYjFkMmQ1YjJhYjVhZWFjMWViZjY1NDFhYjE4NGVmNTdmYzU3MGFkZmJhM2M1ODY3ODNmMjBhZjg0ZmQ5Y2ZmYWU3NzljYTY5NmRjMDRlZDFjODRiMzRiZjQyNWU4MTJjMDI3MmZmYjdlNTA1Yjg1YjgxNDFmMzc5NGIzNmEyNTEwYjBmODE4Njg0MzhmZGQ0YWUxYmJiMzJiZjIzMDg3OWRmZWQwMDIwYTJjYzdjOTQ0YjhhNGYxYzM0NDA1ZTRhNWRiY2I0NzA4NTc1NzFhZTYxMWZlMWQyYjYzM2YzNWNkMmExZjMyODI5OTljN2FjZjI4MjNiZjJmOTA1N2JiNDZjZjFlMzExNzg2MDQ0ZWZlOGNkYjA5YmM2YzliMjdlNmEyZDYyYjBhNzFjZjcyNGRhY2I2NGJmNzI4MTZkNmQ0ZTJjYTA1NzRmZjJiYjljODc3ZWJkMjhkNzZhZDMzMDA1NzlmMGZmYTlhMTliYWU2M2UwZWJiN2VmZGFhYTlhNjI4NDEzMGJlMzU5MmY3M2Q3ODIwYzQ0MTg2ZGEzMmNlMzBiNzJhYTc2MDIyYWMzZWVlYjI5MDRlNWNlZWU1YTI5OGQxYTIwNzAwZTM3NWFiMWRkMWEzMzcyMjU3NjFjOGIzMTRlOTE0MzM4MzgzMWVkNDJkZmFkNWQwOGMwOTRkZDg1ZDY4YTU4NTAwYmYzZTY5YWEzMmYyN2IyNjU0ZTBiOWI3MzUyMmU5Njc3MzRlZWNiZTUxMTIwMWJmOTFjY2RkOTJlMGQxMjE5YjFjNTFhZGRhODk0Y2U0ZjQ3ODhjODg5YjkwZTllYmY2YmM1OTlhZDkwZDdhNWY2YWQ4YjJkM2ViYzRmN2ZhMWMzZmEwNDJhMWRlOTAwNjhjN2U2YjEyNjhjZTlkNjdmZGUyYWQwMWNmMjg1N2Q2OWNiNDQ2NTIxNThjYzlkZmQ3YWI5MDNkM2Q5YTZmYmQ5N2Q4MDVhYzc4MDI5NTlhY2ZjZDZjMmQwMThlZTdmYzJjMDRkOGNmNzFjNDRlZTlhNGZhNjY1MDM4YjQyZjcwZTQ4NTAwZGNkMTliYTA5MzM0MzZlOWFkYWYxYzlmOWJlYzM0ZjQ2NDY1NmI0YzJhZjg4YTYyNWI5ZTZmNzcyZTNhYTFkMTZhNDU3YzdjZWFhOWU0ZTQ5N2ZhY2Y0YmRkNmVmZWI2NDMzYTNkZDNmY2FiNDBkZmM4NTViOThkMTI2ZmY5ZmIyMWJiZDBmMTcwNzgyYjEyZjQ0ODk5OGQwZGQ1NDk1YjMzODU3ODViMjU1MmU1YmZhMTUyMDhmNGNiNzhjMTc4ZmNhNDkxYjhhZTc5ZDliOTI5ZmE2NWJlZWZlZmQzMTg4NmUzZGVjOGViNzUzMzkiLCJ0eXBlIjoidXNlciIsImlhdCI6MTc3MjcyMzE3NywiZXhwIjoxNzczMzI3OTc3fQ.ycNXyvh9CU262mCfD8enzr4YiUK8i8VKoGDI8mqw__k';
-
+  private readonly API_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExM2UyNDNjLTczZjctNGM4NC05MDE1LWU3NWRkZGFiZDI3MSIsImRhdGEiOiIyN2VmOWRiOTg0OTNhYzBiYjFkMmQ1YjJhYjVhZWFjMWViZjY1NDFhYjE4NGVmNTdmYzU3MGFkZmJhM2M1ODY3ODNmMjBhZjg0ZmQ5Y2ZmYWU3NzljYTY5NmRjMDRlZDFjODRiMzRiZjQyNWU4MTJjMDI3MmZmYjdlNTA1Yjg1YjgxNDFmMzc5NGIzNmEyNTEwYjBmODE4Njg0MzhmZGQ0YWUxYmJiMzJiZjIzMDg3OWRmZWQwMDIwYTJjYzdjOTQ0YjhhNGYxYzM0NDA1ZTRhNWRiY2I0NzA4NTc1NzFhZTYxMWZlMWQyYjYzM2YzNWNkMmExZjMyODI5OTljN2FjZjI4MjNiZjJmOTA1N2JiNDZjZjFlMzExNzg2MDQ0ZWZlOGNkYjA5YmM2YzliMjdlNmEyZDYyYjBhNzFjZjcyNGRhY2I2NGJmNzI4MTZkNmQ0ZTJjYTA1NzRmZjJiYjljODc3ZWJkMjhkNzZhZDMzMDA1NzlmMGZmYTlhMTliYWU2M2UwZWJiN2VmZGFhYTlhNjI4NDEzMGJlMzU5MmY3M2Q3ODIwYzQ0MTg2ZGEzMmNlMzBiNzJhYTc2MDIyYWMzZWVlYjI5MDRlNWNlZWU1YTI5OGQxYTIwNzAwZTM3NWFiMWRkMWEzMzcyMjU3NjFjOGIzMTRlOTE0MzM4MzgzMWVkNDJkZmFkNWQwOGMwOTRkZDg1ZDY4YTU4NTAwYmYzZTY5YWEzMmYyN2IyNjU0ZTBiOWI3MzUyMmU5Njc3MzRlZWNiZTUxMTIwMWJmOTFjY2RkOTJlMGQxMjE5YjFjNTFhZGRhODk0Y2U0ZjQ3ODhjODg5YjkwZTllYmY2YmM1OTlhZDkwZDdhNWY2YWQ4YjJkM2ViYzRmN2ZhMWMzZmEwNDJhMWRlOTAwNjhjN2U2YjEyNjhjZTlkNjdmZGUyYWQwMWNmMjg1N2Q2OWNiNDQ2NTIxNThjYzlkZmQ3YWI5MDNkM2Q5YTZmYmQ5N2Q4MDVhYzc4MDI5NTlhY2ZjZDZjMmQwMThlZTdmYzJjMDRkOGNmNzFjNDRlZTlhNGZhNjY1MDM4YjQyZjcwZTQ4NTAwZGNkMTliYTA5MzM0MzZlOWFkYWYxYzlmOWJlYzM0ZjQ2NDY1NmI0YzJhZjg4YTYyNWI5ZTZmNzcyZTNhYTFkMTZhNDU3YzdjZWFhOWU0ZTQ5N2ZhY2Y0YmRkNmVmZWI2NDMzYTNkZDNmY2FiNDBkZmM4NTViOThkMTI2ZmY5ZmIyMWJiZDBmMTcwNzgyYjEyZjQ0ODk5OGQwZGQ1NDk1YjMzODU3ODViMjU1MmU1YmZhMTUyMDhmNGNiNzhjMTc4ZmNhNDkxYjhhZTc5ZDliOTA3NDk3MTkwYjRhZThkZTIzNmQ4MDExMGMzMWZhYTRiMGVlNzlhNTVkMDhiZGQ4MGE3NjZiN2ExZmYyMzQzNCIsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzczNDE3NTIwLCJleHAiOjE3NzQwMjIzMjB9.Smzwfs9qFcia9wQDbCsX5iHtFxpJdQadrptEMNUIpFY'
   // ─── Servicios ───────────────────────────────
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -159,6 +169,23 @@ export class ProviderComponent implements OnInit {
   formularioEstructuraDestino = signal<any>(null);
   esUsuarioInterno = signal(true);
 
+  // ─── Indicativos telefónicos ──────────────────
+  indicativos = signal<Indicativo[]>([]);
+  loadingIndicativos = signal(false);
+  // Mapa key → indicativo seleccionado
+  // Sección 3: TelExt (tel/ext), cellphone (celular)
+  // Sección 5: bankPhone (teléfono banco)
+  // Sección 1 contactos: fixedCallsign1-5 (indicativo tel fijo), cellPhoneCode1-5 (indicativo cel)
+  indicativoSeleccionado = signal<Record<string, string>>({
+    TelExt: '+57',
+    cellphone: '+57',
+    bankPhone: '+57',
+    fixedCallsign1: '+57', fixedCallsign2: '+57', fixedCallsign3: '+57', fixedCallsign4: '+57', fixedCallsign5: '+57',
+    cellPhoneCode1: '+57', cellPhoneCode2: '+57', cellPhoneCode3: '+57', cellPhoneCode4: '+57', cellPhoneCode5: '+57',
+  });
+  indicativoDropdownAbierto = signal<string | null>(null); // key del campo con dropdown abierto
+  busquedaIndicativo = ''; // variable de búsqueda en el dropdown (no signal — ngModel directo)
+
   // ─── Computed Signals ─────────────────────────
   // 🟢 MEJORA: Lógica derivada como computed() — se recalcula automáticamente al cambiar dependencias
 
@@ -167,7 +194,7 @@ export class ProviderComponent implements OnInit {
 
   /** Indica si se puede agregar más beneficiarios */
   puedeAgregarBeneficiario = computed(
-    () => this.esEmpresaJuridica() && this.beneficiariosActivos() < 10
+    () => this.beneficiariosActivos() < 10
   );
 
   /** Indica si se puede agregar más contactos */
@@ -223,8 +250,49 @@ export class ProviderComponent implements OnInit {
 
     return Array.from(grupos.entries())
       .sort(([a], [b]) => a - b)
-      .map(([grupo, campos]) => ({ grupo, campos }));
+      .map(([grupo, camposDelGrupo]) => {
+
+        // 1. Pre-filtramos campos normales
+        const normales = camposDelGrupo.filter(c =>
+          c.grupoBeneficiario === 0 &&
+          c.type !== 'documento-agrupado' && c.type !== 'legal-text' &&
+          c.type !== 'bloque-firmas' && c.type !== 'docs-info' &&
+          c.type !== 'beneficiary-info' && !c.type.includes('info')
+        );
+
+        // 2. Pre-filtramos campos especiales
+        const especiales = camposDelGrupo.filter(c =>
+          c.grupoBeneficiario === 0 &&
+          (c.type === 'documento-agrupado' || c.type === 'legal-text' ||
+           c.type === 'bloque-firmas' || c.type === 'docs-info' ||
+           c.type === 'beneficiary-info' || c.type.includes('info'))
+        );
+
+        // 3. Pre-agrupamos beneficiarios
+        const mapBen = new Map<number, CampoDinamico[]>();
+        for (const c of camposDelGrupo) {
+          if (c.grupoBeneficiario > 0) {
+            if (!mapBen.has(c.grupoBeneficiario)) mapBen.set(c.grupoBeneficiario, []);
+            mapBen.get(c.grupoBeneficiario)!.push(c);
+          }
+        }
+        const beneficiarios = Array.from(mapBen.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([gBen, cs]) => ({ grupo: gBen, campos: cs }));
+
+        // Devolvemos el bloque listo para el HTML
+        return {
+          grupo,
+          normales,
+          especiales,
+          beneficiarios
+        };
+      });
   });
+
+  // 👇 AGREGA ESTAS 2 FUNCIONCITAS PARA MAYOR SEGURIDAD
+  trackByGrupo(index: number, item: any): number { return item.grupo; }
+  trackByCampo(index: number, item: CampoDinamico): string { return item.key; }
 
   // ─── Formulario ───────────────────────────────
   form: FormGroup;
@@ -255,6 +323,8 @@ export class ProviderComponent implements OnInit {
   // ─────────────────────────────────────────────
 
   ngOnInit(): void {
+    this.cargarIndicativos(); // 🌍 Carga lista de países para selector de indicativo telefónico
+
     // 🟢 MEJORA: takeUntilDestroyed() sin necesidad de pasar destroyRef explícito cuando está en el constructor
     this.route.queryParams
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -481,7 +551,7 @@ export class ProviderComponent implements OnInit {
     fileInput.value = '';
   }
 
-  removeFile(docKey = '', fileInput?: HTMLInputElement): void {
+ removeFile(docKey = '', fileInput?: HTMLInputElement): void {
     const step = this.currentStep();
 
     if (step === 1) {
@@ -504,7 +574,16 @@ export class ProviderComponent implements OnInit {
       this.camposDinamicos.set([]);
       this.form.setControl('formDinamico', this.fb.group({}));
       this.overlayOpen.set(false);
-      alert('Archivo eliminado. Por favor, adjunta un documento válido.');
+      
+      // 🟢 Reemplazo del alert nativo por SweetAlert2
+      Swal.fire({
+        icon: 'info',
+        title: 'Archivo eliminado',
+        text: 'Por favor, adjunta un documento.',
+        confirmButtonColor: '#FF6647', // Usando el naranja de tu diseño
+        timer: 3000,                   // Se cierra solito en 3 segundos
+        timerProgressBar: true         // Muestra una barrita de tiempo
+      });
     }
   }
 
@@ -615,8 +694,8 @@ export class ProviderComponent implements OnInit {
 
   getGrupoContacto(key: string): number {
     if (!key) return 0;
-    if (key === 'contactType') return 1;
-    const match = key.match(/(contactPerson|positionCompany|email|TelExt|cellphone)(\d+)/);
+    // Todos los campos de contacto DEBEN tener número: contactType1-5, contactPerson1-5, etc.
+    const match = key.match(/^(contactType|contactPerson|positionCompany|email|TelExt|cellphone|fixedCallsign|phone|ext|cellPhoneCode)(\d+)$/);
     return match?.[2] ? parseInt(match[2], 10) : 0;
   }
 
@@ -649,6 +728,19 @@ export class ProviderComponent implements OnInit {
         this.getGrupoContacto(c.key) === nuevoGrupo ? { ...c, visible: true } : c
       )
     );
+
+    // Crear controles faltantes en el FormGroup para el nuevo grupo
+    const formDinamico = this.form.get('formDinamico') as any;
+    if (formDinamico) {
+      const camposNuevoGrupo = this.camposDinamicos().filter(
+        (c) => this.getGrupoContacto(c.key) === nuevoGrupo
+      );
+      camposNuevoGrupo.forEach((c) => {
+        if (!formDinamico.contains(c.key)) {
+          formDinamico.addControl(c.key, this.fb.control(''));
+        }
+      });
+    }
   }
 
   eliminarEsteContacto(grupo: number): void {
@@ -681,6 +773,109 @@ export class ProviderComponent implements OnInit {
         this.contactosActivos.update((n) => n - 1);
       }
     });
+  }
+
+  // ─────────────────────────────────────────────
+  // Indicativos telefónicos
+  // ─────────────────────────────────────────────
+
+  cargarIndicativos(): void {
+    this.loadingIndicativos.set(true);
+    // API: { name: { common }, idd: { root, suffixes[] }, flag: '🇨🇴' }
+    // Regla:
+    //   suffixes tiene 1 elemento no vacío y corto (≤3 chars) → root + suffix  (Colombia: +5+7=+57)
+    //   suffixes vacío, o tiene '' o múltiples o sufijo largo  → solo root     (USA: +1, Russia: +7)
+    this.http.get<any[]>('https://restcountries.com/v3.1/all?fields=name,idd,flag')
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (paises) => {
+          const lista: Indicativo[] = paises
+            .filter(p => p.idd?.root && p.name?.common)
+            .map(p => {
+              const suffixes: string[] = (p.idd.suffixes ?? []).filter((s: string) => s !== '');
+              // Solo concatenar si hay exactamente 1 sufijo corto (no es USA con 300 sufijos)
+              const usarSufijo = suffixes.length === 1 && suffixes[0].length <= 3;
+              const codigo = usarSufijo ? p.idd.root + suffixes[0] : p.idd.root;
+              return {
+                nombre: p.name.common as string,
+                codigo: codigo.trim(),
+                bandera: p.flag ?? '',
+              };
+            })
+            .filter(p => /^\+\d/.test(p.codigo))
+            .sort((a, b) => a.nombre.localeCompare(b.nombre));
+          this.indicativos.set(lista);
+          this.loadingIndicativos.set(false);
+        },
+        error: () => this.loadingIndicativos.set(false),
+      });
+  }
+
+  setIndicativo(campoKey: string, codigo: string): void {
+    this.indicativoSeleccionado.update(m => ({ ...m, [campoKey]: codigo }));
+    this.indicativoDropdownAbierto.set(null);
+  }
+
+  toggleIndicativoDropdown(campoKey: string): void {
+    this.indicativoDropdownAbierto.update(v => v === campoKey ? null : campoKey);
+  }
+
+  getPhoneValue(campoKey: string): string {
+    return this.form.get('formDinamico')?.get(campoKey)?.value ?? '';
+  }
+
+  // Cierra dropdown de indicativo si se hace clic fuera
+  cerrarDropdownIndicativo(): void {
+    this.indicativoDropdownAbierto.set(null);
+  }
+
+  // 🟢 Para campos fixedCallsign/cellPhoneCode, el número real está en otro campo (phone/cellphone)
+  // fixedCallsign1 → phone1 (tel)   |   cellPhoneCode1 → cellphone1 (cel)
+  getPhoneInputKey(campoKey: string): string {
+    const m1 = campoKey.match(/^fixedCallsign(\d+)$/);
+    if (m1) return 'phone' + m1[1];
+    const m2 = campoKey.match(/^cellPhoneCode(\d+)$/);
+    if (m2) return 'cellphone' + m2[1];
+    return campoKey;
+  }
+
+  // 🟢 Para fixedCallsign → retorna key de extensión (ext1, ext2...)
+  getExtKey(campoKey: string): string {
+    const m = campoKey.match(/^fixedCallsign(\d+)$/);
+    return m ? 'ext' + m[1] : '';
+  }
+
+  // 🟢 ¿Este campo de indicativo tiene extensión asociada?
+  tieneExt(campoKey: string): boolean {
+    return /^fixedCallsign\d+$/.test(campoKey);
+  }
+
+  // 🟢 Cierra el dropdown al hacer clic en cualquier parte del documento
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    if (this.indicativoDropdownAbierto()) {
+      this.indicativoDropdownAbierto.set(null);
+      this.busquedaIndicativo = '';
+    }
+  }
+
+  // 🟢 Países filtrados por búsqueda
+  getIndicativosFiltrados(): Indicativo[] {
+    const q = this.busquedaIndicativo.toLowerCase().trim();
+    if (!q) return this.indicativos();
+    return this.indicativos().filter(i =>
+      i.nombre.toLowerCase().includes(q) || i.codigo.includes(q)
+    );
+  }
+
+  // 🟢 Helper para template — Angular no permite .find() con arrow en interpolación
+  getBanderaIndicativo(campoKey: string): string {
+    const codigo = this.indicativoSeleccionado()[campoKey] ?? '+57';
+    return this.indicativos().find(i => i.codigo === codigo)?.bandera ?? '🌍';
+  }
+
+  getCodigoIndicativo(campoKey: string): string {
+    return this.indicativoSeleccionado()[campoKey] ?? '+57';
   }
 
   // ─────────────────────────────────────────────
@@ -763,6 +958,7 @@ export class ProviderComponent implements OnInit {
     this.beneficiariosActivos.update((n) => n + 1);
     const nuevoBeneficiario = this.beneficiariosActivos();
 
+    // Hacer visibles los campos del grupo
     this.camposDinamicos.update((campos) =>
       campos.map((c) =>
         c.grupoBeneficiario === nuevoBeneficiario
@@ -770,6 +966,19 @@ export class ProviderComponent implements OnInit {
           : c
       )
     );
+
+    // 🔑 Crear controles reactivos en el FormGroup para que el template pueda bindearlos
+    const formDinamico = this.form.get('formDinamico') as any;
+    if (formDinamico) {
+      const camposNuevos = this.camposDinamicos().filter(
+        (c) => c.grupoBeneficiario === nuevoBeneficiario
+      );
+      camposNuevos.forEach((c) => {
+        if (!formDinamico.contains(c.key)) {
+          formDinamico.addControl(c.key, this.fb.control(''));
+        }
+      });
+    }
   }
 
   eliminarEsteBeneficiario(grupo: number): void {
@@ -950,10 +1159,32 @@ export class ProviderComponent implements OnInit {
       this.overlayTitle.set('Organizando la información...');
       this.overlaySubtitle.set('Casi listo');
 
+      // Detectar tipo de persona desde PDF extraído
       const tipoContribuyente = fieldsExtraidos.find((f: any) =>
         f.field.includes('Tipo de contribuyente')
       );
-      const esJuridica = !!tipoContribuyente?.value?.toLowerCase().includes('jurídica');
+      let esJuridica = !!tipoContribuyente?.value?.toLowerCase().includes('jurídica');
+
+      // Si el PDF no dio resultado, detectar desde los campos de la estructura del API:
+      // Si existen campos de persona jurídica (companyname, nitId, dv, etc.) → es jurídica
+      if (!tipoContribuyente) {
+        const estructuraActual = this.formularioEstructuraDestino();
+        const todosLosItems = [
+          ...(estructuraActual?.allowedToRead?.data ?? []),
+          ...(estructuraActual?.isAllowedToWrite?.data ?? [])
+        ];
+        const tieneJuridica = todosLosItems.some((item: any) =>
+          ['companyname', 'nitId', 'dv', 'representativeName', 'nationalIdentityCard']
+            .includes(item.fields?.labelId)
+        );
+        const tieneNatural = todosLosItems.some((item: any) =>
+          ['firstLastName', 'secondLastName', 'names', 'identification', 'identificationNumber']
+            .includes(item.fields?.labelId)
+        );
+        // Si ambas o ninguna, default jurídica
+        esJuridica = tieneJuridica || (!tieneNatural);
+      }
+
       this.esJuridica.set(esJuridica);
       this.esEmpresaJuridica.set(esJuridica);
 
@@ -968,11 +1199,30 @@ export class ProviderComponent implements OnInit {
         const dataRead = estructura.allowedToRead?.data ?? [];
         const dataWrite = estructura.isAllowedToWrite?.data ?? [];
 
-        [...dataRead, ...dataWrite].forEach((itemPlantilla: any) => {
+        const mappedRead = dataRead.map((item: any) => ({ ...item, _isWritable: false }));
+        const mappedWrite = dataWrite.map((item: any) => ({ ...item, _isWritable: true }));
+
+
+        // 🔑 IMPORTANTE: dataWrite tiene valueField reales → sus valores deben prevalecer sobre dataRead
+        // Construimos un mapa id→valueField de dataWrite para lookup rápido
+        // NO deduplicamos por labelId porque puede haber múltiples registros con el mismo labelId
+        // (ej: finalBeneficiaryName1..10, contactPerson1..5, phone1..5, etc.)
+        const writeValuesById = new Map<string, any>();
+        dataWrite.forEach((item: any) => {
+          if (item.id) writeValuesById.set(item.id, item.valueField);
+        });
+
+        // Procesamos todos los items: dataRead primero, luego dataWrite
+        // Para items que están en dataWrite, el valueField ya viene correcto
+        [ ...mappedRead, ...mappedWrite].forEach((itemPlantilla: any) => {
+
           const fields = itemPlantilla.fields;
+
           if (!fields?.labelId) return;
 
+
           const key: string = fields.labelId;
+          // Usar el valueField del item directamente (dataWrite ya tiene los valores reales)
           const valorExtraido = itemPlantilla.valueField;
           const fueExtraido = valorExtraido !== null && valorExtraido !== undefined && String(valorExtraido).trim() !== '';
 
@@ -1005,38 +1255,104 @@ export class ProviderComponent implements OnInit {
             }
           }
 
-          if (!controlesReactivos[key] && esCampoParaEsteUsuario) {
-            controlesReactivos[key] = [fueExtraido ? valorExtraido : ''];
+          if (CAMPOS_OCULTOS_SIEMPRE.includes(key)) esCampoParaEsteUsuario = false;
 
-            let nombreSeccion = fields.section ?? itemPlantilla.section ?? '1. Información del Proveedor';
+          // Para dataWrite: si la key ya existe en controlesReactivos (vino de dataRead con valor vacío),
+          // actualizar con el valor real de dataWrite
+          if (controlesReactivos[key] !== undefined && fueExtraido && esCampoParaEsteUsuario) {
+            const valorMayusUpd = typeof valorExtraido === 'string' ? valorExtraido.toUpperCase() : valorExtraido;
+            controlesReactivos[key] = [valorMayusUpd];
+          }
+          if (!controlesReactivos[key] && esCampoParaEsteUsuario) {
+            // Forzar mayúsculas en el valor cargado desde el API
+            const valorMayus = (fueExtraido && typeof valorExtraido === 'string')
+              ? valorExtraido.toUpperCase()
+              : (fueExtraido ? valorExtraido : '');
+            controlesReactivos[key] = [valorMayus];
+
+            // ── Sección por orderToGetValue (del JSON real del API) ──
+            // OTV 1-16   → sección 1 (Información del Proveedor)
+            // OTV 17-29  → sección 3 (Info. General del Proveedor: contactos, ciudad, dirección)
+            // OTV 30-38  → sección 4 (Tributaria)
+            // OTV 39-50  → sección 5 (Bancaria)
+            // OTV 51-62  → sección 6 (Documentación Requerida)
+            // OTV 63-75  → sección 8 (Uso Interno / Nuvant)
+            const otv = fields.orderToGetValue ?? 99;
+            let nombreSeccion: string;
+            if (otv <= 16)      nombreSeccion = '1. Información del Proveedor';
+            else if (otv <= 29) nombreSeccion = '3. INFORMACIÓN GENERAL DEL PROVEEDOR';
+            else if (otv <= 38) nombreSeccion = '4. INFORMACIÓN TRIBUTARIA';
+            else if (otv <= 50) nombreSeccion = '5. INFORMACIÓN BANCARIA';
+            else if (otv <= 62) nombreSeccion = '6. DOCUMENTACIÓN REQUERIDA';
+            else                nombreSeccion = '8. ESPACIO EXCLUSIVO PARA NUVANT';
+
+            // Overrides específicos
             if (grupoBeneficiario > 0 || key.toLowerCase().includes('beneficiary')) nombreSeccion = '1. Información del Proveedor';
             if (nroContacto > 0 || key.toLowerCase().includes('contact')) nombreSeccion = '3. INFORMACIÓN GENERAL DEL PROVEEDOR';
 
-            nuevoCamposDinamicos.push({
-              key,
-              label: fields.labelName,
-              visible: esVisible,
-              seccion: nombreSeccion,
-              type: fields.labelType ?? 'text',
-              options: fields.options ?? [],
-              isLong: false,
-              columnSpan: fields.columnSpan ?? 1,
-              autocompletado: false,
-              grupoBeneficiario,
-              grupoDocumento,
-              orderToGetValue: fields.orderToGetValue ?? 99,
-            });
+            // Forzar type 'phone' para campos de indicativo telefónico de contactos
+            // phone1-5, ext1-5, cellphone1-5 se renderizan DENTRO del bloque del selector → ocultar como campo independiente
+            const esSubcampoDeTelefono = (
+              /^phone\d+$/.test(key) ||
+              /^ext\d+$/.test(key) ||
+              /^cellphone\d+$/.test(key)
+            );
+            const tipoForzado = esSubcampoDeTelefono ? 'hidden-phone-sub'
+              : (key.startsWith('fixedCallsign') || key.startsWith('cellPhoneCode')) ? 'phone'
+              : (fields.labelType ?? 'text');
+
+            // ── Si es contactType (sin número), replicar para los 5 grupos de contacto ──
+            if (key === 'contactType') {
+              for (let gi = 1; gi <= 5; gi++) {
+                const keyN = `contactType${gi}`;
+                if (!controlesReactivos[keyN]) {
+                  const valorContactN = gi === 1
+                    ? (typeof valorExtraido === 'string' ? valorExtraido.toUpperCase() : (valorExtraido ?? ''))
+                    : '';
+                  controlesReactivos[keyN] = [valorContactN];
+                  nuevoCamposDinamicos.push({
+                    key: keyN,
+                    label: fields.labelName,
+                    idValueField: gi === 1 ? (itemPlantilla.id ?? '') : '',
+                    visible: gi === 1,           // solo grupo 1 visible por defecto
+                    seccion: nombreSeccion,
+                    type: tipoForzado,
+                    options: fields.options ?? [],
+                    isLong: false,
+                    columnSpan: fields.columnSpan ?? 1,
+                    autocompletado: false,
+                    grupoBeneficiario: 0,
+                    grupoDocumento: 0,
+                    orderToGetValue: fields.orderToGetValue ?? 99,
+                  });
+                }
+              }
+            } else {
+              nuevoCamposDinamicos.push({
+                key,
+                label: fields.labelName,
+                idValueField: itemPlantilla.id ?? '',
+                visible: esVisible,
+                seccion: nombreSeccion,
+                type: tipoForzado,
+                options: fields.options ?? [],
+                isLong: false,
+                columnSpan: fields.columnSpan ?? 1,
+                autocompletado: false,
+                grupoBeneficiario,
+                grupoDocumento,
+                orderToGetValue: fields.orderToGetValue ?? 99,
+                isWritable: itemPlantilla._isWritable,
+              });
+            }
           }
         });
       }
 
       // Campos manuales adicionales (definición compacta)
       const camposManuales: Partial<CampoDinamico>[] = [
-        { key: 'contactPerson', label: 'Persona de contacto', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
-        { key: 'positionCompany', label: 'Cargo', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
-        { key: 'email', label: 'Email', type: 'email', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
-        { key: 'TelExt', label: 'Tel/ext', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
-        { key: 'cellphone', label: 'Celular', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
+        // contactPerson1-5, positionCompany1-5, email1-5, phone1-5, cellphone1-5 etc.
+        // YA VIENEN DEL API con número → no se definen aquí para evitar duplicados en grupo 0
         { key: 'department', label: 'Departamento', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
         { key: 'City', label: 'Ciudad', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
         { key: 'address', label: 'Dirección', type: 'text', seccion: '3. INFORMACIÓN GENERAL DEL PROVEEDOR', visible: true, columnSpan: 1 },
@@ -1055,7 +1371,7 @@ export class ProviderComponent implements OnInit {
         { key: 'branch', label: 'Sucursal', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
         { key: 'countryCity', label: 'País/ciudad', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
         { key: 'bankAddress', label: 'Dirección', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
-        { key: 'bankPhone', label: 'Teléfono', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
+        { key: 'bankPhone', label: 'Teléfono', type: 'phone', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
         { key: 'accountNumber', label: 'Número de cuenta', type: 'text', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
         { key: 'typeAccount', label: 'Tipo de cuenta', type: 'select', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
         { key: 'paymentCurrency', label: 'Moneda de pago', type: 'select', seccion: '5. INFORMACIÓN BANCARIA', visible: true, columnSpan: 1 },
@@ -1069,12 +1385,12 @@ export class ProviderComponent implements OnInit {
         { key: 'document_ambiental', label: 'Certificación ISO 14001 o Sostenibilidad', type: 'text', seccion: '6. DOCUMENTACIÓN REQUERIDA', visible: true, columnSpan: 3 },
         { key: 'applicationState', label: 'Estado de la solicitud', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 1, required: this.esUsuarioInterno(), ordenFijo: 90.1 },
         { key: 'requestedBy', label: 'Solicitado por', type: 'text', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 1, required: this.esUsuarioInterno(), ordenFijo: 90.2 },
-        { key: 'managementWhichItBelongs', label: 'Gerencia a la que pertenece', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 1, required: this.esUsuarioInterno(), ordenFijo: 90.3 },
-        { key: 'ApplicantPosition', label: 'Cargo del solicitante', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 1, required: this.esUsuarioInterno(), ordenFijo: 90.4 },
+        { key: 'managementWhichItBelongs', label: 'Gerencia a la que pertenece', type: 'text', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 1, required: this.esUsuarioInterno(), ordenFijo: 90.3 },
+        { key: 'ApplicantPosition', label: 'Cargo del solicitante', type: 'text', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 1, required: this.esUsuarioInterno(), ordenFijo: 90.4 },
         { key: 'supplierType', label: 'Tipo de proveedor', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 2, required: this.esUsuarioInterno(), ordenFijo: 90.5 },
         { key: 'supplierClassification', label: 'Clasificación del proveedor', type: 'select', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 2, required: this.esUsuarioInterno(), ordenFijo: 90.6 },
         { key: 'date', label: 'Fecha', type: 'date', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 1, required: this.esUsuarioInterno(), ordenFijo: 90.7 },
-        { key: 'isCounterpartySelected', label: '¿El proveedor es seleccionado por la contraparte?', type: 'textarea', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 3, ordenFijo: 90.8 },
+        { key: 'isCounterpartySelect', label: '¿El proveedor es seleccionado por la contraparte?', type: 'textarea', seccion: '8. ESPACIO EXCLUSIVO PARA NUVANT', visible: this.esUsuarioInterno(), columnSpan: 3, ordenFijo: 90.8 },
       ];
 
       // Fusión campos API + manuales
@@ -1087,10 +1403,15 @@ export class ProviderComponent implements OnInit {
         let valorDeIA = '';
         let opcionesDelBackend = campoManual.options ?? [];
         let ordenDefinitivo = campoManual.ordenFijo ?? 9999;
+        let idFromApi = '';
+        let writableFromApi = false;
+
 
         if (indexAPI !== -1) {
           const campoAPI = nuevoCamposDinamicos[indexAPI];
           valorDeIA = controlesReactivos[campoAPI.key]?.[0] ?? '';
+          idFromApi = campoAPI.idValueField ?? '';
+          writableFromApi = campoAPI.isWritable ?? false;
           if (campoAPI.options?.length) opcionesDelBackend = campoAPI.options;
           if (campoAPI.orderToGetValue !== undefined && campoAPI.orderToGetValue !== 9999) {
             ordenDefinitivo = campoAPI.orderToGetValue;
@@ -1115,6 +1436,8 @@ export class ProviderComponent implements OnInit {
           seccion: campoManual.seccion ?? '',
           orderToGetValue: ordenDefinitivo,
           ordenFijo: campoManual.ordenFijo,
+          // idValueField: idFromApi,
+          // isWritable: writableFromApi,
         });
       });
 
@@ -1125,6 +1448,29 @@ export class ProviderComponent implements OnInit {
       this.seccionesDisponibles.set([...new Set(nuevoCamposDinamicos.map((c) => c.seccion))]);
       this.seccionActualIndex.set(0);
       this.form.setControl('formDinamico', this.fb.group(controlesReactivos));
+
+      // 🔠 MAYÚSCULAS GLOBALES: cualquier cambio en el formDinamico se convierte a mayúscula
+     const formDinamico = this.form.get('formDinamico') as any;
+      if (formDinamico) {
+        Object.keys(formDinamico.controls).forEach((key: string) => {
+          const ctrl = formDinamico.get(key);
+          if (!ctrl) return;
+
+          // 1. Identificamos qué tipo de campo es
+          const campoEncontrado = this.camposDinamicos().find(c => c.key === key);
+
+          ctrl.valueChanges
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((val: any) => {
+              if (typeof val === 'string' && val !== val.toUpperCase()) {
+                // 2. Solo aplicamos mayúsculas si NO es un select y NO es un email
+                if (campoEncontrado?.type !== 'select' && campoEncontrado?.type !== 'email') {
+                  ctrl.setValue(val.toUpperCase(), { emitEvent: false });
+                }
+              }
+            });
+        });
+      }
 
       setTimeout(() => {
         this.overlayOpen.set(false);
@@ -1252,33 +1598,100 @@ export class ProviderComponent implements OnInit {
   // ─────────────────────────────────────────────
   // Envío del formulario
   // ─────────────────────────────────────────────
-
-  submitForm(): void {
+submitForm(): void {
     this.overlayOpen.set(true);
     this.overlayTitle.set('Enviando información...');
+    this.overlaySubtitle.set('Guardando datos del proveedor...');
 
-    const formData = new FormData();
-    formData.append('country', this.countrySelected() ?? '');
-    formData.append('oc', this.ocParam());
-    formData.append('os', this.osParam());
-    formData.append('sn', this.snParam());
+    // ── Obtener idServiceOrder desde queryParam 'os' ──
+    const idServiceOrder = this.osParam();
+    const formValues: Record<string, any> = this.form.get('formDinamico')?.value ?? {};
+    const todosLosCampos: CampoDinamico[] = this.camposDinamicos();
 
-    const datosExtraidos = this.form.get('formDinamico')?.value ?? {};
-    formData.append('providerData', JSON.stringify(datosExtraidos));
+    // 🛡️ EL ESCUDO ESTRICTO: Solo lo que AWS permite en "isAllowedToWrite"
+    const estructuraActual = this.formularioEstructuraDestino();
+    const camposPermitidos = estructuraActual?.isAllowedToWrite?.data ?? [];
+    
+    // Creamos una lista solo con los IDs autorizados para escribir
+    const idsAutorizados = new Set(camposPermitidos.map((item: any) => item.id));
 
-    const docs = this.form.get('step2_docs')?.value;
-    if (docs) {
-      Object.entries(docs).forEach(([key, file]) => {
-        if (file instanceof File) formData.append(`document_${key}`, file);
+    // ── Construir dataFields ──
+    const dataFields = todosLosCampos
+      .filter(c => {
+        const tieneIdValido = c.idValueField && typeof c.idValueField === 'string';
+        const noEsSubCampo = c.type !== 'hidden-phone-sub';
+        
+        // 🔴 ESTA ES LA REGLA QUE EVITA EL ERROR 400
+        const estaAutorizado = idsAutorizados.has(c.idValueField);
+        
+        return tieneIdValido && noEsSubCampo && estaAutorizado;
+      })
+      .map(c => {
+        const rawValue = formValues[c.key] ?? '';
+        
+        // Lógica de teléfonos
+        const phoneInputKey = this.getPhoneInputKey(c.key);
+        const phoneValue = c.type === 'phone' && phoneInputKey !== c.key
+          ? (this.indicativoSeleccionado()[c.key] ?? '') + (formValues[phoneInputKey] ?? '')
+          : null;
+        
+        const extKey = this.getExtKey(c.key);
+        const extValue = extKey ? (formValues[extKey] ?? '') : null;
+
+        let valorFinal: string;
+        if (phoneValue !== null) {
+          valorFinal = extValue ? `${phoneValue} Ext. ${extValue}` : phoneValue;
+        } else {
+          valorFinal = String(rawValue ?? '');
+        }
+
+        return {
+          idValueField: c.idValueField!,
+          labelIdField: c.key || '', 
+          valueField: valorFinal,
+        };
       });
+
+   console.log(`📦 Campos autorizados filtrados para AWS:`, dataFields.length);
+
+    if (dataFields.length === 0) {
+      this.overlayOpen.set(false);
+      Swal.fire({
+        icon: 'warning',
+        title: 'Sin datos para enviar',
+        text: 'Los campos llenados no tienen permiso de escritura en la base de datos.',
+        confirmButtonColor: 'var(--accent)'
+      });
+      return;
     }
 
-    console.log('📦 Datos a enviar:', datosExtraidos);
+    const body = { idServiceOrder, dataFields };
 
-    setTimeout(() => {
-      this.overlayOpen.set(false);
-      Swal.fire({ title: '¡Registro Exitoso!', text: '¡Todo salió bien!', icon: 'success' });
-    }, 2000);
+    this.services.saveProviderData(body)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.overlayOpen.set(false);
+          Swal.fire({
+            title: '¡Registro Exitoso!',
+            text: 'Los datos permitidos fueron guardados correctamente.',
+            icon: 'success',
+            confirmButtonColor: '#3b82f6',
+            color: 'var(--text)',
+          });
+        },
+        error: (err) => {
+          this.overlayOpen.set(false);
+          console.error('❌ Error al guardar en DB:', err);
+          Swal.fire({
+            title: 'Error al guardar',
+            text: 'Ocurrió un error de conexión con la base de datos.',
+            icon: 'error',
+            confirmButtonColor: '#ef4444',
+            color: 'var(--text)',
+          });
+        }
+      });
   }
 
   // ─────────────────────────────────────────────

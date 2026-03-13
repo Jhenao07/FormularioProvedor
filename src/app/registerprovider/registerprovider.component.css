@@ -569,3 +569,9 @@
     font-size: 1.25rem;
   }
 }
+
+/* ── MAYÚSCULAS GLOBALES ── */
+input:not([type="file"]):not([type="date"]):not([type="email"]),
+textarea {
+  text-transform: uppercase;
+}

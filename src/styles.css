@@ -935,3 +935,201 @@ h2.title {
   border-color: var(--purple);
   box-shadow: 0 0 0 3px rgba(255,102,71,0.15);
 }
+
+/* ============================================================
+   CAMPO TELÉFONO / CELULAR CON INDICATIVO
+   ============================================================ */
+
+.phone-group { position: relative; }
+
+.phone-input-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: visible;
+  background: var(--surface);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.phone-input-row:focus-within {
+  border-color: var(--accent);
+  box-shadow: var(--focus);
+}
+
+/* Selector de indicativo */
+.indicativo-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  background: var(--surface-2);
+  border-right: 1.5px solid var(--border);
+  border-radius: var(--r-md) 0 0 var(--r-md);
+  cursor: pointer;
+  min-width: 88px;
+  user-select: none;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.indicativo-wrapper:hover { background: var(--accent-100); }
+
+.indicativo-flag { font-size: 17px; line-height: 1; }
+.indicativo-code { font-size: 13px; font-weight: 600; color: var(--text); font-family: var(--font-head); }
+.indicativo-caret { color: var(--muted); flex-shrink: 0; }
+
+/* Dropdown */
+.indicativo-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 999;
+  width: 280px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+  animation: fadeSlideDown 0.18s ease;
+}
+
+@keyframes fadeSlideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.indicativo-dropdown-inner {
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 6px 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.indicativo-loading {
+  padding: 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.indicativo-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.indicativo-option:hover { background: var(--accent-100); }
+.indicativo-option.active { background: var(--accent-200); }
+
+.ind-flag  { font-size: 16px; flex-shrink: 0; }
+.ind-nombre { font-size: 13px; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ind-code  { font-size: 12px; font-weight: 700; color: var(--accent); font-family: var(--font-head); flex-shrink: 0; }
+
+/* Input del número */
+.phone-number-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  padding: 0 12px;
+  height: 44px;
+  font-size: 14px;
+  font-family: var(--font-body);
+  color: var(--text);
+  background: transparent;
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+
+.phone-number-input::placeholder { color: var(--muted); }
+
+/* ── Ajuste: dropdown fuera del wrapper ── */
+.phone-input-row {
+  position: relative;
+}
+
+.indicativo-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 1000;
+  width: 300px;
+}
+
+/* Buscador dentro del dropdown */
+.indicativo-search {
+  padding: 8px 8px 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.indicativo-search-input {
+  width: 100%;
+  height: 34px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 0 10px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--surface-2);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.indicativo-search-input:focus {
+  border-color: var(--accent);
+}
+
+.indicativo-empty {
+  padding: 14px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ── Extensión inline dentro del phone-input-row ── */
+.ext-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-family: var(--font-body);
+  white-space: nowrap;
+  padding: 0 4px;
+  align-self: center;
+}
+
+.ext-input {
+  width: 72px;
+  flex-shrink: 0;
+  height: 40px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 0 10px;
+  font-size: 14px;
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.18s;
+}
+
+.ext-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(255,102,71,0.12);
+}
+
+/* phone-number-input flex-grow para llenar espacio disponible */
+.phone-number-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── MAYÚSCULAS GLOBALES en todos los inputs y textareas ── */
+input:not([type="file"]):not([type="date"]):not([type="email"]):not(.indicativo-search-input),
+textarea {
+  text-transform: uppercase;
+}

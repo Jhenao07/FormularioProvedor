@@ -6,6 +6,11 @@
   border-radius: var(--r-md, 12px);
   color: var(--text, #111827);
 
+  /* ── MAYÚSCULAS GLOBALES ── */
+  input:not([type="file"]):not([type="date"]):not([type="email"]),
+  textarea {
+  text-transform: uppercase;
+  }
   /* Padding gigante a la derecha para no chocar con el Autocompletado */
   padding: 0 120px 0 16px;
 
