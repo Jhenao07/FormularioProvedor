@@ -401,58 +401,42 @@
       </div>
 
 <div *ngIf="currentStep() === 3" class="step-content">
-        <h2 class="title">Revisión y envío</h2>
-        <p style="color: var(--muted); margin-bottom: 24px; font-size: 14px;">
-          Verifica que la información y los documentos sean correctos antes de finalizar.
-        </p>
+  <h2 class="title">Revisión y envío</h2>
+  <p style="color: var(--muted); margin-bottom: 24px; font-size: 14px;">
+    Verifica que la información y los documentos sean correctos antes de finalizar.
+  </p>
 
-        <div class="review-card">
-          <div class="review-item">
-            <label>País de Operación</label>
-            <span>{{ countrySelected() }}</span>
-          </div>
+  <!-- DOCUMENTOS PRINCIPALES -->
+  <div class="review-section" *ngIf="getArchivosPaso1().length > 0">
+    <div class="review-section-title">📁 Documentos Principales</div>
+    <div class="review-chips">
+      <div class="review-chip file" *ngFor="let doc of getArchivosPaso1()">
+        <span class="chip-label">{{ doc.label }}</span>
+        <span class="chip-value">📄 {{ doc.nombre }}</span>
+      </div>
+    </div>
+  </div>
 
-          <hr style="border: none; border-top: 1px solid var(--border-strong); margin: 16px 0;">
-          <p style="font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 12px;">
-            Documentos Principales
-          </p>
-
-          <div class="review-item" *ngFor="let doc of getArchivosPaso1()">
-            <label>{{ doc.label }}</label>
-            <span style="text-align: right; color: #3b82f6; font-weight: 500;">
-              {{ doc.nombre }}
-            </span>
-          </div>
-          <div class="review-item" *ngIf="getArchivosPaso1().length === 0">
-            <label>Archivos adjuntos</label>
-            <span style="color: var(--muted);">Ninguno</span>
-          </div>
-
-          <hr style="border: none; border-top: 1px solid var(--border-strong); margin: 16px 0;">
-          <p style="font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 12px;">
-            Datos y Documentos Adicionales
-          </p>
-
-          <ng-container *ngFor="let campo of camposDinamicos()">
-            <div class="review-item" *ngIf="campo.type !== 'hidden-phone-sub'">
-              <label>{{ campo.label }}</label>
-
-              <span style="text-align: right; max-width: 60%; word-break: break-word;"
-                    [style.color]="getValorMostrado(campo).startsWith('📄') ? '#3b82f6' : 'inherit'"
-                    [style.font-weight]="getValorMostrado(campo).startsWith('📄') ? '500' : 'normal'">
-                {{ getValorMostrado(campo) }}
-              </span>
-            </div>
-          </ng-container>
-
-        </div>
-
-        <div class="actions">
-          <button type="button" class="btn-secondary" (click)="currentStep.set(2)">Atrás</button>
-
-          <button type="button" class="btn-primary" (click)="submitForm()">Finalizar Registro</button>
+  <!-- SECCIONES DINÁMICAS -->
+  <ng-container *ngFor="let seccion of seccionesDisponibles()">
+    <div class="review-section" *ngIf="getCamposConValorPorSeccion(seccion).length > 0">
+      <div class="review-section-title">{{ getNombreCorto(seccion) }}</div>
+      <div class="review-chips">
+        <div class="review-chip"
+             *ngFor="let campo of getCamposConValorPorSeccion(seccion)"
+             [class.file]="getValorMostrado(campo).startsWith('📄')">
+          <span class="chip-label">{{ campo.label }}</span>
+          <span class="chip-value">{{ getValorMostrado(campo) }}</span>
         </div>
       </div>
+    </div>
+  </ng-container>
+
+  <div class="actions" style="margin-top: 32px;">
+    <button type="button" class="btn-secondary" (click)="currentStep.set(2)">Atrás</button>
+    <button type="button" class="btn-primary" (click)="submitForm()">Finalizar Registro</button>
+  </div>
+</div>
 
   <div *ngIf="toastMessage()" class="toast-notification fade-in-up">
     ⚠️ {{ toastMessage() }}

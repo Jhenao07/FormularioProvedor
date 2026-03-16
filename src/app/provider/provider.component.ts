@@ -1783,4 +1783,18 @@ getArchivosPaso1(): { label: string, nombre: string }[] {
     // Si es texto o número normal
     return String(valor);
   }
+  getCamposConValorPorSeccion(seccion: string): CampoDinamico[] {
+  return this.camposDinamicos().filter(c => {
+    if (c.seccion !== seccion) return false;
+    if (c.visible === false) return false;
+    if (c.type === 'hidden-phone-sub') return false;
+    if (c.type === 'documento-agrupado') return false;
+    if (c.type === 'legal-text') return false;
+    if (c.type === 'bloque-firmas') return false;
+    if (c.type.includes('info')) return false;
+    if (!c.label?.trim()) return false;
+    const valor = this.getValorMostrado(c);
+    return valor !== 'N/A' && valor.trim() !== '';
+  });
+}
 }
