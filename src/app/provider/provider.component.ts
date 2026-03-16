@@ -26,6 +26,7 @@ import { services } from '../services';
 import Swal from 'sweetalert2';
 import { PdfMapService } from './pdfMap.service';
 import { DynamicFieldComponent } from '../components/dynamic-field/dynamic-field.component';
+import { catchError, concatMap, from, of, toArray } from 'rxjs';
 
 
 // ─────────────────────────────────────────────
@@ -128,7 +129,7 @@ export class ProviderComponent implements OnInit {
 
   // ─── Configuración API ───────────────────────
   private readonly API_BASE_URL = 'https://ccwhqcbjae.execute-api.us-east-1.amazonaws.com/api/ntp/commercialOperation/v1';
-  private readonly API_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExM2UyNDNjLTczZjctNGM4NC05MDE1LWU3NWRkZGFiZDI3MSIsImRhdGEiOiIyN2VmOWRiOTg0OTNhYzBiYjFkMmQ1YjJhYjVhZWFjMWViZjY1NDFhYjE4NGVmNTdmYzU3MGFkZmJhM2M1ODY3ODNmMjBhZjg0ZmQ5Y2ZmYWU3NzljYTY5NmRjMDRlZDFjODRiMzRiZjQyNWU4MTJjMDI3MmZmYjdlNTA1Yjg1YjgxNDFmMzc5NGIzNmEyNTEwYjBmODE4Njg0MzhmZGQ0YWUxYmJiMzJiZjIzMDg3OWRmZWQwMDIwYTJjYzdjOTQ0YjhhNGYxYzM0NDA1ZTRhNWRiY2I0NzA4NTc1NzFhZTYxMWZlMWQyYjYzM2YzNWNkMmExZjMyODI5OTljN2FjZjI4MjNiZjJmOTA1N2JiNDZjZjFlMzExNzg2MDQ0ZWZlOGNkYjA5YmM2YzliMjdlNmEyZDYyYjBhNzFjZjcyNGRhY2I2NGJmNzI4MTZkNmQ0ZTJjYTA1NzRmZjJiYjljODc3ZWJkMjhkNzZhZDMzMDA1NzlmMGZmYTlhMTliYWU2M2UwZWJiN2VmZGFhYTlhNjI4NDEzMGJlMzU5MmY3M2Q3ODIwYzQ0MTg2ZGEzMmNlMzBiNzJhYTc2MDIyYWMzZWVlYjI5MDRlNWNlZWU1YTI5OGQxYTIwNzAwZTM3NWFiMWRkMWEzMzcyMjU3NjFjOGIzMTRlOTE0MzM4MzgzMWVkNDJkZmFkNWQwOGMwOTRkZDg1ZDY4YTU4NTAwYmYzZTY5YWEzMmYyN2IyNjU0ZTBiOWI3MzUyMmU5Njc3MzRlZWNiZTUxMTIwMWJmOTFjY2RkOTJlMGQxMjE5YjFjNTFhZGRhODk0Y2U0ZjQ3ODhjODg5YjkwZTllYmY2YmM1OTlhZDkwZDdhNWY2YWQ4YjJkM2ViYzRmN2ZhMWMzZmEwNDJhMWRlOTAwNjhjN2U2YjEyNjhjZTlkNjdmZGUyYWQwMWNmMjg1N2Q2OWNiNDQ2NTIxNThjYzlkZmQ3YWI5MDNkM2Q5YTZmYmQ5N2Q4MDVhYzc4MDI5NTlhY2ZjZDZjMmQwMThlZTdmYzJjMDRkOGNmNzFjNDRlZTlhNGZhNjY1MDM4YjQyZjcwZTQ4NTAwZGNkMTliYTA5MzM0MzZlOWFkYWYxYzlmOWJlYzM0ZjQ2NDY1NmI0YzJhZjg4YTYyNWI5ZTZmNzcyZTNhYTFkMTZhNDU3YzdjZWFhOWU0ZTQ5N2ZhY2Y0YmRkNmVmZWI2NDMzYTNkZDNmY2FiNDBkZmM4NTViOThkMTI2ZmY5ZmIyMWJiZDBmMTcwNzgyYjEyZjQ0ODk5OGQwZGQ1NDk1YjMzODU3ODViMjU1MmU1YmZhMTUyMDhmNGNiNzhjMTc4ZmNhNDkxYjhhZTc5ZDliOTA3NDk3MTkwYjRhZThkZTIzNmQ4MDExMGMzMWZhYTRiMGVlNzlhNTVkMDhiZGQ4MGE3NjZiN2ExZmYyMzQzNCIsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzczNDE3NTIwLCJleHAiOjE3NzQwMjIzMjB9.Smzwfs9qFcia9wQDbCsX5iHtFxpJdQadrptEMNUIpFY'
+  private readonly API_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExM2UyNDNjLTczZjctNGM4NC05MDE1LWU3NWRkZGFiZDI3MSIsImRhdGEiOiIyN2VmOWRiOTg0OTNhYzBiYjFkMmQ1YjJhYjVhZWFjMWViZjY1NDFhYjE4NGVmNTdmYzU3MGFkZmJhM2M1ODY3ODNmMjBhZjg0ZmQ5Y2ZmYWU3NzljYTY5NmRjMDRlZDFjODRiMzRiZjQyNWU4MTJjMDI3MmZmYjdlNTA1Yjg1YjgxNDFmMzc5NGIzNmEyNTEwYjBmODE4Njg0MzhmZGQ0YWUxYmJiMzJiZjIzMDg3OWRmZWQwMDIwYTJjYzdjOTQ0YjhhNGYxYzM0NDA1ZTRhNWRiY2I0NzA4NTc1NzFhZTYxMWZlMWQyYjYzM2YzNWNkMmExZjMyODI5OTljN2FjZjI4MjNiZjJmOTA1N2JiNDZjZjFlMzExNzg2MDQ0ZWZlOGNkYjA5YmM2YzliMjdlNmEyZDYyYjBhNzFjZjcyNGRhY2I2NGJmNzI4MTZkNmQ0ZTJjYTA1NzRmZjJiYjljODc3ZWJkMjhkNzZhZDMzMDA1NzlmMGZmYTlhMTliYWU2M2UwZWJiN2VmZGFhYTlhNjI4NDEzMGJlMzU5MmY3M2Q3ODIwYzQ0MTg2ZGEzMmNlMzBiNzJhYTc2MDIyYWMzZWVlYjI5MDRlNWNlZWU1YTI5OGQxYTIwNzAwZTM3NWFiMWRkMWEzMzcyMjU3NjFjOGIzMTRlOTE0MzM4MzgzMWVkNDJkZmFkNWQwOGMwOTRkZDg1ZDY4YTU4NTAwYmYzZTY5YWEzMmYyN2IyNjU0ZTBiOWI3MzUyMmU5Njc3MzRlZWNiZTUxMTIwMWJmOTFjY2RkOTJlMGQxMjE5YjFjNTFhZGRhODk0Y2U0ZjQ3ODhjODg5YjkwZTllYmY2YmM1OTlhZDkwZDdhNWY2YWQ4YjJkM2ViYzRmN2ZhMWMzZmEwNDJhMWRlOTAwNjhjN2U2YjEyNjhjZTlkNjdmZGUyYWQwMWNmMjg1N2Q2OWNiNDQ2NTIxNThjYzlkZmQ3YWI5MDNkM2Q5YTZmYmQ5N2Q4MDVhYzc4MDI5NTlhY2ZjZDZjMmQwMThlZTdmYzJjMDRkOGNmNzFjNDRlZTlhNGZhNjY1MDM4YjQyZjcwZTQ4NTAwZGNkMTliYTA5MzM0MzZlOWFkYWYxYzlmOWJlYzM0ZjQ2NDY1NmI0YzJhZjg4YTYyNWI5ZTZmNzcyZTNhYTFkMTZhNDU3YzdjZWFhOWU0ZTQ5N2ZhY2Y0YmRkNmVmZWI2NDMzYTNkZDNmY2FiNDBkZmM4NTViOThkMTI2ZmY5ZmIyMWJiZDBmMTcwNzgyYjEyZjQ0ODk5OGQwZGQ1NDk1YjMzODU3ODViMjU1MmU1YmZhMTUyMDhmNGNiNzhjMTc4ZmNhNDkxYjhhZTc5ZDliOTA3NDk3MTkwYjRhZThkZTIzNmQ4MDExMGMzMWZhYTRiMGVlNzlhNTVkMDhiZGQ4MGE3NjZiN2ExZmYyMzQzNCIsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzczNjYwNTQ2LCJleHAiOjE3NzQyNjUzNDZ9.JqMbuv_kA3CiyxA5mZmuk17Ha2jUTR5vuH1oTR031Ko'
   // ─── Servicios ───────────────────────────────
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -168,6 +169,7 @@ export class ProviderComponent implements OnInit {
   mostrarCamposBeneficiario = signal(false);
   formularioEstructuraDestino = signal<any>(null);
   esUsuarioInterno = signal(true);
+  archivosAdjuntosDinamicos = signal<Record<string, File>>({});
 
   // ─── Indicativos telefónicos ──────────────────
   indicativos = signal<Indicativo[]>([]);
@@ -497,59 +499,65 @@ export class ProviderComponent implements OnInit {
   // Archivos
   // ─────────────────────────────────────────────
 
-  onFileSelected(event: Event, docKey: string, fileInput: HTMLInputElement): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
+ onFileSelected(event: Event, docKey: string, fileInput: HTMLInputElement): void {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
 
-    const campos = this.camposDinamicos();
-    const extension = file.name.split('.').pop() ?? '';
-    const matchNum = docKey.match(/\d+/);
-    const numDoc = matchNum?.[0] ?? '1';
+  const campos = this.camposDinamicos();
+  const extension = file.name.split('.').pop() ?? '';
+  const matchNum = docKey.match(/\d+/);
+  const numDoc = matchNum?.[0] ?? '1';
 
-    let campoSistemaGestion: any = null;
+  let campoSistemaGestion: any = null;
 
-    if (numDoc === '1') {
-      campoSistemaGestion = campos.find(
-        (c) =>
-          (c.label.toLowerCase().includes('tipo de sistema de gestión') ||
-            c.label.toLowerCase().includes('tipo de sistema')) &&
-          !c.key.includes('_clon') &&
-          c.type !== 'documento-agrupado'
-      );
-    } else {
-      const cajaAgrupada = campos.find(
-        (c) => c.type === 'documento-agrupado' && c.key === `agrupado_${numDoc}`
-      );
-      if (cajaAgrupada?.selectConfig) {
-        campoSistemaGestion = cajaAgrupada.selectConfig;
-      }
-    }
-
-    let nombreParaMostrar = file.name;
-    if (campoSistemaGestion) {
-      const valorSelect = this.form.get('formDinamico')?.get(campoSistemaGestion.key)?.value;
-      if (valorSelect?.trim()) {
-        nombreParaMostrar = `${valorSelect}.${extension}`;
-      }
-    }
-
-    this.form.get(`step2_docs.${docKey}`)?.setValue(file);
-    this.form.get('step2_docs')?.updateValueAndValidity();
-
-    const control = this.form.get('formDinamico')?.get(docKey);
-    if (control) {
-      control.setValue(nombreParaMostrar);
-      control.markAsDirty();
-      control.markAsTouched();
-      control.updateValueAndValidity();
+  if (numDoc === '1') {
+    campoSistemaGestion = campos.find(
+      (c) =>
+        (c.label.toLowerCase().includes('tipo de sistema de gestión') ||
+          c.label.toLowerCase().includes('tipo de sistema')) &&
+        !c.key.includes('_clon') &&
+        c.type !== 'documento-agrupado'
+    );
+  } else {
+    const cajaAgrupada = campos.find(
+      (c) => c.type === 'documento-agrupado' && c.key === `agrupado_${numDoc}`
+    );
+    if (cajaAgrupada?.selectConfig) {
+      campoSistemaGestion = cajaAgrupada.selectConfig;
     }
   }
 
-  eliminarDocumentoAdjunto(controlName: string, fileInput: HTMLInputElement): void {
-    this.form.get('formDinamico')?.get(controlName)?.setValue('');
-    fileInput.value = '';
+  let nombreParaMostrar = file.name;
+  if (campoSistemaGestion) {
+    const valorSelect = this.form.get('formDinamico')?.get(campoSistemaGestion.key)?.value;
+    if (valorSelect?.trim()) {
+      nombreParaMostrar = `${valorSelect}.${extension}`;
+    }
   }
+
+  this.form.get(`step2_docs.${docKey}`)?.setValue(file);
+  this.form.get('step2_docs')?.updateValueAndValidity();
+
+  const control = this.form.get('formDinamico')?.get(docKey);
+  if (control) {
+    control.setValue(nombreParaMostrar);
+    control.markAsDirty();
+    control.markAsTouched();
+    control.updateValueAndValidity();
+  }
+
+  // 🟢 Guardar el File real para subirlo al endpoint después
+  this.archivosAdjuntosDinamicos.update(m => ({ ...m, [docKey]: file }));
+}
+
+ eliminarDocumentoAdjunto(controlName: string, fileInput: HTMLInputElement): void {
+  this.form.get('formDinamico')?.get(controlName)?.setValue('');
+  fileInput.value = '';
+  this.archivosAdjuntosDinamicos.update(m => {
+    const c = { ...m }; delete c[controlName]; return c;
+  });
+}
 
  removeFile(docKey = '', fileInput?: HTMLInputElement): void {
     const step = this.currentStep();
@@ -574,7 +582,7 @@ export class ProviderComponent implements OnInit {
       this.camposDinamicos.set([]);
       this.form.setControl('formDinamico', this.fb.group({}));
       this.overlayOpen.set(false);
-      
+
       // 🟢 Reemplazo del alert nativo por SweetAlert2
       Swal.fire({
         icon: 'info',
@@ -1574,100 +1582,133 @@ export class ProviderComponent implements OnInit {
   // Envío del formulario
   // ─────────────────────────────────────────────
 submitForm(): void {
-    this.overlayOpen.set(true);
-    this.overlayTitle.set('Enviando información...');
-    this.overlaySubtitle.set('Guardando datos del proveedor...');
+  this.overlayOpen.set(true);
+  this.overlayTitle.set('Enviando información...');
+  this.overlaySubtitle.set('Guardando datos del proveedor...');
 
-    // ── Obtener idServiceOrder desde queryParam 'os' ──
-    const idServiceOrder = this.osParam();
-    const formValues: Record<string, any> = this.form.get('formDinamico')?.value ?? {};
-    const todosLosCampos: CampoDinamico[] = this.camposDinamicos();
+  const idServiceOrder = this.osParam();
+  const formValues: Record<string, any> = this.form.get('formDinamico')?.value ?? {};
+  const todosLosCampos: CampoDinamico[] = this.camposDinamicos();
 
-    // 🛡️ EL ESCUDO ESTRICTO: Solo lo que AWS permite en "isAllowedToWrite"
-    const estructuraActual = this.formularioEstructuraDestino();
-    const camposPermitidos = estructuraActual?.isAllowedToWrite?.data ?? [];
-    
-    // Creamos una lista solo con los IDs autorizados para escribir
-    const idsAutorizados = new Set(camposPermitidos.map((item: any) => item.id));
+  const dataFields = todosLosCampos
+    .filter(c => {
+      const tieneIdValido = c.idValueField && typeof c.idValueField === 'string' && c.idValueField.length > 30;
+      const noEsSubCampo = c.type !== 'hidden-phone-sub';
+      return tieneIdValido && noEsSubCampo;
 
-    // ── Construir dataFields ──
-    const dataFields = todosLosCampos
-      .filter(c => {
-        const tieneIdValido = c.idValueField && typeof c.idValueField === 'string';
-        const noEsSubCampo = c.type !== 'hidden-phone-sub';
-        
-        // 🔴 ESTA ES LA REGLA QUE EVITA EL ERROR 400
-        const estaAutorizado = idsAutorizados.has(c.idValueField);
-        
-        return tieneIdValido && noEsSubCampo && estaAutorizado;
-      })
-      .map(c => {
-        const rawValue = formValues[c.key] ?? '';
-        
-        // Lógica de teléfonos
-        const phoneInputKey = this.getPhoneInputKey(c.key);
-        const phoneValue = c.type === 'phone' && phoneInputKey !== c.key
-          ? (this.indicativoSeleccionado()[c.key] ?? '') + (formValues[phoneInputKey] ?? '')
-          : null;
-        
-        const extKey = this.getExtKey(c.key);
-        const extValue = extKey ? (formValues[extKey] ?? '') : null;
+    },
+       console.log('🔍 campos duplicados o sin número:',
+        todosLosCampos
+        .filter(c => c.key === 'finalBeneficiaryName')
+        .map(c => ({ key: c.key, id: c.idValueField }))
+    )
+  )
 
-        let valorFinal: string;
-        if (phoneValue !== null) {
-          valorFinal = extValue ? `${phoneValue} Ext. ${extValue}` : phoneValue;
-        } else {
-          valorFinal = String(rawValue ?? '');
-        }
+    .map(c => {
+      const rawValue = formValues[c.key] ?? '';
+      const labelLimpio = c.key;
+      const phoneInputKey = this.getPhoneInputKey(c.key);
+      const phoneValue = c.type === 'phone' && phoneInputKey !== c.key
+        ? (this.indicativoSeleccionado()[c.key] ?? '') + (formValues[phoneInputKey] ?? '')
+        : null;
 
-        return {
-          idValueField: c.idValueField!,
-          labelIdField: c.key || '', 
-          valueField: valorFinal,
-        };
-      });
+      const extKey = this.getExtKey(c.key);
+      const extValue = extKey ? (formValues[extKey] ?? '') : null;
 
-   console.log(`📦 Campos autorizados filtrados para AWS:`, dataFields.length);
+      let valorFinal: string;
+      if (phoneValue !== null) {
+        valorFinal = extValue ? `${phoneValue} Ext. ${extValue}` : phoneValue;
+      } else {
+        valorFinal = String(rawValue ?? '');
+      }
 
-    if (dataFields.length === 0) {
-      this.overlayOpen.set(false);
-      Swal.fire({
-        icon: 'warning',
-        title: 'Sin datos para enviar',
-        text: 'Los campos llenados no tienen permiso de escritura en la base de datos.',
-        confirmButtonColor: 'var(--accent)'
-      });
-      return;
-    }
+      return {
+        idValueField: c.idValueField!,
+        labelIdField: labelLimpio,
+        valueField: valorFinal,
+      };
+    });
 
-    const body = { idServiceOrder, dataFields };
-
-    this.services.saveProviderData(body)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.overlayOpen.set(false);
-          Swal.fire({
-            title: '¡Registro Exitoso!',
-            text: 'Los datos permitidos fueron guardados correctamente.',
-            icon: 'success',
-            confirmButtonColor: '#3b82f6',
-            color: 'var(--text)',
-          });
-        },
-        error: (err) => {
-          this.overlayOpen.set(false);
-          console.error('❌ Error al guardar en DB:', err);
-          Swal.fire({
-            title: 'Error al guardar',
-            text: 'Ocurrió un error de conexión con la base de datos.',
-            icon: 'error',
-            confirmButtonColor: '#ef4444',
-            color: 'var(--text)',
-          });
-        }
-      });
+  if (dataFields.length === 0) {
+    this.overlayOpen.set(false);
+    Swal.fire({
+      icon: 'warning',
+      title: 'Sin datos válidos',
+      text: 'No se encontraron campos válidos para guardar.',
+      confirmButtonColor: 'var(--accent)'
+    });
+    return;
   }
+
+  this.services.saveProviderData({ idServiceOrder, dataFields })
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe({
+      next: () => {
+        this.overlayTitle.set('Subiendo documentos...');
+        this.overlaySubtitle.set('Preparando archivos...');
+
+        const archivosParaSubir: { file: File, nombre: string }[] = [];
+
+        // 📁 A. Archivos del PASO 1 (RUT, Cámara, Bancaria...)
+        const docsPaso1 = this.form.get('step2_docs')?.value || {};
+        for (const key in docsPaso1) {
+          if (docsPaso1[key] instanceof File) {
+            const f = docsPaso1[key] as File;
+            archivosParaSubir.push({ file: f, nombre: f.name });
+          }
+        }
+
+        // 📁 B. Archivos dinámicos (document1, document2, document_ambiental...)
+        // Estos vienen del signal porque formDinamico solo guarda el nombre como string
+        const archivosDinamicos = this.archivosAdjuntosDinamicos();
+        for (const key in archivosDinamicos) {
+          const f = archivosDinamicos[key];
+          archivosParaSubir.push({ file: f, nombre: f.name });
+        }
+
+        if (archivosParaSubir.length === 0) {
+          this.finalizarProcesoConExito();
+          return;
+        }
+
+        from(archivosParaSubir).pipe(
+          concatMap(data => {
+            this.overlaySubtitle.set(`Subiendo: ${data.nombre}...`);
+            return this.services.uploadProviderFile(data.file, idServiceOrder, data.nombre).pipe(
+              catchError(err => {
+                console.error(`❌ Error subiendo ${data.nombre}:`, err);
+                return of(null);
+              })
+            );
+          }),
+          toArray()
+        ).subscribe(() => {
+          this.finalizarProcesoConExito();
+        });
+      },
+      error: (err) => {
+        this.overlayOpen.set(false);
+        console.error('❌ Error al guardar en DB:', err);
+        Swal.fire({
+          title: 'Error al guardar',
+          text: 'Ocurrió un error de conexión con la base de datos.',
+          icon: 'error',
+          confirmButtonColor: '#ef4444'
+        });
+      }
+    });
+}
+  finalizarProcesoConExito(): void {
+    this.overlayOpen.set(false);
+    Swal.fire({
+      title: '¡Registro Exitoso!',
+      text: 'Los datos y documentos fueron guardados correctamente.',
+      icon: 'success',
+      confirmButtonColor: '#3b82f6',
+      color: 'var(--text)',
+    });
+  }
+
 
   // ─────────────────────────────────────────────
   // Overlay
@@ -1710,5 +1751,36 @@ submitForm(): void {
       background: 'var(--surface)',
       color: 'var(--text)',
     });
+  }
+
+getArchivosPaso1(): { label: string, nombre: string }[] {
+    const docs = this.form.get('step2_docs')?.value || {};
+    const archivos = [];
+    for (const key in docs) {
+      if (docs[key] instanceof File) {
+        // Formateamos la llave (ej: 'camara_comercio' -> 'CAMARA COMERCIO')
+        const labelLimpio = key.replace(/_/g, ' ').toUpperCase();
+        archivos.push({ label: labelLimpio, nombre: docs[key].name });
+      }
+    }
+    return archivos;
+  }
+
+  // Verifica si el valor de un campo dinámico es texto normal o un archivo
+  getValorMostrado(campo: any): string {
+    const valor = this.form.get('formDinamico')?.get(campo.key)?.value;
+
+    // Si es un documento adjunto
+    if (valor instanceof File) {
+      return '📄 ' + valor.name;
+    }
+
+    // Si el usuario lo dejó vacío
+    if (valor === null || valor === undefined || valor === '') {
+      return 'N/A';
+    }
+
+    // Si es texto o número normal
+    return String(valor);
   }
 }

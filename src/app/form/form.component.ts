@@ -185,11 +185,10 @@ export class FormComponent {
         { labelIdField: 'supplierNationality',      valueField: this.selectedCountryCode },
       ]
     };
-
+    
    this.service.createInvitation(payload).subscribe({
       next: (res: any) => {
         // 🟢 Guardamos el email junto al payload para que registerprovider lo lea
-        this.service.setData({ ...payload, providerEmail: raw.email });
 
         // 🌟 1. ATRAPAMOS LA NUEVA ESTRUCTURA DEL JSON DEL BACKEND
         const commercialOpId = res.commercialOp?.id;                 // UUID para 'oc'

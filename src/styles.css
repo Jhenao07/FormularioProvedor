@@ -708,9 +708,26 @@ h2.title {
   font-size: 13.5px;
 }
 .review-item:last-child { border-bottom: none; padding-bottom: 0; }
-.review-item label { font-weight: 600; color: var(--text-2); flex-shrink: 0; max-width: 40%; }
-.review-item span { color: var(--text); text-align: right; }
-
+.review-item label {
+  font-size: 14px;
+  color: var(--muted, #64748b);
+  font-weight: 500;
+  margin: 0;
+  flex-shrink: 0; /* Evita que el título se aplaste si el valor es muy largo */
+  max-width: 40%;
+}
+.review-item span {
+  font-size: 14px;
+  color: var(--text, #1e293b);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-word; /* Súper importante para que nombres de archivos muy largos no rompan la tarjeta */
+}
+.review-card hr {
+  border: none;
+  border-top: 1px dashed var(--border-strong, #cbd5e1) !important;
+  margin: 24px 0 !important;
+}
 /* ============================================================
    TOAST
    ============================================================ */
@@ -1132,4 +1149,65 @@ h2.title {
 input:not([type="file"]):not([type="date"]):not([type="email"]):not(.indicativo-search-input),
 textarea {
   text-transform: uppercase;
+}
+.review-section {
+  margin-bottom: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.review-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+}
+
+.review-section-icon {
+  font-size: 15px;
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1px;
+  background: var(--border);
+}
+
+.review-chip {
+  background: var(--surface);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.review-chip.file-chip {
+  background: #eff6ff;
+}
+
+.chip-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.chip-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.chip-value.file-name {
+  color: #3b82f6;
 }

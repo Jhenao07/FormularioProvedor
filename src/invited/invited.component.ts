@@ -21,11 +21,8 @@ export class InvitedComponent {
   constructor(private dataService: services, private router: Router, private route: ActivatedRoute, private services:services) {}
 
 
-
-
   ngOnInit() {
     this.generarEnlace();
-    this.data = this.dataService.getData();
     console.log('Datos recibidos:', this.data);
   }
     generarEnlace() {
@@ -71,7 +68,7 @@ export class InvitedComponent {
       queryParams: { oc, os, sn }
     });
 
-   
+
   }
 
   mostrarToast(mensaje: string) {
