@@ -417,6 +417,23 @@
     </div>
   </div>
 
+  <!-- DOCUMENTOS DINÁMICOS (sistemas de gestión, ambientales, firma...) -->
+  <div class="review-section" *ngIf="getDocumentosDinamicosParaRevision().length > 0">
+    <div class="review-section-title">📂 Documentos Adicionales</div>
+    <div class="review-chips">
+      <ng-container *ngFor="let doc of getDocumentosDinamicosParaRevision()">
+        <div class="review-chip" *ngIf="doc.tipoValor">
+          <span class="chip-label">{{ doc.tipoLabel }}</span>
+          <span class="chip-value">{{ doc.tipoValor }}</span>
+        </div>
+        <div class="review-chip file">
+          <span class="chip-label">{{ doc.archivoLabel }}</span>
+          <span class="chip-value">📄 {{ doc.archivoNombre }}</span>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
   <!-- SECCIONES DINÁMICAS -->
   <ng-container *ngFor="let seccion of seccionesDisponibles()">
     <div class="review-section" *ngIf="getCamposConValorPorSeccion(seccion).length > 0">
@@ -432,7 +449,7 @@
     </div>
   </ng-container>
 
-  <div class="actions" style="margin-top: 32px;">
+  <div class="actions">
     <button type="button" class="btn-secondary" (click)="currentStep.set(2)">Atrás</button>
     <button type="button" class="btn-primary" (click)="submitForm()">Finalizar Registro</button>
   </div>

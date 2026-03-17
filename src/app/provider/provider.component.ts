@@ -499,7 +499,11 @@ export class ProviderComponent implements OnInit {
   // Archivos
   // ─────────────────────────────────────────────
 
- onFileSelected(event: Event, docKey: string, fileInput: HTMLInputElement): void {
+ // ✅ Mapa interno: docKey → extensión del archivo adjuntado
+  // Permite renombrar el archivo cuando el usuario elige el tipo DESPUÉS de adjuntarlo
+  private extensionesArchivos: Record<string, string> = {};
+
+  onFileSelected(event: Event, docKey: string, fileInput: HTMLInputElement): void {
   const input = event.target as HTMLInputElement;
   const file = input.files?.[0];
   if (!file) return;
@@ -509,32 +513,35 @@ export class ProviderComponent implements OnInit {
   const matchNum = docKey.match(/\d+/);
   const numDoc = matchNum?.[0] ?? '1';
 
-  let campoSistemaGestion: any = null;
+  // ✅ Guardar la extensión para poder renombrar si el usuario cambia el select después
+  this.extensionesArchivos[docKey] = extension;
 
-  if (numDoc === '1') {
-    campoSistemaGestion = campos.find(
+  // Buscar el select asociado a este campo de documento
+  let selectKey: string | null = null;
+  if (docKey === 'document1' || (docKey.startsWith('document') && numDoc === '1')) {
+    const campo = campos.find(
       (c) =>
         (c.label.toLowerCase().includes('tipo de sistema de gestión') ||
           c.label.toLowerCase().includes('tipo de sistema')) &&
         !c.key.includes('_clon') &&
         c.type !== 'documento-agrupado'
     );
-  } else {
+    selectKey = campo?.key ?? null;
+  } else if (docKey.startsWith('document') && numDoc !== '1') {
     const cajaAgrupada = campos.find(
       (c) => c.type === 'documento-agrupado' && c.key === `agrupado_${numDoc}`
     );
-    if (cajaAgrupada?.selectConfig) {
-      campoSistemaGestion = cajaAgrupada.selectConfig;
-    }
+    selectKey = cajaAgrupada?.selectConfig?.key ?? null;
   }
 
-  let nombreParaMostrar = file.name;
-  if (campoSistemaGestion) {
-    const valorSelect = this.form.get('formDinamico')?.get(campoSistemaGestion.key)?.value;
-    if (valorSelect?.trim()) {
-      nombreParaMostrar = `${valorSelect}.${extension}`;
-    }
-  }
+  const valorSelect = selectKey
+    ? (this.form.get('formDinamico')?.get(selectKey)?.value ?? '').trim()
+    : '';
+
+  // ✅ Si el select ya tiene valor → usarlo como nombre; si no → nombre original del archivo
+  const nombreParaMostrar = valorSelect
+    ? `${valorSelect}.${extension}`
+    : file.name;
 
   this.form.get(`step2_docs.${docKey}`)?.setValue(file);
   this.form.get('step2_docs')?.updateValueAndValidity();
@@ -1065,6 +1072,21 @@ export class ProviderComponent implements OnInit {
       const formDinamico = this.form.get('formDinamico') as FormGroup;
       formDinamico?.addControl(nuevaLlaveSelect, this.fb.control(''));
 
+      // ✅ Escuchar cambios en el select clonado para renombrar el archivo ya adjuntado
+      // Caso: usuario adjunta archivo primero, y luego elige el tipo de sistema
+      formDinamico?.get(nuevaLlaveSelect)?.valueChanges
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((nuevoTipo: string) => {
+          const fileKey = docOriginal.key;
+          const ext = this.extensionesArchivos[fileKey];
+          if (!nuevoTipo?.trim() || !ext) return;
+          const nuevoNombre = `${nuevoTipo.trim()}.${ext}`;
+          const ctrl = formDinamico?.get(fileKey);
+          if (ctrl) {
+            ctrl.setValue(nuevoNombre, { emitEvent: false });
+          }
+        });
+
       const llaveAnterior = nuevoIndex === 2 ? 'document1' : `agrupado_${nuevoIndex - 1}`;
       const indexAnterior = campos.findIndex((c) => c.key === llaveAnterior);
       const seccionHeredada = indexAnterior !== -1 ? campos[indexAnterior].seccion : '1. Información del Proveedor';
@@ -1093,6 +1115,14 @@ export class ProviderComponent implements OnInit {
 
       const insertIndex = indexAnterior !== -1 ? indexAnterior + 1 : campos.length;
       campos.splice(insertIndex, 0, campoAgrupado);
+    }
+
+    // ✅ FIX: Registrar el control reactivo del archivo en formDinamico si aún no existe.
+    // Sin esto, Angular no puede bindear el campo del documento adicional y solo
+    // renderiza el primero (document1) que ya tenía su control desde el inicio.
+    const formDinamico = this.form.get('formDinamico') as FormGroup;
+    if (formDinamico && !formDinamico.contains(docOriginal.key)) {
+      formDinamico.addControl(docOriginal.key, this.fb.control(''));
     }
 
     this.camposDinamicos.set(campos);
@@ -1453,6 +1483,23 @@ export class ProviderComponent implements OnInit {
               }
             });
         });
+
+        // ✅ Renombrar document1 cuando el usuario cambia typeManagementSystem
+        // Caso: adjunta el archivo primero, luego elige el tipo de sistema de gestión
+        const selectDoc1 = formDinamico.get('typeManagementSystem');
+        if (selectDoc1) {
+          selectDoc1.valueChanges
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((nuevoTipo: string) => {
+              const ext = this.extensionesArchivos['document1'];
+              if (!nuevoTipo?.trim() || !ext) return;
+              const nuevoNombre = `${nuevoTipo.trim()}.${ext}`;
+              const ctrlDoc = formDinamico.get('document1');
+              if (ctrlDoc) {
+                ctrlDoc.setValue(nuevoNombre, { emitEvent: false });
+              }
+            });
+        }
       }
 
       setTimeout(() => {
@@ -1654,16 +1701,30 @@ submitForm(): void {
         for (const key in docsPaso1) {
           if (docsPaso1[key] instanceof File) {
             const f = docsPaso1[key] as File;
-            archivosParaSubir.push({ file: f, nombre: f.name });
+            // ✅ FIX: usar el título descriptivo del documento (ej: "RUT Actualizado.pdf")
+            // en vez del nombre real del archivo del sistema operativo
+            const configDoc = this.arrayItems().find(d => d.key === key);
+            const ext = f.name.split('.').pop() ?? '';
+            const nombreFinal = configDoc
+              ? `${configDoc.title}.${ext}`
+              : f.name;
+            archivosParaSubir.push({ file: f, nombre: nombreFinal });
           }
         }
 
         // 📁 B. Archivos dinámicos (document1, document2, document_ambiental...)
-        // Estos vienen del signal porque formDinamico solo guarda el nombre como string
+        // ✅ FIX: usar el nombre renombrado guardado en formDinamico (ej: "ISO 9001.pdf")
+        // en vez de f.name que es el nombre real del archivo en el sistema operativo
         const archivosDinamicos = this.archivosAdjuntosDinamicos();
+        const formDinValues = this.form.get('formDinamico')?.value ?? {};
         for (const key in archivosDinamicos) {
           const f = archivosDinamicos[key];
-          archivosParaSubir.push({ file: f, nombre: f.name });
+          // formDinamico guarda el nombre renombrado como string (ej: "ISO 9001.pdf")
+          const nombreRenombrado = formDinValues[key];
+          const nombreFinal = (typeof nombreRenombrado === 'string' && nombreRenombrado.trim())
+            ? nombreRenombrado.trim()
+            : f.name;
+          archivosParaSubir.push({ file: f, nombre: nombreFinal });
         }
 
         if (archivosParaSubir.length === 0) {
@@ -1770,9 +1831,24 @@ getArchivosPaso1(): { label: string, nombre: string }[] {
   getValorMostrado(campo: any): string {
     const valor = this.form.get('formDinamico')?.get(campo.key)?.value;
 
-    // Si es un documento adjunto
+    // Si es un documento adjunto directo (File en el control)
     if (valor instanceof File) {
       return '📄 ' + valor.name;
+    }
+
+    // ✅ FIX: para documentos adicionales el File real está en archivosAdjuntosDinamicos
+    // (formDinamico solo guarda el nombre como string para estos campos)
+    const archivoReal = this.archivosAdjuntosDinamicos()[campo.key];
+    if (archivoReal instanceof File) {
+      return '📄 ' + archivoReal.name;
+    }
+
+    // Si el control tiene un string con nombre de archivo (ej: "ISO 9001.PDF")
+    if (typeof valor === 'string' && valor.trim() !== '' &&
+        (valor.toLowerCase().includes('.pdf') || valor.toLowerCase().includes('.png') ||
+         valor.toLowerCase().includes('.jpg') || valor.toLowerCase().includes('.jpeg') ||
+         valor.toLowerCase().includes('.doc') || valor.toLowerCase().includes('.docx'))) {
+      return '📄 ' + valor;
     }
 
     // Si el usuario lo dejó vacío
@@ -1782,6 +1858,83 @@ getArchivosPaso1(): { label: string, nombre: string }[] {
 
     // Si es texto o número normal
     return String(valor);
+  }
+
+  // Retorna los documentos dinámicos agrupados (document1, agrupado_2, agrupado_3...)
+  // para mostrarlos en la sección de revisión del paso 3
+  getDocumentosDinamicosParaRevision(): { tipoLabel: string; tipoValor: string; archivoLabel: string; archivoNombre: string }[] {
+    const resultado: { tipoLabel: string; tipoValor: string; archivoLabel: string; archivoNombre: string }[] = [];
+    const campos = this.camposDinamicos();
+    const formDin = this.form.get('formDinamico');
+    const archivos = this.archivosAdjuntosDinamicos();
+
+    // Documento 1 (campo simple: typeManagementSystem + document1)
+    const doc1 = campos.find(c => c.key === 'document1' && c.visible !== false);
+    if (doc1) {
+      const tipoCtrl = formDin?.get('typeManagementSystem');
+      const tipoValor = tipoCtrl?.value ?? '';
+      const archivoFile = archivos['document1'];
+      const archivoNombre = archivoFile ? archivoFile.name : (formDin?.get('document1')?.value ?? '');
+      if (archivoNombre) {
+        resultado.push({
+          tipoLabel: 'Tipo de sistema de gestión',
+          tipoValor,
+          archivoLabel: doc1.label,
+          archivoNombre,
+        });
+      }
+    }
+
+    // Documentos adicionales (agrupado_2, agrupado_3... tipo documento-agrupado)
+    campos
+      .filter(c => c.type === 'documento-agrupado' && c.visible !== false)
+      .forEach(c => {
+        const selectKey = c.selectConfig?.key;
+        const fileKey = c.fileConfig?.key;
+        const tipoValor = selectKey ? (formDin?.get(selectKey)?.value ?? '') : '';
+        const archivoFile = fileKey ? archivos[fileKey] : undefined;
+        const archivoNombre = archivoFile
+          ? archivoFile.name
+          : (fileKey ? (formDin?.get(fileKey)?.value ?? '') : '');
+        if (archivoNombre) {
+          resultado.push({
+            tipoLabel: c.selectConfig?.label ?? 'Tipo de sistema',
+            tipoValor,
+            archivoLabel: c.fileConfig?.label ?? c.tituloInterno ?? 'Documento',
+            archivoNombre,
+          });
+        }
+      });
+
+    // Documento ambiental (document_ambiental)
+    const docAmb = campos.find(c => c.key === 'document_ambiental' && c.visible !== false);
+    if (docAmb) {
+      const archivoFile = archivos['document_ambiental'];
+      const archivoNombre = archivoFile ? archivoFile.name : (formDin?.get('document_ambiental')?.value ?? '');
+      if (archivoNombre) {
+        resultado.push({
+          tipoLabel: '',
+          tipoValor: '',
+          archivoLabel: docAmb.label,
+          archivoNombre,
+        });
+      }
+    }
+
+    // Firma y sello
+    const archivoFirma = archivos['document_firma_sello'];
+    const firmaStr = formDin?.get('document_firma_sello')?.value ?? '';
+    const firmaNombre = archivoFirma ? archivoFirma.name : firmaStr;
+    if (firmaNombre) {
+      resultado.push({
+        tipoLabel: '',
+        tipoValor: '',
+        archivoLabel: 'Firma y Sello',
+        archivoNombre: firmaNombre,
+      });
+    }
+
+    return resultado;
   }
   getCamposConValorPorSeccion(seccion: string): CampoDinamico[] {
   return this.camposDinamicos().filter(c => {
