@@ -47,7 +47,6 @@
   --font-head: 'Sora', sans-serif;
   --font-body: 'DM Sans', sans-serif;
 
-  /* Alturas fijas de las franjas superiores */
   --h-header: 58px;
   --h-nav:    50px;
 }
@@ -57,10 +56,7 @@
    ============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
-  height: 100%;
-  /* sin overflow: hidden — el scroll lo hace el window normalmente */
-}
+html, body { height: 100%; }
 
 body {
   background: var(--bg);
@@ -70,7 +66,7 @@ body {
 }
 
 /* ============================================================
-   LAYOUT PRINCIPAL — completamente fijo, sin rebotes
+   LAYOUT PRINCIPAL
    ============================================================ */
 .provider-page {
   min-height: 100vh;
@@ -90,10 +86,10 @@ body {
 }
 
 /* ============================================================
-   HEADER / LOGO — altura fija
+   HEADER / LOGO
    ============================================================ */
 .provider-header {
-  flex-shrink: 0;          /* nunca se comprime */
+  flex-shrink: 0;
   height: var(--h-header);
   display: flex;
   align-items: center;
@@ -117,10 +113,10 @@ body {
 }
 
 /* ============================================================
-   STEPPER PRINCIPAL — altura fija
+   STEPPER PRINCIPAL
    ============================================================ */
 .steps {
-  flex-shrink: 0;          /* nunca se comprime */
+  flex-shrink: 0;
   height: var(--h-nav);
   display: flex;
   justify-content: center;
@@ -153,33 +149,28 @@ body {
 }
 
 /* ============================================================
-   CARD PRINCIPAL — ocupa el resto, sin scroll propio.
-   El scroll lo hace el navegador normalmente (body/window).
-   Así position: sticky en los botones funciona siempre.
+   CARD PRINCIPAL
    ============================================================ */
 .provider-card {
   flex: 1 1 0;
   min-height: 0;
-  overflow: visible;       /* NO overflow-y: auto — eso rompía el sticky cuando hay poco contenido */
+  overflow: visible;
   padding: 0 48px;
   background: var(--surface);
   position: relative;
 }
 
 /* ============================================================
-   CONTENIDO DE CADA PASO — ocupa el alto del viewport menos header+nav
-   Así los botones siempre quedan al fondo aunque haya poco contenido
+   CONTENIDO DE CADA PASO
    ============================================================ */
 .step-content {
   display: flex;
   flex-direction: column;
-  /* Alto mínimo = viewport - header (58px) - nav (50px) */
   min-height: calc(100vh - var(--h-header) - var(--h-nav));
   padding-top: 36px;
   animation: pv-fadeIn 0.3s ease both;
 }
 
-/* El div intermedio de Angular (formGroupName) debe heredar el alto */
 .step-content > div[formarrayname],
 .step-content > div[formgroupname],
 .step-content > div {
@@ -194,20 +185,18 @@ body {
 }
 
 /* ============================================================
-   FOOTER DE BOTONES — siempre al fondo gracias al flex + margin-top: auto
+   FOOTER DE BOTONES
    ============================================================ */
 .actions,
 .pagination-footer-premium {
-  margin-top: auto;        /* empuja el footer hasta el fondo del flex column */
+  margin-top: auto;
   padding: 20px 0 28px;
   border-top: 1.5px solid var(--border);
   background: var(--surface);
   box-shadow: 0 -4px 20px rgba(8,13,41,0.07);
-  /* Sticky como respaldo cuando la página sí hace scroll */
   position: sticky;
   bottom: 0;
   z-index: 20;
-  /* Compensar el padding del card para que la barra sea full-width */
   margin-left: -48px;
   margin-right: -48px;
   padding-left: 48px;
@@ -225,8 +214,6 @@ body {
   align-items: center;
   gap: 12px;
 }
-
-
 
 /* ============================================================
    TIPOGRAFÍA
@@ -286,7 +273,8 @@ h2.title {
   cursor: default;
 }
 
-.sub-step.active, .sub-step.completed { opacity: 1; }
+.sub-step.active,
+.sub-step.completed { opacity: 1; }
 
 .sub-step.active {
   background: var(--surface);
@@ -338,7 +326,7 @@ h2.title {
 }
 
 .form-group { margin-bottom: 0; }
-.form-group.full  { grid-column: 1 / -1; }
+.form-group.full   { grid-column: 1 / -1; }
 .form-group.span-2 { grid-column: span 2; }
 .form-group.span-3 { grid-column: span 3; }
 
@@ -439,7 +427,7 @@ h2.title {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 64px;        /* altura mínima fija — no salta al agregar texto */
+  min-height: 64px;
   padding: 14px 20px;
   background: var(--surface);
   border: 1.5px solid var(--border);
@@ -459,13 +447,12 @@ h2.title {
 .doc-item strong { font-size: 13.5px; font-weight: 600; color: var(--text); }
 .file-status-text { font-size: 12px; color: var(--success); font-weight: 600; }
 
-/* Las acciones siempre ocupan el mismo espacio — no empujan el layout */
 .doc-actions {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
-  min-width: 52px;         /* reserva espacio aunque no haya botón */
+  min-width: 52px;
   justify-content: flex-end;
 }
 
@@ -479,7 +466,24 @@ h2.title {
   grid-column: 1 / -1;
 }
 
-.contact-group-grid { margin-top: 4px; }
+/* ── FIX: el grid de contacto NO debe tener fondo azul ── */
+.contact-group-grid {
+  margin-top: 4px;
+  background: transparent;
+}
+
+/* ── FIX: los campos dentro de un grupo de contacto tienen borde naranja suave ── */
+.is-contact-box {
+  background: rgba(255,102,71,0.02);
+  border: 1.5px dashed rgba(255,102,71,0.18);
+  padding: 14px;
+  border-radius: var(--r-md);
+  transition: all 0.2s ease;
+}
+.is-contact-box:hover {
+  background: rgba(255,102,71,0.05);
+  border-color: rgba(255,102,71,0.38);
+}
 
 .is-beneficiary-box {
   background: rgba(255,102,71,0.03);
@@ -493,18 +497,6 @@ h2.title {
   border-color: rgba(255,102,71,0.45);
 }
 
-.is-contact-box {
-  background: rgba(255,102,71,0.02);
-  border: 1.5px dashed rgba(255,102,71,0.18);
-  padding: 14px;
-  border-radius: var(--r-md);
-  transition: all 0.2s ease;
-}
-.is-contact-box:hover {
-  background: rgba(255,102,71,0.05);
-  border-color: rgba(255,102,71,0.38);
-}
-
 /* ============================================================
    CAJA DE DOCUMENTOS AGRUPADOS
    ============================================================ */
@@ -515,6 +507,7 @@ h2.title {
   padding: 24px;
   margin-top: 8px;
 }
+
 .clone-box-title {
   font-family: var(--font-head);
   font-size: 14px; font-weight: 700;
@@ -523,6 +516,7 @@ h2.title {
   border-bottom: 1px solid rgba(255,102,71,0.15);
   display: flex; align-items: center; gap: 6px;
 }
+
 .duo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: flex-end; }
 
 /* ============================================================
@@ -547,6 +541,7 @@ h2.title {
   border-radius: var(--r-lg);
   padding: 24px;
 }
+
 .legal-content h4 {
   font-family: var(--font-head);
   font-size: 12px; font-weight: 700; text-transform: uppercase;
@@ -627,7 +622,7 @@ h2.title {
   transition: all 0.2s ease;
   box-shadow: 0 4px 14px var(--accent-glow);
   position: relative; overflow: hidden;
-  white-space: nowrap;   /* nunca parte el texto */
+  white-space: nowrap;
   flex-shrink: 0;
 }
 .btn-primary::after {
@@ -681,12 +676,11 @@ h2.title {
 }
 .btn-remove:hover { background: var(--error-bg); border-color: rgba(239,68,68,0.25); }
 
-/* Botones ícono premium */
 .action-buttons-group {
   display: flex;
   gap: 6px;
   align-items: center;
-  flex-shrink: 0;          /* nunca se encogen */
+  flex-shrink: 0;
 }
 
 .btn-icon-premium {
@@ -698,16 +692,15 @@ h2.title {
   background: var(--surface-2);
 }
 .btn-icon-premium:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-.btn-icon-premium.btn-blue  { color: #FF6647; background: #fff3f1; border-color: #ffd5cc; }
-.btn-icon-premium.btn-blue:hover  { background: var(--accent-200); }
-.btn-icon-premium.btn-red   { color: var(--error); background: var(--error-bg); border-color: #fecaca; }
-.btn-icon-premium.btn-red:hover   { background: #fee2e2; }
-.btn-icon-premium.btn-green { color: var(--success); background: var(--success-bg); border-color: #a7f3d0; }
-.btn-icon-premium.btn-green:hover { background: #d1fae5; }
+.btn-icon-premium.btn-blue   { color: #FF6647; background: #fff3f1; border-color: #ffd5cc; }
+.btn-icon-premium.btn-blue:hover   { background: var(--accent-200); }
+.btn-icon-premium.btn-red    { color: var(--error); background: var(--error-bg); border-color: #fecaca; }
+.btn-icon-premium.btn-red:hover    { background: #fee2e2; }
+.btn-icon-premium.btn-green  { color: var(--success); background: var(--success-bg); border-color: #a7f3d0; }
+.btn-icon-premium.btn-green:hover  { background: #d1fae5; }
 .btn-icon-premium.btn-purple { color: var(--purple); background: var(--purple-bg); border-color: #ffd5cc; }
 .btn-icon-premium.btn-purple:hover { background: #ffe8e3; }
 
-/* Botón eliminar beneficiario */
 .btn-delete-beneficiary {
   background: transparent; color: var(--error);
   border: 1.5px solid rgba(239,68,68,0.3);
@@ -722,7 +715,6 @@ h2.title {
   transform: translateY(-1px);
 }
 
-/* Botones nav paso a paso */
 .btn-nav {
   display: flex; align-items: center; gap: 8px;
   padding: 12px 28px; border-radius: var(--r-md);
@@ -753,6 +745,7 @@ h2.title {
   margin-bottom: 28px;
   box-shadow: var(--shadow-sm);
 }
+
 .review-item {
   display: flex; justify-content: space-between;
   align-items: flex-start; gap: 16px;
@@ -778,8 +771,9 @@ h2.title {
 .review-section {
   margin-bottom: 20px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r-lg);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .review-section-title {
@@ -805,19 +799,24 @@ h2.title {
   padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
 }
 
 .review-chip.file { background: #eff6ff; }
 
 .chip-label {
-  font-size: 10px; font-weight: 600;
-  color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
 .chip-value {
-  font-size: 13px; font-weight: 500;
-  color: var(--text); word-break: break-word;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  word-break: break-word;
 }
 
 .review-chip.file .chip-value { color: #3b82f6; }
@@ -970,7 +969,7 @@ h2.title {
 }
 
 /* ============================================================
-   CAMPO TELÉFONO / CELULAR CON INDICATIVO
+   CAMPO TELÉFONO CON INDICATIVO
    ============================================================ */
 .phone-group { position: relative; }
 
@@ -978,36 +977,62 @@ h2.title {
   position: relative;
   display: flex;
   align-items: stretch;
+  height: 46px;
   border: 1.5px solid var(--border);
   border-radius: var(--r-md);
-  overflow: visible;
-  background: var(--surface);
+  overflow: visible;           /* ← cambiar de hidden a visible */
+  background: var(--surface-2);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-.phone-input-row:focus-within { border-color: var(--accent); box-shadow: var(--focus); }
 
+.phone-input-row:focus-within {
+  border-color: var(--accent);
+  box-shadow: var(--focus);
+  background: var(--surface);
+}
+.phone-input-row > *:first-child {
+  border-radius: var(--r-md) 0 0 var(--r-md);
+}
+.phone-input-row > *:last-child {
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+}
+div[formgroupname],
+div[formarrayname] {
+  background: transparent !important;
+  outline: none !important;
+}
+
+/* Chrome/Edge aplican un fondo azul claro a highlight de fieldset */
+:focus-within > .form-grid,
+.form-grid:focus-within {
+  background: transparent !important;
+}
+/* Selector de indicativo */
 .indicativo-wrapper {
   position: relative;
   display: flex; align-items: center; gap: 5px;
   padding: 0 10px;
   background: var(--surface-2);
   border-right: 1.5px solid var(--border);
-  border-radius: var(--r-md) 0 0 var(--r-md);
   cursor: pointer;
   min-width: 88px;
   user-select: none;
   flex-shrink: 0;
   transition: background 0.15s;
+  z-index: 2;
 }
 .indicativo-wrapper:hover { background: var(--accent-100); }
+
 .indicativo-flag { font-size: 17px; line-height: 1; }
 .indicativo-code { font-size: 13px; font-weight: 600; color: var(--text); font-family: var(--font-head); }
 .indicativo-caret { color: var(--muted); flex-shrink: 0; }
 
-.indicativo-dropdown {
+/* Dropdown de países — posicionado absolutamente fuera del overflow:hidden */
+.phone-group .indicativo-dropdown {
   position: absolute;
   top: calc(100% + 4px);
-  left: 0; z-index: 1000;
+  left: 0;
+  z-index: 1000;
   width: 300px;
   background: var(--surface);
   border: 1.5px solid var(--border);
@@ -1015,35 +1040,72 @@ h2.title {
   box-shadow: var(--shadow-lg);
   animation: fadeSlideDown 0.18s ease;
 }
+
 @keyframes fadeSlideDown {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
 .indicativo-dropdown-inner {
   max-height: 240px; overflow-y: auto; padding: 6px 4px;
   scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent;
 }
 .indicativo-loading { padding: 16px; text-align: center; color: var(--muted); font-size: 13px; }
+
 .indicativo-option {
   display: flex; align-items: center; gap: 8px;
   padding: 8px 10px; border-radius: var(--r-sm); cursor: pointer; transition: background 0.12s;
 }
 .indicativo-option:hover { background: var(--accent-100); }
 .indicativo-option.active { background: var(--accent-200); }
-.ind-flag  { font-size: 16px; flex-shrink: 0; }
-.ind-nombre { font-size: 13px; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ind-code  { font-size: 12px; font-weight: 700; color: var(--accent); font-family: var(--font-head); flex-shrink: 0; }
 
+.ind-flag   { font-size: 16px; flex-shrink: 0; }
+.ind-nombre { font-size: 13px; color: var(--text); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ind-code   { font-size: 12px; font-weight: 700; color: var(--accent); font-family: var(--font-head); flex-shrink: 0; }
+
+/* Input numérico del teléfono */
 .phone-number-input {
   flex: 1; min-width: 0;
   border: none; outline: none;
-  padding: 0 12px; height: 44px;
+  padding: 0 12px;
   font-size: 14px; font-family: var(--font-body);
   color: var(--text); background: transparent;
-  border-radius: 0 var(--r-md) var(--r-md) 0;
 }
 .phone-number-input::placeholder { color: var(--muted); }
 
+/* ── FIX Ext.: integrado visualmente dentro del phone-input-row ── */
+.ext-label {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  background: var(--surface-2);
+  border-left: 1.5px solid var(--border);
+  flex-shrink: 0;
+  height: 100%;
+}
+
+.ext-input {
+  width: 62px;
+  flex-shrink: 0;
+  border: none;
+  border-left: none;
+  outline: none;
+  padding: 0 10px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  color: var(--text);
+  background: var(--surface-2);
+  height: 100%;
+  transition: background 0.15s;
+}
+.ext-input:focus { background: var(--accent-100); }
+.ext-input::placeholder { color: var(--muted); font-size: 12px; }
+
+/* Búsqueda dentro del dropdown */
 .indicativo-search { padding: 8px 8px 4px; border-bottom: 1px solid var(--border); }
 .indicativo-search-input {
   width: 100%; height: 34px;
@@ -1054,15 +1116,6 @@ h2.title {
 }
 .indicativo-search-input:focus { border-color: var(--accent); }
 .indicativo-empty { padding: 14px; text-align: center; color: var(--muted); font-size: 13px; }
-
-.ext-label { font-size: 12px; color: var(--muted); white-space: nowrap; padding: 0 4px; align-self: center; }
-.ext-input {
-  width: 72px; flex-shrink: 0; height: 40px;
-  border: 1.5px solid var(--border); border-radius: var(--r-sm);
-  padding: 0 10px; font-size: 14px; font-family: var(--font-body);
-  color: var(--text); background: var(--surface); outline: none; transition: border-color 0.18s;
-}
-.ext-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,102,71,0.12); }
 
 /* ============================================================
    MAYÚSCULAS GLOBALES
@@ -1078,6 +1131,7 @@ textarea {
 @media (max-width: 1024px) {
   .form-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
 @media (max-width: 768px) {
   .provider-card { padding: 0 22px; }
   .step-content { padding-top: 24px; }
@@ -1094,6 +1148,7 @@ textarea {
   .sig-column:last-child { border-bottom: none; }
   .dian-modal-card { max-height: 90vh; }
 }
+
 @media (max-width: 640px) {
   .form-grid { grid-template-columns: 1fr; }
   .form-group.span-2, .form-group.span-3 { grid-column: 1 / -1; }
@@ -1105,4 +1160,6 @@ textarea {
   .doc-actions { width: 100%; justify-content: flex-end; }
   .dian-row { flex-direction: column; }
   .dian-input, .dian-btn-add { width: 100%; }
+  .phone-input-row { height: auto; min-height: 46px; flex-wrap: wrap; }
+  .ext-label, .ext-input { border-top: 1.5px solid var(--border); border-left: none; }
 }

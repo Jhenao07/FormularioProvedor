@@ -110,7 +110,7 @@ const COUNTRY_MAP: Record<string, string> = {
 const CAMPOS_SOLO_NATURAL = ['firstLastName', 'secondLastName', 'identification', 'identificationNumber', 'names'];
 const CAMPOS_SOLO_JURIDICA = ['companyname', 'nitId', 'dv', 'representativeName', 'nationalIdentityCard', 'riskControlSystem', 'which risk'];
 // Campos que se manejan internamente y nunca deben mostrarse en el formulario
-const CAMPOS_OCULTOS_SIEMPRE = ['supplierNationality'];
+const CAMPOS_OCULTOS_SIEMPRE = ['supplierNationality', 'contactType'];
 
 // ─────────────────────────────────────────────
 // Componente
@@ -1339,8 +1339,15 @@ export class ProviderComponent implements OnInit {
               : (key.startsWith('fixedCallsign') || key.startsWith('cellPhoneCode')) ? 'phone'
               : (fields.labelType ?? 'text');
 
-            // ── Si es contactType (sin número), replicar para los 5 grupos de contacto ──
+            // ── Si es contactType (sin número), ignorar — el backend ya manda contactType1-5 ──
             if (key === 'contactType') return;
+
+            // ── Para contactType1-5: forzar select con las opciones correctas ──
+            const esContactTypeNumerado = /^contactType\d+$/.test(key);
+            const tipoFinal = esContactTypeNumerado ? 'select' : tipoForzado;
+            const opcionesFinal = esContactTypeNumerado
+              ? ['Comprobantes de pago', 'Comercial', 'Cartera']
+              : (fields.options ?? []);
 
             nuevoCamposDinamicos.push({
               key,
@@ -1348,8 +1355,8 @@ export class ProviderComponent implements OnInit {
               idValueField: itemPlantilla.id ?? '',
               visible: esVisible,
               seccion: nombreSeccion,
-              type: tipoForzado,
-              options: fields.options ?? [],
+              type: tipoFinal,
+              options: opcionesFinal,
               isLong: false,
               columnSpan: fields.columnSpan ?? 1,
               autocompletado: false,
@@ -1449,8 +1456,8 @@ export class ProviderComponent implements OnInit {
           seccion: campoManual.seccion ?? '',
           orderToGetValue: ordenDefinitivo,
           ordenFijo: campoManual.ordenFijo,
-          // idValueField: idFromApi,
-          // isWritable: writableFromApi,
+          idValueField: idFromApi || undefined,
+          isWritable: writableFromApi || false,
         });
       });
 
@@ -1642,14 +1649,7 @@ submitForm(): void {
       const tieneIdValido = c.idValueField && typeof c.idValueField === 'string' && c.idValueField.length > 30;
       const noEsSubCampo = c.type !== 'hidden-phone-sub';
       return tieneIdValido && noEsSubCampo;
-
-    },
-       console.log('🔍 campos duplicados o sin número:',
-        todosLosCampos
-        .filter(c => c.key === 'finalBeneficiaryName')
-        .map(c => ({ key: c.key, id: c.idValueField }))
-    )
-  )
+    })
 
     .map(c => {
       const rawValue = formValues[c.key] ?? '';
@@ -1819,9 +1819,9 @@ getArchivosPaso1(): { label: string, nombre: string }[] {
     const archivos = [];
     for (const key in docs) {
       if (docs[key] instanceof File) {
-        // Formateamos la llave (ej: 'camara_comercio' -> 'CAMARA COMERCIO')
-        const labelLimpio = key.replace(/_/g, ' ').toUpperCase();
-        archivos.push({ label: labelLimpio, nombre: docs[key].name });
+        const docConfig = this.arrayItems().find(d => d.key === key);
+        const label = docConfig?.title ?? key.replace(/_/g, ' ').toUpperCase();
+        archivos.push({ label, nombre: docs[key].name });
       }
     }
     return archivos;

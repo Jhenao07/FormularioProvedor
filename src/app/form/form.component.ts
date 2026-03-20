@@ -126,7 +126,7 @@ export class FormComponent {
           const emp = res.users[0];
           this.form.patchValue({
             name:     emp.name,
-            agency:   emp.management,
+            agency:   emp.agency,
             position: emp.position,
             area:     emp.area,
           });
@@ -185,7 +185,7 @@ export class FormComponent {
         { labelIdField: 'supplierNationality',      valueField: this.selectedCountryCode },
       ]
     };
-    
+
    this.service.createInvitation(payload).subscribe({
       next: (res: any) => {
         // 🟢 Guardamos el email junto al payload para que registerprovider lo lea
