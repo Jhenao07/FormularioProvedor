@@ -126,7 +126,7 @@ export class ProviderComponent implements OnInit {
 
   // ─── Configuración API ───────────────────────
   private readonly API_BASE_URL = 'https://ccwhqcbjae.execute-api.us-east-1.amazonaws.com/api/ntp/commercialOperation/v1';
-  private readonly API_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExM2UyNDNjLTczZjctNGM4NC05MDE1LWU3NWRkZGFiZDI3MSIsImRhdGEiOiIyN2VmOWRiOTg0OTNhYzBiYjFkMmQ1YjJhYjVhZWFjMWViZjY1NDFhYjE4NGVmNTdmYzU3MGFkZmJhM2M1ODY3ODNmMjBhZjg0ZmQ5Y2ZmYWU3NzljYTY5NmRjMDRlZDFjODRiMzRiZjQyNWU4MTJjMDI3MmZmYjdlNTA1Yjg1YjgxNDFmMzc5NGIzNmEyNTEwYjBmODE4Njg0MzhmZGQ0YWUxYmJiMzJiZjIzMDg3OWRmZWQwMDIwYTJjYzdjOTQ0YjhhNGYxYzM0NDA1ZTRhNWRiY2I0NzA4NTc1NzFhZTYxMWZlMWQyYjYzM2YzNWNkMmExZjMyODI5OTljN2FjZjI4MjNiZjJmOTA1N2JiNDZjZjFlMzExNzg2MDQ0ZWZlOGNkYjA5YmM2YzliMjdlNmEyZDYyYjBhNzFjZjcyNGRhY2I2NGJmNzI4MTZkNmQ0ZTJjYTA1NzRmZjJiYjljODc3ZWJkMjhkNzZhZDMzMDA1NzlmMGZmYTlhMTliYWU2M2UwZWJiN2VmZGFhYTlhNjI4NDEzMGJlMzU5MmY3M2Q3ODIwYzQ0MTg2ZGEzMmNlMzBiNzJhYTc2MDIyYWMzZWVlYjI5MDRlNWNlZWU1YTI5OGQxYTIwNzAwZTM3NWFiMWRkMWEzMzcyMjU3NjFjOGIzMTRlOTE0MzM4MzgzMWVkNDJkZmFkNWQwOGMwOTRkZDg1ZDY4YTU4NTAwYmYzZTY5YWEzMmYyN2IyNjU0ZTBiOWI3MzUyMmU5Njc3MzRlZWNiZTUxMTIwMWJmOTFjY2RkOTJlMGQxMjE5YjFjNTFhZGRhODk0Y2U0ZjQ3ODhjODg5YjkwZTllYmY2YmM1OTlhZDkwZDdhNWY2YWQ4YjJkM2ViYzRmN2ZhMWMzZmEwNDJhMWRlOTAwNjhjN2U2YjEyNjhjZTlkNjdmZGUyYWQwMWNmMjg1N2Q2OWNiNDQ2NTIxNThjYzlkZmQ3YWI5MDNkM2Q5YTZmYmQ5N2Q4MDVhYzc4MDI5NTlhY2ZjZDZjMmQwMThlZTdmYzJjMDRkOGNmNzFjNDRlZTlhNGZhNjY1MDM4YjQyZjcwZTQ4NTAwZGNkMTliYTA5MzM0MzZlOWFkYWYxYzlmOWJlYzM0ZjQ2NDY1NmI0YzJhZjg4YTYyNWI5ZTZmNzcyZTNhYTFkMTZhNDU3YzdjZWFhOWU0ZTQ5N2ZhY2Y0YmRkNmVmZWI2NDMzYTNkZDNmY2FiNDBkZmM4NTViOThkMTI2ZmY5ZmIyMWJiZDBmMTcwNzgyYjEyZjQ0ODk5OGQwZGQ1NDk1YjMzODU3ODViMjU1MmU1YmZhMTUyMDhmNGNiNzhjMTc4ZmNhNDkxYjhhZTc5ZDliOTA3NDk3MTkwYjRhZThkZTIzNmQ4MDExMGMzMWZhYTRiMGVlNzlhNTVkMDhiZGQ4MGE3NjZiN2ExZmYyMzQzNCIsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzczNjYwNTQ2LCJleHAiOjE3NzQyNjUzNDZ9.JqMbuv_kA3CiyxA5mZmuk17Ha2jUTR5vuH1oTR031Ko';
+  private readonly API_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjExM2UyNDNjLTczZjctNGM4NC05MDE1LWU3NWRkZGFiZDI3MSIsImRhdGEiOiIyN2VmOWRiOTg0OTNhYzBiYjFkMmQ1YjJhYjVhZWFjMWViZjY1NDFhYjE4NGVmNTdmYzU3MGFkZmJhM2M1ODY3ODNmMjBhZjg0ZmQ5Y2ZmYWU3NzljYTY5NmRjMDRlZDFjODRiMzRiZjQyNWU4MTJjMDI3MmZmYjdlNTA1Yjg1YjgxNDFmMzc5NGIzNmEyNTEwYjBmODE4Njg0MzhmZGQ0YWUxYmJiMzJiZjIzMDg3OWRmZWQwMDIwYTJjYzdjOTQ0YjhhNGYxYzM0NDA1ZTRhNWRiY2I0NzA4NTc1NzFhZTYxMWZlMWQyYjYzM2YzNWNkMmExZjMyODI5OTljN2FjZjI4MjNiZjJmOTA1N2JiNDZjZjFlMzExNzg2MDQ0ZWZlOGNkYjA5YmM2YzliMjdlNmEyZDYyYjBhNzFjZjcyNGRhY2I2NGJmNzI4MTZkNmQ0ZTJjYTA1NzRmZjJiYjljODc3ZWJkMjhkNzZhZDMzMDA1NzlmMGZmYTlhMTliYWU2M2UwZWJiN2VmZGFhYTlhNjI4NDEzMGJlMzU5MmY3M2Q3ODIwYzQ0MTg2ZGEzMmNlMzBiNzJhYTc2MDIyYWMzZWVlYjI5MDRlNWNlZWU1YTI5OGQxYTIwNzAwZTM3NWFiMWRkMWEzMzcyMjU3NjFjOGIzMTRlOTE0MzM4MzgzMWVkNDJkZmFkNWQwOGMwOTRkZDg1ZDY4YTU4NTAwYmYzZTY5YWEzMmYyN2IyNjU0ZTBiOWI3MzUyMmU5Njc3MzRlZWNiZTUxMTIwMWJmOTFjY2RkOTJlMGQxMjE5YjFjNTFhZGRhODk0Y2U0ZjQ3ODhjODg5YjkwZTllYmY2YmM1OTlhZDkwZDdhNWY2YWQ4YjJkM2ViYzRmN2ZhMWMzZmEwNDJhMWRlOTAwNjhjN2U2YjEyNjhjZTlkNjdmZGUyYWQwMWNmMjg1N2Q2OWNiNDQ2NTIxNThjYzlkZmQ3YWI5MDNkM2Q5YTZmYmQ5N2Q4MDVhYzc4MDI5NTlhY2ZjZDZjMmQwMThlZTdmYzJjMDRkOGNmNzFjNDRlZTlhNGZhNjY1MDM4YjQyZjcwZTQ4NTAwZGNkMTliYTA5MzM0MzZlOWFkYWYxYzlmOWJlYzM0ZjQ2NDY1NmI0YzJhZjg4YTYyNWI5ZTZmNzcyZTNhYTFkMTZhNDU3YzdjZWFhOWU0ZTQ5N2ZhY2Y0YmRkNmVmZWI2NDMzYTNkZDNmY2FiNDBkZmM4NTViOThkMTI2ZmY5ZmIyMWJiZDBmMTcwNzgyYjEyZjQ0ODk5OGQwZGQ1NDk1YjMzODU3ODViMjU1MmU1YmZhMTUyMDhmNGNiNzhjMTc4ZmNhNDkxYjhhZTc5ZDliOTA3NDk3MTkwYjRhZThkZTIzNmQ4MDExMGMzMWZhYTRiMGVlNzlhNTVkMDhiZGQ4MGE3NjZiN2ExZmYyMzQzNCIsInR5cGUiOiJ1c2VyIiwiaWF0IjoxNzc0NTMxMjMzLCJleHAiOjE3NzUxMzYwMzN9.7zj7q2zd9-78sOyY7z85EExtfikm7D6YIqaDMg0rC1E';
 
   // ─── Servicios ───────────────────────────────
   private readonly route = inject(ActivatedRoute);
@@ -543,8 +543,6 @@ removeFile(docKey = '', fileInput?: HTMLInputElement): void {
   // Procesamiento PDF (Validación DIAN + AWS)
   // ─────────────────────────────────────────────
 
-
-
 validarYProcesarRut(file: File): void {
     console.log('🔍 Iniciando extracción del QR...');
     this.overlayOpen.set(true);
@@ -568,60 +566,93 @@ validarYProcesarRut(file: File): void {
         const found   = qr?.resultsByPage?.[0]?.found;
 
         if (!found || !dianUrl) {
-          this.overlayOpen.set(false); // 🟢 Cerramos overlay
+          console.warn('⚠️ El servicio de QR falló. Continuando con la extracción IA.');
+
+          this.overlayOpen.set(false);
+
+          // Le avisamos al usuario, pero NO le borramos el archivo
           Swal.fire({
             icon: 'error',
-            title: 'QR no detectado',
-            text: 'No logramos encontrar el QR oficial. Sube el PDF original de la DIAN.',
-            confirmButtonColor: '#ef4444'
+            title: 'Verificación oficial no disponible',
+            text: 'Este archivo no pudo ser verificado automáticamente con la DIAN. ',
+            confirmButtonColor: 'var(--accent)'
+          }).then(() => {
+            // El usuario hace clic en OK y la app sigue su camino mágico
+            if (extract?.jobId) {
+              this.overlayOpen.set(true);
+              this.overlayTitle.set('Extrayendo datos...');
+              this.iniciarPolling(extract.jobId);
+            } else {
+              this.currentStep.set(2);
+            }
           });
-          this.removeFile('rut');
-          return;
+
+          return; // Salimos de la función para no ejecutar el proxy
         }
 
-        this.overlayOpen.set(false);
+        // 🟢 AQUÍ ESTÁ LA MAGIA AUTOMÁTICA
+        this.overlaySubtitle.set('Consultando base de datos de la DIAN...');
 
-        // No es posible consultar la DIAN directamente desde el browser por CORS
-        // Le mostramos la URL al usuario para que confirme manualmente
-        Swal.fire({
-          icon: 'info',
-          title: '🔍 Verificación DIAN',
-          html: `
-            <p style="margin-bottom:12px;">Se encontró el QR del RUT. Para verificar su autenticidad, haz clic en el botón:</p>
-            <a href="${dianUrl}" target="_blank" rel="noopener"
-               style="display:inline-block; padding:8px 16px; background:#1d4ed8; color:white;
-                      border-radius:6px; text-decoration:none; font-size:13px; margin-bottom:16px;">
-              🔗 Ver en la DIAN
-            </a>
-            <p style="font-size:13px; color:#64748b;">¿El RUT aparece como <b>Registro Activo</b> en la DIAN?</p>
-          `,
-          showCancelButton: true,
-          confirmButtonText: '✅ Sí, está activo',
-          cancelButtonText: '❌ No, está inactivo',
-          confirmButtonColor: '#10b981',
-          cancelButtonColor: '#ef4444',
-        }).then((result) => {
-          if (!result.isConfirmed) {
-            Swal.fire({
-              icon: 'error',
-              title: 'RUT Inactivo',
-              text: 'No se puede continuar con un RUT inactivo en la DIAN.',
-              confirmButtonColor: '#ef4444'
-            });
-            this.removeFile('rut');
-            return;
-          }
+        this.services.fetchDianPage(dianUrl)
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe({
+            next: (html: string) => {
+              // Parseamos el HTML que nos trajo el proxy
+              const datos = this.parsearHtmlDian(html);
 
-          // Usuario confirmó que está activo — continuar con extracción IA
-          if (extract?.jobId) {
-            this.overlayOpen.set(true);
-            this.overlayTitle.set('Extrayendo datos...');
-            this.overlaySubtitle.set('Analizando con IA...');
-            this.iniciarPolling(extract.jobId);
-          } else {
-            this.currentStep.set(2);
-          }
-        });
+              if (!datos.esActivo) {
+                this.overlayOpen.set(false);
+                Swal.fire({
+                  icon: 'error',
+                  title: 'RUT Inactivo',
+                  text: 'La DIAN indica que este NIT no está activo actualmente.',
+                  confirmButtonColor: '#ef4444'
+                });
+                // Si hace un error, limpiamos el archivo para que suba otro
+                this.removeFile('rut');
+                return;
+              }
+
+              // ✅ RUT Válido y raspado con éxito
+              this.datosDian.set(datos);
+              this.overlayOpen.set(false);
+
+              Swal.fire({
+                icon: 'success',
+                title: '✅ RUT Válido (DIAN)',
+                html: `<b>NIT:</b> ${datos.nit}-${datos.dv}<br><b>Razón Social:</b> ${datos.razonSocial}`,
+                confirmButtonText: 'Continuar',
+                confirmButtonColor: 'var(--accent)'
+              }).then(() => {
+                // Pasamos a extraer el resto de los datos con IA
+                if (extract?.jobId) {
+                  this.overlayOpen.set(true);
+                  this.overlayTitle.set('Extrayendo datos...');
+                  this.iniciarPolling(extract.jobId);
+                } else {
+                  this.currentStep.set(2);
+                }
+              });
+            },
+            error: () => {
+              // 🟢 FALLBACK: Si el proxy falla (error 500) por algún bloqueo, no detenemos el proceso.
+              this.overlayOpen.set(false);
+              Swal.fire({
+                icon: 'warning',
+                title: 'Intermitencia en la validación',
+                text: 'No pudimos validar automáticamente con la DIAN, pero extraeremos los datos de tu PDF.',
+                confirmButtonColor: 'var(--accent)'
+              }).then(() => {
+                if (extract?.jobId) {
+                  this.overlayOpen.set(true);
+                  this.overlayTitle.set('Extrayendo datos...');
+                  this.iniciarPolling(extract.jobId);
+                } else {
+                  this.currentStep.set(2);
+                }
+              });
+            }
+          });
       },
       error: () => {
         this.overlayOpen.set(false);
