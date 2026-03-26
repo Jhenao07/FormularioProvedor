@@ -546,119 +546,130 @@ removeFile(docKey = '', fileInput?: HTMLInputElement): void {
 validarYProcesarRut(file: File): void {
     console.log('🔍 Iniciando extracción del QR...');
     this.overlayOpen.set(true);
-    this.overlayTitle.set('Verificando RUT...');
+    this.overlayTitle.set('Verificando RUT con la DIAN...');
     this.overlaySubtitle.set('Escaneando código QR...');
 
-    forkJoin({
-      qr: this.services.extractQr(file).pipe(catchError(err => {
-        console.error('❌ Error QR:', err);
-        return of(null);
-      })),
-      extract: this.services.startExtraction(file, 'rut').pipe(catchError(err => {
-        console.error('❌ Error IA:', err);
-        return of(null);
-      }))
-    })
-    .pipe(takeUntilDestroyed(this.destroyRef))
-    .subscribe({
-      next: ({ qr, extract }) => {
-        const dianUrl = qr?.resultsByPage?.[0]?.data;
-        const found   = qr?.resultsByPage?.[0]?.found;
+    // ✅ SOLO extraemos el QR aquí — la extracción IA se lanza DESPUÉS
+    // de que la DIAN confirme que el RUT es válido, nunca antes.
+    this.services.extractQr(file)
+      .pipe(
+        catchError(err => {
+          console.error('❌ Error QR:', err);
+          return of(null);
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: (qr: any) => {
+          const dianUrl = qr?.resultsByPage?.[0]?.data;
+          const found   = qr?.resultsByPage?.[0]?.found;
 
-        if (!found || !dianUrl) {
-          console.warn('⚠️ El servicio de QR falló. Continuando con la extracción IA.');
+          // ❌ CASO 1: No se detectó QR en el archivo
+          // → El documento no es un RUT oficial de la DIAN. Bloqueamos.
+          if (!found || !dianUrl) {
+            this.overlayOpen.set(false);
+            Swal.fire({
+              icon: 'error',
+              title: 'Documento no válido',
+              html: 'Este archivo <b>no contiene un código QR oficial de la DIAN</b>.<br>Por favor adjunta un RUT descargado directamente del portal de la DIAN.',
+              confirmButtonColor: '#ef4444',
+              confirmButtonText: 'Entendido'
+            });
+            // Limpiamos el archivo para que el usuario suba uno correcto
+            this.removeFile('rut');
+            return;
+          }
 
-          this.overlayOpen.set(false);
+          // 🟢 QR detectado — consultamos la DIAN
+          this.overlaySubtitle.set('Consultando base de datos de la DIAN...');
 
-          // Le avisamos al usuario, pero NO le borramos el archivo
-          Swal.fire({
-            icon: 'error',
-            title: 'Verificación oficial no disponible',
-            text: 'Este archivo no pudo ser verificado automáticamente con la DIAN. ',
-            confirmButtonColor: 'var(--accent)'
-          }).then(() => {
-            // El usuario hace clic en OK y la app sigue su camino mágico
-            if (extract?.jobId) {
-              this.overlayOpen.set(true);
-              this.overlayTitle.set('Extrayendo datos...');
-              this.iniciarPolling(extract.jobId);
-            } else {
-              this.currentStep.set(2);
-            }
-          });
+          this.services.fetchDianPage(dianUrl)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe({
+              next: (html: string) => {
+                const datos = this.parsearHtmlDian(html);
 
-          return; // Salimos de la función para no ejecutar el proxy
-        }
+                // ❌ CASO 2: RUT inactivo según la DIAN
+                if (!datos.esActivo) {
+                  this.overlayOpen.set(false);
+                  Swal.fire({
+                    icon: 'error',
+                    title: 'RUT Inactivo',
+                    html: 'La DIAN indica que este NIT <b>no está activo</b> actualmente.<br>Adjunta un RUT con estado activo para continuar.',
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: 'Entendido'
+                  });
+                  this.removeFile('rut');
+                  return;
+                }
 
-        // 🟢 AQUÍ ESTÁ LA MAGIA AUTOMÁTICA
-        this.overlaySubtitle.set('Consultando base de datos de la DIAN...');
+                // ✅ CASO 3: RUT válido y activo — ahora sí lanzamos la extracción IA
+                this.datosDian.set(datos);
+                this.overlayOpen.set(false);
 
-        this.services.fetchDianPage(dianUrl)
-          .pipe(takeUntilDestroyed(this.destroyRef))
-          .subscribe({
-            next: (html: string) => {
-              // Parseamos el HTML que nos trajo el proxy
-              const datos = this.parsearHtmlDian(html);
+                Swal.fire({
+                  icon: 'success',
+                  title: '✅ RUT Verificado con la DIAN',
+                  html: `<b>NIT:</b> ${datos.nit}-${datos.dv}<br><b>Razón Social:</b> ${datos.razonSocial}`,
+                  confirmButtonText: 'Continuar',
+                  confirmButtonColor: 'var(--accent)'
+                }).then(() => {
+                  // Ahora sí lanzamos la extracción IA con AWS
+                  this.overlayOpen.set(true);
+                  this.overlayTitle.set('Extrayendo datos del RUT...');
+                  this.overlaySubtitle.set('Analizando datos con IA');
 
-              if (!datos.esActivo) {
+                  this.services.startExtraction(file, 'rut')
+                    .pipe(
+                      catchError(err => {
+                        console.error('❌ Error IA:', err);
+                        return of(null);
+                      }),
+                      takeUntilDestroyed(this.destroyRef)
+                    )
+                    .subscribe({
+                      next: (extract: any) => {
+                        if (extract?.jobId) {
+                          this.iniciarPolling(extract.jobId);
+                        } else {
+                          this.overlayOpen.set(false);
+                          this.currentStep.set(2);
+                        }
+                      },
+                      error: () => {
+                        this.overlayOpen.set(false);
+                        this.currentStep.set(2);
+                      }
+                    });
+                });
+              },
+              // ❌ CASO 4: El proxy para consultar la DIAN falló (sin internet, CORS, etc.)
+              // → No podemos verificar → bloqueamos y pedimos al usuario que reintente
+              error: () => {
                 this.overlayOpen.set(false);
                 Swal.fire({
                   icon: 'error',
-                  title: 'RUT Inactivo',
-                  text: 'La DIAN indica que este NIT no está activo actualmente.',
-                  confirmButtonColor: '#ef4444'
+                  title: 'No se pudo verificar con la DIAN',
+                  html: 'Hubo un problema al conectarse con el portal de la DIAN.<br>Verifica tu conexión e intenta de nuevo.',
+                  confirmButtonColor: '#ef4444',
+                  confirmButtonText: 'Entendido'
                 });
-                // Si hace un error, limpiamos el archivo para que suba otro
                 this.removeFile('rut');
-                return;
               }
-
-              // ✅ RUT Válido y raspado con éxito
-              this.datosDian.set(datos);
-              this.overlayOpen.set(false);
-
-              Swal.fire({
-                icon: 'success',
-                title: '✅ RUT Válido (DIAN)',
-                html: `<b>NIT:</b> ${datos.nit}-${datos.dv}<br><b>Razón Social:</b> ${datos.razonSocial}`,
-                confirmButtonText: 'Continuar',
-                confirmButtonColor: 'var(--accent)'
-              }).then(() => {
-                // Pasamos a extraer el resto de los datos con IA
-                if (extract?.jobId) {
-                  this.overlayOpen.set(true);
-                  this.overlayTitle.set('Extrayendo datos...');
-                  this.iniciarPolling(extract.jobId);
-                } else {
-                  this.currentStep.set(2);
-                }
-              });
-            },
-            error: () => {
-              // 🟢 FALLBACK: Si el proxy falla (error 500) por algún bloqueo, no detenemos el proceso.
-              this.overlayOpen.set(false);
-              Swal.fire({
-                icon: 'warning',
-                title: 'Intermitencia en la validación',
-                text: 'No pudimos validar automáticamente con la DIAN, pero extraeremos los datos de tu PDF.',
-                confirmButtonColor: 'var(--accent)'
-              }).then(() => {
-                if (extract?.jobId) {
-                  this.overlayOpen.set(true);
-                  this.overlayTitle.set('Extrayendo datos...');
-                  this.iniciarPolling(extract.jobId);
-                } else {
-                  this.currentStep.set(2);
-                }
-              });
-            }
+            });
+        },
+        error: () => {
+          // Error total del servicio QR
+          this.overlayOpen.set(false);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error en la verificación',
+            text: 'No pudimos procesar el archivo. Intenta subirlo nuevamente.',
+            confirmButtonColor: '#ef4444'
           });
-      },
-      error: () => {
-        this.overlayOpen.set(false);
-        Swal.fire('Error', 'Hubo un fallo en la comunicación con los servicios.', 'error');
-      }
-    });
+          this.removeFile('rut');
+        }
+      });
   }
   /**
    * Procesa el HTML crudo de la página de la DIAN y extrae la información
