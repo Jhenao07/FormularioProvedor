@@ -156,7 +156,7 @@ body {
   min-height: 0;
   overflow: visible;
   padding: 0 48px;
-  background: var(--surface);
+  background: #f4f7fb;  /* fondo ligeramente azulado para contrastar con campos blancos */
   position: relative;
 }
 
@@ -171,12 +171,15 @@ body {
   animation: pv-fadeIn 0.3s ease both;
 }
 
-.step-content > div[formarrayname],
-.step-content > div[formgroupname],
-.step-content > div {
+.step-content > div:not(.actions):not(.pagination-footer-premium) {
   display: flex;
   flex-direction: column;
   flex: 1;
+}
+
+.step-content > div[formgroupname],
+.step-content > div[formarrayname] {
+  min-height: calc(100vh - var(--h-header) - var(--h-nav) - 36px);
 }
 
 @keyframes pv-fadeIn {
@@ -189,10 +192,12 @@ body {
    ============================================================ */
 .actions,
 .pagination-footer-premium {
+  flex-shrink: 0;        /* FIX: nunca se comprime */
+  flex-grow: 0;          /* FIX: no crece, se queda al fondo con margin-top:auto */
   margin-top: auto;
   padding: 20px 0 28px;
   border-top: 1.5px solid var(--border);
-  background: var(--surface);
+  background: #f4f7fb;
   box-shadow: 0 -4px 20px rgba(8,13,41,0.07);
   position: sticky;
   bottom: 0;
@@ -333,11 +338,12 @@ h2.title {
 .form-group label.label {
   display: block;
   font-family: var(--font-body);
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 700;
+  color: #475569;
   margin-bottom: 6px;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .req { color: var(--error); margin-left: 2px; }
@@ -368,8 +374,8 @@ h2.title {
 .sig-input {
   width: 100%;
   height: 46px;
-  background: var(--surface-2);
-  border: 1.5px solid var(--border);
+  background: #ffffff;
+  border: 1.5px solid #b8c4d4;
   border-radius: var(--r-md);
   color: var(--text);
   padding: 0 14px;
@@ -379,18 +385,24 @@ h2.title {
   outline: none;
   transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
   appearance: none;
+  box-shadow: 0 1px 3px rgba(8,13,41,0.08), inset 0 1px 2px rgba(8,13,41,0.04);
 }
 
 .dynamic-input:focus,
 .form-group input:focus,
 .form-group select:focus {
   border-color: var(--accent);
-  background: var(--surface);
-  box-shadow: var(--focus);
+  background: #ffffff;
+  box-shadow: var(--focus), 0 1px 3px rgba(8,13,41,0.07);
+}
+
+.dynamic-input:not(:placeholder-shown),
+.form-group input:not(:placeholder-shown) {
+  border-color: #94a3b8;
 }
 
 .dynamic-input::placeholder,
-.form-group input::placeholder { color: var(--muted); font-weight: 400; }
+.form-group input::placeholder { color: #a0aec0; font-weight: 400; font-style: italic; }
 .hidden-input { display: none !important; }
 
 /* Badge autocompletado */
@@ -613,7 +625,7 @@ h2.title {
    ============================================================ */
 .btn-primary {
   padding: 12px 28px;
-  background: linear-gradient(135deg, var(--accent) 0%, #FF6647 100%);
+  background: #FF6647;
   color: #fff; border: none;
   border-radius: var(--r-md);
   font-family: var(--font-head);
@@ -634,6 +646,10 @@ h2.title {
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px var(--accent-glow);
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px var(--accent-glow);
 }
 .btn-primary:disabled {
   background: var(--border-strong); color: var(--muted);
@@ -727,12 +743,15 @@ h2.title {
 .btn-nav .icon { font-size: 16px; line-height: 1; }
 .btn-nav-back { background: var(--surface-3); color: var(--text-2); border: 1.5px solid var(--border-strong); }
 .btn-nav-back:hover { background: var(--border); color: var(--text); }
+.btn-nav-back:active { background: var(--border-strong); }
 .btn-nav-next {
   background: linear-gradient(135deg, var(--accent) 0%, #FF6647 100%);
   color: #fff;
   box-shadow: 0 4px 14px var(--accent-glow);
 }
-.btn-nav-next:hover { transform: translateY(-2px); box-shadow: 0 8px 24px var(--accent-glow); }
+.btn-nav-next:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px var(--accent-glow); }
+.btn-nav-next:active:not(:disabled) { transform: translateY(0); box-shadow: 0 2px 8px var(--accent-glow); }
+.btn-nav-next:disabled { background: var(--border-strong); color: var(--muted); box-shadow: none; cursor: not-allowed; }
 
 /* ============================================================
    REVISIÓN (PASO 3)
@@ -978,11 +997,12 @@ h2.title {
   display: flex;
   align-items: stretch;
   height: 46px;
-  border: 1.5px solid var(--border);
+  border: 1.5px solid #b8c4d4;
   border-radius: var(--r-md);
-  overflow: visible;           /* ← cambiar de hidden a visible */
-  background: var(--surface-2);
+  overflow: visible;
+  background: #ffffff;
   transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 3px rgba(8,13,41,0.08), inset 0 1px 2px rgba(8,13,41,0.04);
 }
 
 .phone-input-row:focus-within {
@@ -1162,4 +1182,87 @@ textarea {
   .dian-input, .dian-btn-add { width: 100%; }
   .phone-input-row { height: auto; min-height: 46px; flex-wrap: wrap; }
   .ext-label, .ext-input { border-top: 1.5px solid var(--border); border-left: none; }
+}
+/* ==========================================================================
+   ### SweetAlert2 - Diseño Seguro y Corporativo
+   ========================================================================== */
+
+/* 1. Fondo semitransparente oscuro (Seguro para el rendimiento) */
+.swal2-container.swal2-backdrop-show {
+    background: rgba(8, 13, 41, 0.6) !important;
+    backdrop-filter: blur(4px); /* Blur suave que no congela la pantalla */
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* 2. Caja del Modal (Sin animaciones forzadas que rompan el cierre) */
+.swal2-popup {
+    font-family: 'Poppins', sans-serif !important;
+    border-radius: 1.5rem !important;
+    padding: 2rem 1.5rem !important;
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 20px 40px -10px rgba(8, 13, 41, 0.2) !important;
+}
+
+/* 3. Ícono Minimalista (Usa tu color Coral/Naranja) */
+.swal2-icon.swal2-warning,
+.swal2-icon.swal2-success,
+.swal2-icon.swal2-error {
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+}
+
+/* 4. Título */
+.swal2-title {
+    font-family: 'Poppins', sans-serif !important;
+    color: var(--text) !important;
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* 5. Texto Descriptivo */
+.swal2-html-container {
+    font-family: 'DM Sans', sans-serif !important;
+    color: var(--text-2) !important;
+    font-size: 1.05rem !important;
+    line-height: 1.6 !important;
+}
+
+/* 6. Botones (Separados y clickeables) */
+.swal2-actions {
+    margin-top: 2rem !important;
+    gap: 12px !important; /* Espacio real entre botones */
+}
+
+/* Botón de Confirmar (El Naranja/Coral) */
+.swal2-confirm {
+    background-color: var(--accent) !important;
+    color: #ffffff !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-weight: 600 !important;
+    padding: 12px 32px !important;
+    border-radius: 50px !important;
+    box-shadow: 0 4px 12px var(--accent-glow) !important;
+    transition: all 0.2s ease !important;
+}
+
+.swal2-confirm:hover {
+    background-color: var(--accent-hover) !important;
+    transform: translateY(-2px);
+}
+
+/* Botón de Cancelar (Gris/Azul oscuro) */
+.swal2-cancel {
+    background-color: var(--surface-3) !important;
+    color: var(--text) !important;
+    font-family: 'Poppins', sans-serif !important;
+    font-weight: 600 !important;
+    padding: 12px 32px !important;
+    border-radius: 50px !important;
+    transition: all 0.2s ease !important;
+}
+
+.swal2-cancel:hover {
+    background-color: var(--border) !important;
 }

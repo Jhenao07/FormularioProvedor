@@ -1,90 +1,152 @@
-/* Fondo oscuro semitransparente que cubre la pantalla actual */
+/* ============================================================
+   PROGRESS OVERLAY — Nuvant Brand
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=DM+Sans:wght@400;500&display=swap');
+
+/* Fondo backdrop */
 .overlay-backdrop {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(15, 23, 42, 0.7); /* Azul muy oscuro tipo Nuvant */
-  backdrop-filter: blur(4px); /* Difumina un poco lo que está detrás */
+  inset: 0;
+  background: rgba(8,13,41,0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   z-index: 9999;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-/* El recuadro flotante central */
+/* Modal flotante */
 .floating-modal {
   background: #ffffff;
-  border-radius: 20px;
-  padding: 24px;
-  width: 340px; /* Ancho fijo para que se vea elegante */
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  border-radius: 24px;
+  padding: 0;
+  width: min(380px, 92vw);
+  box-shadow:
+    0 32px 80px rgba(8,13,41,0.28),
+    0 8px 24px rgba(255,102,71,0.10),
+    0 0 0 1px rgba(255,255,255,0.9) inset;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(226,232,240,0.6);
 }
 
-/* Contenedor del video para darle bordes curvos */
+/* Franja accent top */
+.floating-modal::before {
+  content: '';
+  display: block;
+  height: 3px;
+  background: linear-gradient(90deg, #FF6647, #e0502e, #FF6647);
+  background-size: 200% 100%;
+  animation: ov-shimmer 2s linear infinite;
+}
+
+@keyframes ov-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Contenedor del video */
 .video-container {
   width: 100%;
-  border-radius: 12px;
-  overflow: hidden; /* Esto asegura que el video respete los bordes redondos */
-  margin-bottom: 20px;
-  background-color: #f1f5f9; /* Color de fondo por si el video tarda un microsegundo en cargar */
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  background: #f1f5f9;
+  position: relative;
 }
 
-/* El video adaptado al 100% de la cajita */
 .modal-video {
   width: 100%;
-  height: 180px; /* Alto fijo para mantener proporción */
-  object-fit: cover; /* Recorta suavemente para llenar el espacio sin deformar */
-  display: block; /* Elimina márgenes fantasma */
+  height: 190px;
+  object-fit: cover;
+  display: block;
+  filter: brightness(0.95) saturate(0.9);
 }
 
-/* Textos */
+/* Overlay gradiente sobre el video */
+.video-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 48px;
+  background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.95));
+  pointer-events: none;
+}
+
+/* Texto */
 .text-content {
   text-align: center;
-  margin-bottom: 20px;
+  padding: 20px 28px 6px;
 }
 
-.title {
-  font-size: 1.25rem;
+.text-content .title {
+  font-family: 'Sora', sans-serif;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 8px 0;
+  color: #080d29;
+  margin: 0 0 8px;
+  line-height: 1.3;
+  letter-spacing: -0.2px;
 }
 
-.subtitle {
-  font-size: 0.95rem;
+.text-content .subtitle {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.875rem;
   color: #64748b;
   margin: 0;
+  line-height: 1.55;
 }
 
-/* Botón de cancelar */
+/* Barra de progreso indeterminada */
+.ov-progress-bar {
+  margin: 18px 28px 6px;
+  height: 4px;
+  background: rgba(255,102,71,0.12);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.ov-progress-bar__fill {
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, #FF6647, #e0502e);
+  border-radius: 100px;
+  animation: ov-progress 1.6s ease-in-out infinite;
+}
+
+@keyframes ov-progress {
+  0%   { transform: translateX(-100%) scaleX(0.6); }
+  50%  { transform: translateX(150%) scaleX(1.2); }
+  100% { transform: translateX(300%) scaleX(0.6); }
+}
+
+/* Botón cancelar */
 .btn-cancel {
+  margin: 16px 28px 24px;
   background: transparent;
   color: #ef4444;
-  border: 1px solid #ef4444;
-  border-radius: 8px;
-  padding: 8px 24px;
-  font-size: 0.9rem;
+  border: 1.5px solid rgba(239,68,68,0.3);
+  border-radius: 10px;
+  padding: 10px 24px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s;
 }
-
 .btn-cancel:hover {
   background: #fef2f2;
+  border-color: #ef4444;
+  transform: translateY(-1px);
 }
 
-/* Animación de entrada */
+/* Animación entrada */
 .fade-in-up {
-  animation: fadeInUp 0.4s ease-out forwards;
+  animation: ov-fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+@keyframes ov-fadeInUp {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }

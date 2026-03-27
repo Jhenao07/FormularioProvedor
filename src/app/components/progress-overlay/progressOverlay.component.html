@@ -5,13 +5,16 @@
     <div class="video-container">
       <video autoplay loop [muted]="true" volume="0" playsinline class="modal-video">
         <source src="assets/video.mp4" type="video/mp4">
-        Tu navegador no soporta videos HTML5.
       </video>
     </div>
 
     <div class="text-content">
       <h2 class="title">{{ title }}</h2>
       <p class="subtitle" *ngIf="subtitle">{{ subtitle }}</p>
+    </div>
+
+    <div class="ov-progress-bar">
+      <div class="ov-progress-bar__fill"></div>
     </div>
 
     <button class="btn-cancel" (click)="close.emit()">
